@@ -13,6 +13,7 @@ This directory is the single documentation source for package-level responsibili
 | `@cline/llms` | Model catalog + provider settings schema + handler creation SDK | `@cline/agents`, `@cline/core`, apps | None |
 | `@cline/agents` | Stateless agent runtime loop (tools, hooks, extensions, teams, streaming) | `@cline/core`, apps | `@cline/llms`, `@cline/shared` |
 | `@cline/core` | Stateful runtime orchestration (runtime composition, session lifecycle/storage, local and hub runtime services, hub discovery and client helpers) | CLI/Desktop apps | `@cline/agents`, `@cline/llms`, `@cline/shared` |
+| `@cline/surge` | Parallel surge orchestration (waves, gates, mailbox, AIMD, checkpoints) via `SurgeHostPort` | `@cline/core` (optional), Drive hosts, MOS bridges | None |
 | `@cline/ui` | Internal framework-neutral web theme, Tailwind adapter, and optional base styles | Cline web apps | None |
 
 ## How Packages Work Together
@@ -29,6 +30,7 @@ This directory is the single documentation source for package-level responsibili
 - Put provider/model schema, cataloging, and handler wiring in `@cline/llms`.
 - Put loop/tool/hook/team execution behavior in `@cline/agents`.
 - Put persistence, session lifecycle, and runtime assembly in `@cline/core`.
+- Put parallel wave orchestration (AIMD, gates, mailbox, checkpoints) in `@cline/surge`; bind agents through `SurgeHostPort`.
 - Put scheduled execution and schedule persistence in `@cline/core` hub services.
 - Put hub discovery, attach flows, and session-oriented client adapters in `@cline/core/hub`.
 - Put cross-package utility types and path/session constants in `@cline/shared`.

@@ -1,0 +1,33 @@
+{
+	"name": "@cline/surge",
+	"version": "0.0.65",
+	"description": "Parallel surge orchestration — waves, gates, mailbox, AIMD, checkpoints",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/cline/cline",
+		"directory": "sdk/packages/surge"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"browser": "./dist/index.js",
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"files": ["dist"],
+	"scripts": {
+		"build": "bun run bun.mts && bun tsc -p tsconfig.build.json",
+		"dev": "bun build ./src/index.ts --outdir ./dist --target node --format esm --watch",
+		"typecheck": "bun tsc -p tsconfig.dev.json --noEmit",
+		"test": "vitest run",
+		"test:watch": "vitest"
+	},
+	"engines": {
+		"node": ">=22"
+	},
+	"keywords": ["cline", "surge", "orchestration", "parallel", "aimd"],
+	"license": "Apache-2.0"
+}
