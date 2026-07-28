@@ -43,7 +43,7 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 2. ~~**Vite 7 vs 8**~~ **U2 fixed** (Vite 8 on vscode webview-ui + sdk/ui). React 18 remains on vscode webview-ui.  
 3. ~~**Vitest 3 vs 4** in vscode webview-ui.~~ **U1 fixed**  
 4. ~~**Zod 3 vs 4** in desktop-app example.~~ **U3 fixed**  
-5. **lucide-react** three different 0.x minors + looming 1.x.  
+5. ~~**lucide-react** three different 0.x minors + looming 1.x.~~ **U5 hub/desktop/examples → ^1.27.0**; vscode webview-ui still on 0.511  
 6. **ai** package slightly different minors between hub webview and llms.
 
 ## Recommended upgrade order (unchanged from plan)

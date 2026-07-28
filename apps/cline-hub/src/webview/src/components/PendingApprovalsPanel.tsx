@@ -2,7 +2,7 @@
 
 import { CheckIcon, Loader2Icon, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type { WebviewOutboundMessage } from "../../webview-protocol";
+import type { WebviewOutboundMessage } from "../../../webview-protocol";
 
 export type PendingApproval = Extract<
 	WebviewOutboundMessage,

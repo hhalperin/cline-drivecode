@@ -270,7 +270,6 @@ export type WebviewInboundMessage =
 	| { type: "restore"; checkpointRunCount: number }
 	| { type: "forkSession" }
 	| {
-
 			type: "driveCommand";
 			command:
 				| "drive.room.get"
@@ -279,7 +278,8 @@ export type WebviewInboundMessage =
 				| "drive.participant.deafen.set"
 				| "drive.show.present";
 			payload?: Record<string, unknown>;
-	  };
+	  }
+	| {
 			type: "call_join";
 			roomId: string;
 			human: { id: string; displayName: string };
@@ -428,7 +428,6 @@ export type WebviewOutboundMessage =
 	  }
 	| { type: "fork_error"; text: string }
 	| {
-
 			type: "drive_room_changed";
 			room: {
 				roomId: string;
@@ -459,6 +458,14 @@ export type WebviewOutboundMessage =
 			ownerParticipantId: string;
 			uri?: string;
 			caption?: string;
+	  }
+	| {
+			type: "drive_spotlight_changed";
+			from: string | null;
+			to: string | null;
+			reason?: string;
+	  }
+	| {
 			type: "room_snapshot";
 			roomId: string;
 			snapshot: import("@cline/shared").RoomSnapshot;

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import { isDriveHumanId } from "../participantIds";
-import type { DriveUiState } from "../types";
+import { isDriveHumanId } from "./participantIds";
+import type { DriveUiState } from "./types";
 
 export function StickyStagePane({
 	drive,

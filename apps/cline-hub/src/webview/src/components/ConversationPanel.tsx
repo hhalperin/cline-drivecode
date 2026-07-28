@@ -34,7 +34,7 @@ import { cn } from "@/lib/utils";
 import type {
 	WebviewChatMessage,
 	WebviewChatMessageBlock,
-} from "../../webview-protocol";
+} from "../../../webview-protocol";
 import { postToHost } from "../vscode";
 
 type ChatMessage = WebviewChatMessage;
