@@ -1215,7 +1215,7 @@ function createAiSdkProvider(kind: ProviderModuleKind): GatewayProviderFactory {
 					...(useSystemOption ? { system: systemPrompt } : {}),
 					...(tools ? { tools: tools as never } : {}),
 					abortSignal: request.signal,
-					experimental_repairToolCall: repairMalformedToolCall as never,
+					repairToolCall: repairMalformedToolCall as never,
 					telemetry: {
 						isEnabled: langfuse,
 					},

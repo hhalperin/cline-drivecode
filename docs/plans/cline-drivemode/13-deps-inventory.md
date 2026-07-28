@@ -32,6 +32,10 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 |---|---|---|---|
 | zod | **^4.3.6** sdk/cli/desktop/agents-squad | 4.4.3 | **U3 done** |
 | ai | **^7.0.40** llms/hub (PR 24) | 7.0.40 | **U4 in progress** — see HANDOFF-pr24-u4 |
+| ai-sdk-ollama | **^4.1.0** (PR 24) | 4.1.0 | ai@7 peer; LanguageModelV4 |
+| ai-sdk-provider-opencode-sdk | ^3.0.1 | 3.0.6 | Still `@ai-sdk/provider@^3` — no ai@7 release |
+| dify-ai-provider | ^1.1.0 | 1.1.1 | Still `@ai-sdk/provider@^2` — no ai@7 release |
+| @jerome-benoit/sap-ai-provider | 4.8.0 | 4.8.0 | peer `ai@^5\|\|^6` only — no ai@7 release |
 | @ai-sdk/anthropic | **^4.0.23** | 4.0.23 | Aligned with ai@7 |
 | @ai-sdk/openai | **^4.0.22** | 4.0.22 | Aligned with ai@7 |
 | @ai-sdk/provider | **^4.0.4** | 4.0.4 | Aligned with ai@7 |
@@ -45,7 +49,7 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 2. **Vite 7 vs 8** — vscode webview-ui still on 7.  
 3. **Vitest 3 vs 4** — vscode webview-ui intentionally on 3.  
 4. **lucide-react** — vscode webview-ui still on 0.511.  
-5. **U4 incomplete** — `split-tool-images` `@ts-nocheck`; peers/deprecations (see HANDOFF-pr24-u4).
+5. **U4 in progress** — U4-A done; U4-B peers/deprecations (see HANDOFF-pr24-u4).
 
 ## Recommended upgrade order
 
