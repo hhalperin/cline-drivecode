@@ -789,6 +789,7 @@ export default function Chat({
 		driveVoiceResolved,
 		toggleDrive,
 		toggleStage,
+		presentedShow,
 	} = driveSession;
 
 	const attachSession = useCallback(
@@ -1627,7 +1628,12 @@ export default function Chat({
 						}
 						sharingLabel={latestToolLabel}
 					>
-						<StickyStagePane drive={drive} />
+						<StickyStagePane
+							caption={presentedShow?.caption}
+							drive={drive}
+							title={presentedShow?.title}
+							uri={presentedShow?.uri}
+						/>
 						<div className="space-y-3 text-xs text-muted-foreground">
 							<p>
 								Task bank cursor drives now/next. Edit plan refs below; completed

@@ -30,7 +30,7 @@ import {
 	resolveDriveVoiceTopology,
 	type DriveVoiceUi,
 } from "./voice/driveVoiceUi";
-import { getVsCodeApi } from "../vscode";
+import { getVsCodeApi, postToHost } from "../vscode";
 
 function readPersistedDriveUi(): DriveUiState {
 	try {
@@ -107,6 +107,13 @@ export type UseDriveSessionResult = {
 	driveVoiceResolved: ReturnType<typeof resolveDriveVoiceTopology>;
 	toggleDrive: () => void;
 	toggleStage: () => void;
+	presentedShow: {
+		showItemId: string;
+		title?: string;
+		caption?: string;
+		uri?: string;
+		ownerParticipantId?: string;
+	} | null;
 	stripHandlers: {
 		onClearOverride: () => void;
 		onHandToggle: () => void;
@@ -128,6 +135,13 @@ export function useDriveSession(
 		readPersistedDriveVoice,
 	);
 	const [voiceCaption, setVoiceCaption] = useState("");
+	const [presentedShow, setPresentedShow] = useState<{
+		showItemId: string;
+		title?: string;
+		caption?: string;
+		uri?: string;
+		ownerParticipantId?: string;
+	} | null>(null);
 	const bankSessionRef = useRef<DriveBankSession>(createDriveBankSession());
 	const [planEditorTasks, setPlanEditorTasks] = useState<
 		Array<{ id: string; title: string }>
@@ -145,6 +159,80 @@ export function useDriveSession(
 			// ignore
 		}
 	}, [drive, driveVoice]);
+
+	useEffect(() => {
+		const onMessage = (event: MessageEvent) => {
+			const message = event.data as {
+				type?: string;
+				showItemId?: string;
+				caption?: string;
+				uri?: string;
+				ownerParticipantId?: string;
+				room?: {
+					spotlightParticipantId?: string | null;
+					participantAudio?: Array<{
+						participantId: string;
+						muted: boolean;
+						deafened: boolean;
+					}>;
+					director?: {
+						activeShowId?: string | null;
+						showBacklog?: Array<{
+							id: string;
+							title: string;
+							caption: string;
+							uri?: string;
+							ownerParticipantId: string;
+						}>;
+					};
+				};
+			};
+			if (message.type === "drive_show_presented" && message.showItemId) {
+				setPresentedShow({
+					showItemId: message.showItemId,
+					caption: message.caption,
+					uri: message.uri,
+					ownerParticipantId: message.ownerParticipantId,
+				});
+				return;
+			}
+			if (message.type !== "drive_room_changed" || !message.room) {
+				return;
+			}
+			const room = message.room;
+			setDrive((current) => {
+				const partnerFlags = room.participantAudio?.find(
+					(flag) =>
+						flag.participantId === DRIVE_PARTICIPANT_PARTNER ||
+						flag.participantId === "partner" ||
+						flag.participantId === "drive:partner",
+				);
+				const spotlight =
+					room.spotlightParticipantId ?? current.spotlightParticipantId;
+				return {
+					...current,
+					spotlightParticipantId: spotlight,
+					partnerMuted: partnerFlags?.muted ?? current.partnerMuted,
+					partnerDeafened: partnerFlags?.deafened ?? current.partnerDeafened,
+				};
+			});
+			const activeId = room.director?.activeShowId;
+			const active = room.director?.showBacklog?.find(
+				(item) => item.id === activeId,
+			);
+			if (active) {
+				setPresentedShow({
+					showItemId: active.id,
+					title: active.title,
+					caption: active.caption,
+					uri: active.uri,
+					ownerParticipantId: active.ownerParticipantId,
+				});
+			}
+		};
+		window.addEventListener("message", onMessage);
+		return () => window.removeEventListener("message", onMessage);
+	}, []);
 
 	const driveVoiceResolved = useMemo(
 		() =>
@@ -216,7 +304,19 @@ export function useDriveSession(
 				});
 			},
 			onMuteToggle: () => {
-				setDrive((current) => ({ ...current, muted: !current.muted }));
+				setDrive((current) => {
+					const muted = !current.muted;
+					postToHost({
+						type: "driveCommand",
+						command: "drive.participant.mute.set",
+						payload: {
+							roomId: "default",
+							participantId: DRIVE_PARTICIPANT_HUMAN,
+							muted,
+						},
+					});
+					return { ...current, muted };
+				});
 			},
 			onOpenSettings: () => {
 				setDriveVoice((current) => ({
@@ -225,26 +325,53 @@ export function useDriveSession(
 				}));
 			},
 			onTogglePartnerDeafen: () => {
-				setDrive((current) => ({
-					...current,
-					partnerDeafened: !current.partnerDeafened,
-				}));
+				setDrive((current) => {
+					const partnerDeafened = !current.partnerDeafened;
+					postToHost({
+						type: "driveCommand",
+						command: "drive.participant.deafen.set",
+						payload: {
+							roomId: "default",
+							participantId: DRIVE_PARTICIPANT_PARTNER,
+							deafened: partnerDeafened,
+						},
+					});
+					return { ...current, partnerDeafened };
+				});
 			},
 			onTogglePartnerMute: () => {
-				setDrive((current) => ({
-					...current,
-					partnerMuted: !current.partnerMuted,
-				}));
+				setDrive((current) => {
+					const partnerMuted = !current.partnerMuted;
+					postToHost({
+						type: "driveCommand",
+						command: "drive.participant.mute.set",
+						payload: {
+							roomId: "default",
+							participantId: DRIVE_PARTICIPANT_PARTNER,
+							muted: partnerMuted,
+						},
+					});
+					return { ...current, partnerMuted };
+				});
 			},
 			onToggleSpotlight: () => {
-				setDrive((current) => ({
-					...current,
-					spotlightParticipantId:
+				setDrive((current) => {
+					const spotlightParticipantId =
 						current.spotlightParticipantId === DRIVE_PARTICIPANT_PARTNER ||
 						current.spotlightParticipantId === "partner"
 							? DRIVE_PARTICIPANT_HUMAN
-							: DRIVE_PARTICIPANT_PARTNER,
-				}));
+							: DRIVE_PARTICIPANT_PARTNER;
+					postToHost({
+						type: "driveCommand",
+						command: "drive.spotlight.set",
+						payload: {
+							roomId: "default",
+							participantId: spotlightParticipantId,
+							reason: "human",
+						},
+					});
+					return { ...current, spotlightParticipantId };
+				});
 			},
 			onSubModeChange: (subMode: DriveUiState["subMode"]) => {
 				setDrive((current) => {
@@ -269,11 +396,12 @@ export function useDriveSession(
 		planEditorTasks,
 		setPlanEditorTasks,
 		bankSessionRef,
-		driveVoiceResolved,
-		toggleDrive,
-		toggleStage,
-		stripHandlers,
-	};
+	driveVoiceResolved,
+	toggleDrive,
+	toggleStage,
+	stripHandlers,
+	presentedShow,
+};
 }
 
 // Re-export for settings panel wiring without Chat knowing voice helpers.

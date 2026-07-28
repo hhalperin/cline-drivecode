@@ -6,11 +6,13 @@ export function StickyStagePane({
 	drive,
 	title,
 	caption,
+	uri,
 	className,
 }: {
 	drive: DriveUiState;
 	title?: string;
 	caption?: string;
+	uri?: string;
 	className?: string;
 }) {
 	if (!drive.active || !drive.stageLayout) {
@@ -32,7 +34,8 @@ export function StickyStagePane({
 		>
 			<div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
 				<span>
-					Spotlight · <span className="font-medium text-foreground">{spotlightLabel}</span>
+					Spotlight ·{" "}
+					<span className="font-medium text-foreground">{spotlightLabel}</span>
 				</span>
 				<span>
 					{drive.partnerMuted ? "partner muted · " : ""}
@@ -41,12 +44,21 @@ export function StickyStagePane({
 				</span>
 			</div>
 			<div className="flex flex-1 flex-col justify-center gap-2">
+				{uri ? (
+					<img
+						alt={caption ?? title ?? "Presented show"}
+						className="max-h-64 w-full rounded border object-contain bg-background"
+						src={uri}
+					/>
+				) : null}
 				<p className="text-sm font-medium">
-					{title ?? "No sticky artifact yet"}
+					{title ?? (uri ? "Presented artifact" : "No sticky artifact yet")}
 				</p>
 				<p className="text-xs text-muted-foreground">
 					{caption ??
-						"Planner/screen manager will mount diagrams, walkthroughs, and demos here. Artifacts stay sticky across narration beats."}
+						(!uri
+							? "Present a diagram via drive.show.present / template producer to bind this pane."
+							: "")}
 				</p>
 			</div>
 		</div>
