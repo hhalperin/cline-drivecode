@@ -1,4 +1,4 @@
-import { ApertureIcon, EarOffIcon, HandIcon, MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon, Settings2Icon, VolumeXIcon } from "lucide-react";
+import { ApertureIcon, HandIcon, HeadphonesIcon, MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon, Settings2Icon, VolumeXIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -180,7 +180,7 @@ export function DriveCallStrip({
 					variant={drive.partnerDeafened ? "default" : "ghost"}
 					title="Partner deafen (cannot hear)"
 				>
-					<EarOffIcon className="size-3.5" />
+					<HeadphonesIcon className="size-3.5" />
 				</Button>
 				<Button
 					aria-label="Drive settings"

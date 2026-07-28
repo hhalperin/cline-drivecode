@@ -61,39 +61,21 @@ import type {
 	WebviewToolEvent,
 } from "../../webview-protocol";
 import { Composer } from "./components/Composer";
-import { NowNext } from "./components/NowNext";
 import { PlanEditor, removeTask } from "./components/PlanEditor";
 import {
-	DriveCallStrip,
 	DriveHeaderControls,
-	DriveNarrationBanner,
 	DriveStagePanel,
 } from "./drive/DriveCallChrome";
+import { DriveRoomChrome, DriveVoiceBar } from "./drive/DriveRoomChrome";
 import { StickyStagePane } from "./drive/StickyStagePane";
 import {
-	createDriveBankSession,
-	listPlanTasks,
-	seedDemoBank,
-	type DriveBankSession,
-} from "./drive/bankSession";
-import {
-	DEFAULT_DRIVE_UI,
 	applyBankSnapshot,
-	applySubModeIntent,
-	clearPostureOverride,
-	type DriveUiState,
+	DEFAULT_DRIVE_UI,
 	drivePersonaSystemHint,
 	toNativeMode,
 } from "./drive/types";
-import { DriveMicBar } from "./drive/voice/DriveMicBar";
-import { DriveSettingsPanel } from "./drive/voice/DriveSettingsPanel";
-import {
-	applyVoiceFacetPatch,
-	applyVoiceProfile,
-	createDefaultDriveVoiceUi,
-	resolveDriveVoiceTopology,
-	type DriveVoiceUi,
-} from "./drive/voice/driveVoiceUi";
+import { listPlanTasks } from "./drive/bankSession";
+import { useDriveSession } from "./drive/useDriveSession";
 import { createVoiceStack } from "./drive/voice/createVoiceStack";
 import { getVsCodeApi, postToHost } from "./vscode";
 
@@ -762,59 +744,6 @@ export default function Chat({
 	const [systemPrompt, setSystemPrompt] = useState("");
 	const [maxIterations, setMaxIterations] = useState("");
 	const [mode, setMode] = useState<"act" | "plan">("act");
-	const [drive, setDrive] = useState<DriveUiState>(() => {
-		try {
-			const state = getVsCodeApi()?.getState() as
-				| { driveUi?: DriveUiState }
-				| undefined;
-			if (state?.driveUi) {
-				return {
-					...DEFAULT_DRIVE_UI,
-					...state.driveUi,
-					bankSnapshot:
-						state.driveUi.bankSnapshot ?? DEFAULT_DRIVE_UI.bankSnapshot,
-					postureOverride: state.driveUi.postureOverride ?? null,
-					spotlightParticipantId:
-						state.driveUi.spotlightParticipantId ??
-						DEFAULT_DRIVE_UI.spotlightParticipantId,
-					partnerMuted:
-						state.driveUi.partnerMuted ?? DEFAULT_DRIVE_UI.partnerMuted,
-					partnerDeafened:
-						state.driveUi.partnerDeafened ??
-						DEFAULT_DRIVE_UI.partnerDeafened,
-				};
-			}
-		} catch {
-			// ignore
-		}
-		return DEFAULT_DRIVE_UI;
-	});
-	const [driveJoinNote, setDriveJoinNote] = useState<string | null>(null);
-	const [driveVoice, setDriveVoice] = useState<DriveVoiceUi>(() => {
-		try {
-			const state = getVsCodeApi()?.getState() as
-				| { driveVoice?: DriveVoiceUi }
-				| undefined;
-			if (state?.driveVoice?.facets && state.driveVoice.profile) {
-				return {
-					...createDefaultDriveVoiceUi(state.driveVoice.profile),
-					...state.driveVoice,
-					facets: {
-						...createDefaultDriveVoiceUi(state.driveVoice.profile).facets,
-						...state.driveVoice.facets,
-					},
-				};
-			}
-		} catch {
-			// ignore
-		}
-		return createDefaultDriveVoiceUi("cloud");
-	});
-	const [voiceCaption, setVoiceCaption] = useState("");
-	const bankSessionRef = useRef<DriveBankSession>(createDriveBankSession());
-	const [planEditorTasks, setPlanEditorTasks] = useState<
-		Array<{ id: string; title: string }>
-	>([]);
 	const [reasonLevel, setReasonLevel] = useState<WebviewReasonLevel>("none");
 	const [enableTools, setEnableTools] = useState(true);
 	const [enableSpawn, setEnableSpawn] = useState(false);
@@ -835,6 +764,32 @@ export default function Chat({
 	const lastSelectionRef = useRef(lastSelection);
 	const sessionsRef = useRef(sessions);
 	const defaultsRef = useRef(defaults);
+
+	const isHydrating = Boolean(hydratingSessionId);
+	const driveSession = useDriveSession({
+		providerId: provider,
+		sending,
+		disabled: isHydrating,
+		onModeChange: setMode,
+		onAbort: () => {
+			postToHost({ type: "abort" });
+		},
+		onStatus: setStatus,
+	});
+	const {
+		drive,
+		setDrive,
+		driveVoice,
+		driveJoinNote,
+		setDriveJoinNote,
+		setVoiceCaption,
+		planEditorTasks,
+		setPlanEditorTasks,
+		bankSessionRef,
+		driveVoiceResolved,
+		toggleDrive,
+		toggleStage,
+	} = driveSession;
 
 	const attachSession = useCallback(
 		(nextSessionId: string) => {
@@ -1170,7 +1125,6 @@ export default function Chat({
 	}, [provider, model]);
 
 	const models = modelsByProvider[provider] ?? [];
-	const isHydrating = Boolean(hydratingSessionId);
 	const modelSupportsReasoning =
 		models.find((item) => item.id === model)?.supportsThinking === true;
 	const effectiveReasonLevel = modelSupportsReasoning ? reasonLevel : "none";
@@ -1207,19 +1161,6 @@ export default function Chat({
 		});
 	};
 
-	useEffect(() => {
-		try {
-			const api = getVsCodeApi();
-			if (!api) {
-				return;
-			}
-			const state = (api.getState() as Record<string, unknown>) ?? {};
-			api.setState({ ...state, driveUi: drive, driveVoice });
-		} catch {
-			// ignore
-		}
-	}, [drive, driveVoice]);
-
 	const latestToolLabel = useMemo(() => {
 		for (let i = messages.length - 1; i >= 0; i -= 1) {
 			const events = messages[i]?.toolEvents;
@@ -1230,15 +1171,6 @@ export default function Chat({
 		}
 		return drive.active ? "waiting for partner activity" : "idle";
 	}, [messages, drive.active]);
-
-	const driveVoiceResolved = useMemo(
-		() =>
-			resolveDriveVoiceTopology({
-				voice: driveVoice,
-				providerId: provider,
-			}),
-		[driveVoice, provider],
-	);
 
 	const sendDrivePrompt = useCallback(
 		(prompt: string) => {
@@ -1399,47 +1331,8 @@ export default function Chat({
 						<DriveHeaderControls
 							disabled={isHydrating}
 							drive={drive}
-							onToggleDrive={() => {
-								void (async () => {
-									const current = drive;
-									const nextActive = !current.active;
-									if (nextActive) {
-										const snapshot = await seedDemoBank(
-											bankSessionRef.current,
-										);
-										const tasks = snapshot.activePlanId
-											? await listPlanTasks(
-													bankSessionRef.current,
-													snapshot.activePlanId,
-												)
-											: [];
-										setPlanEditorTasks(tasks);
-										setDriveJoinNote(
-											`On the call. I am ${current.partnerName}. Share what you want to work on and I will drive.`,
-										);
-										const next = applyBankSnapshot(
-											{ ...current, active: true },
-											snapshot,
-										);
-										setDrive(next);
-										setMode(toNativeMode(next.subMode));
-										return;
-									}
-									setDriveJoinNote(null);
-									setPlanEditorTasks([]);
-									setDrive({
-										...DEFAULT_DRIVE_UI,
-										partnerName: current.partnerName,
-									});
-									setMode("act");
-								})();
-							}}
-							onToggleStage={() => {
-								setDrive((current) => ({
-									...current,
-									stageLayout: !current.stageLayout,
-								}));
-							}}
+							onToggleDrive={toggleDrive}
+							onToggleStage={toggleStage}
 						/>
 						<Button
 							disabled={isHydrating}
@@ -1457,110 +1350,11 @@ export default function Chat({
 						</Button>
 					</div>
 				</div>
-				<DriveCallStrip
+				<DriveRoomChrome
 					disabled={isHydrating}
-					drive={drive}
-					onClearOverride={() => {
-						setDrive((current) => {
-							const next = clearPostureOverride(current);
-							setMode(toNativeMode(next.subMode));
-							return next;
-						});
-					}}
-					onHandToggle={() => {
-						setDrive((current) => {
-							const handRaised = !current.handRaised;
-							if (handRaised && sending) {
-								postToHost({ type: "abort" });
-								setStatus("Drive hand-raise: abort requested...");
-							}
-							return { ...current, handRaised };
-						});
-					}}
-					onMuteToggle={() => {
-						setDrive((current) => ({ ...current, muted: !current.muted }));
-					}}
-					onOpenSettings={() => {
-						setDriveVoice((current) => ({
-							...current,
-							settingsOpen: !current.settingsOpen,
-						}));
-					}}
-					onTogglePartnerDeafen={() => {
-						setDrive((current) => ({
-							...current,
-							partnerDeafened: !current.partnerDeafened,
-						}));
-					}}
-					onTogglePartnerMute={() => {
-						setDrive((current) => ({
-							...current,
-							partnerMuted: !current.partnerMuted,
-						}));
-					}}
-					onToggleSpotlight={() => {
-						setDrive((current) => ({
-							...current,
-							spotlightParticipantId:
-								current.spotlightParticipantId === "partner"
-									? "human"
-									: "partner",
-						}));
-					}}
-					onSubModeChange={(subMode) => {
-						setDrive((current) => {
-							const next = applySubModeIntent(current, subMode);
-							setMode(toNativeMode(next.subMode));
-							return next;
-						});
-					}}
+					providerId={provider}
+					session={driveSession}
 				/>
-				{drive.active && driveVoice.settingsOpen ? (
-					<DriveSettingsPanel
-						onClose={() =>
-							setDriveVoice((current) => ({
-								...current,
-								settingsOpen: false,
-							}))
-						}
-						onProfileChange={(profile) => {
-							setDriveVoice((current) => applyVoiceProfile(current, profile));
-						}}
-						onSttChange={(sttId) => {
-							setDriveVoice((current) =>
-								applyVoiceFacetPatch(current, {
-									"providers.sttId": sttId,
-								}),
-							);
-						}}
-						onTtsChange={(ttsId) => {
-							setDriveVoice((current) =>
-								applyVoiceFacetPatch(current, {
-									"providers.ttsId": ttsId,
-								}),
-							);
-						}}
-						providerId={provider}
-						voice={driveVoice}
-					/>
-				) : null}
-				{drive.active ? (
-					<NowNext
-						onSelectNext={() => {
-							/* feed scroll wired when message refs exist */
-						}}
-						onSelectNow={() => {
-							/* feed scroll wired when message refs exist */
-						}}
-						snapshot={drive.bankSnapshot}
-					/>
-				) : null}
-				{driveJoinNote ? (
-					<DriveNarrationBanner
-						partnerName={drive.partnerName}
-						text={driveJoinNote}
-					/>
-				) : null}
 				<div
 					className={
 						drive.active && drive.stageLayout
@@ -1721,48 +1515,13 @@ export default function Chat({
 						))}
 					</div>
 				) : null}
-				{drive.active && driveVoiceResolved.ok ? (
-					<div className="space-y-0">
-						<DriveMicBar
-							caption={voiceCaption}
-							disabled={isHydrating || sending}
-							forceMode={driveVoiceResolved.forceMode}
-							muted={drive.muted}
-							onCaptionChange={setVoiceCaption}
-							onSttError={(message) => setStatus(message)}
-							onTranscription={(text) => {
-								setVoiceCaption(text.trim());
-							}}
-							sttBackend={driveVoiceResolved.topology.stt}
-							sttConfig={driveVoice.facets["providers.sttConfig"]}
-						/>
-						{voiceCaption.trim() ? (
-							<div className="flex items-center justify-end gap-2 border-t bg-background px-3 py-2">
-								<Button
-									disabled={isHydrating || sending}
-									onClick={() => setVoiceCaption("")}
-									size="sm"
-									type="button"
-									variant="ghost"
-								>
-									Discard
-								</Button>
-								<Button
-									disabled={isHydrating || sending}
-									onClick={() => sendDrivePrompt(voiceCaption)}
-									size="sm"
-									type="button"
-								>
-									Send spoken
-								</Button>
-							</div>
-						) : null}
-					</div>
-				) : drive.active && !driveVoiceResolved.ok ? (
-					<div className="border-t bg-destructive/10 px-3 py-2 text-xs text-destructive">
-						Voice topology invalid: {driveVoiceResolved.message}
-					</div>
-				) : null}
+				<DriveVoiceBar
+					disabled={isHydrating}
+					onSendSpoken={sendDrivePrompt}
+					onSttError={setStatus}
+					sending={sending}
+					session={driveSession}
+				/>
 				<Composer
 					autoApproveTools={autoApproveTools}
 					disabled={isHydrating}
