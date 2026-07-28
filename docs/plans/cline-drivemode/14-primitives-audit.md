@@ -41,12 +41,14 @@ rg -n 'createVoiceStack\(' apps/cline-hub
 
 ## Dead-code candidates (confirm before delete)
 
-- Duplicate voice helpers if any after `useDriveSession` extraction
-- Unreferenced exports in `@cline/drive` after API stabilizes
+- Duplicate voice helpers if any after `useDriveSession` extraction — **none found** (driveVoiceUi still used)
+- Unreferenced exports in `@cline/drive` after API stabilizes — public surface; keep
 - Legacy docs claiming Web Speech as local-safe default (already amended in topology docs)
+- `produceMermaidShowArtifact` was exported but unused by handlers — **wired** via `materializeShowItem` on `drive.show.present`
+- Removed unused `__getDriveRoomForTests` + `ParticipantAudioFlags` re-export from drive-handlers
 
-## Next (P1)
+## Next (P2+)
 
-1. Remove leftover `"human"`/`"partner"` equality checks.  
-2. Add `isDriveHumanId` / `isDrivePartnerId` helpers.  
-3. Plan ConversationPanel split for Chat.tsx.
+1. Further Chat.tsx split (still ~1.3k) — session chrome / approvals panel  
+2. U3 Zod desktop align / U4 AI SDK major as dedicated PRs  
+3. P4 CI lint rules where encode-able

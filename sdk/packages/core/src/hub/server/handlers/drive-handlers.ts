@@ -1,19 +1,16 @@
 import {
-	createEmptyDriveRoomLiveState,
-	ShowBacklogItemSchema,
-	type DriveRoomLiveState,
-	type ParticipantAudioFlags,
-	type ShowBacklogItem,
-} from "@cline/shared";
-import {
 	setParticipantDeafened,
 	setParticipantMuted,
 	setSpotlight,
 } from "@cline/drive";
-import type {
-	HubCommandEnvelope,
-	HubReplyEnvelope,
+import type { HubCommandEnvelope, HubReplyEnvelope } from "@cline/shared";
+import {
+	createEmptyDriveRoomLiveState,
+	type DriveRoomLiveState,
+	type ShowBacklogItem,
+	ShowBacklogItemSchema,
 } from "@cline/shared";
+import { produceMermaidShowArtifact } from "../../drive-producers/produceMermaid";
 import { errorReply, type HubTransportContext, okReply } from "./context";
 
 const rooms = new Map<string, DriveRoomLiveState>();
@@ -68,6 +65,37 @@ function publishRoom(
 	}
 }
 
+/**
+ * Materialize show artifacts that still need production (e.g. mermaid → SVG data URI).
+ * Keeps caller id/title/caption; fills uri when produce.tool is render_mermaid.
+ */
+export function materializeShowItem(
+	showItem: ShowBacklogItem,
+): ShowBacklogItem {
+	if (showItem.uri || showItem.produce.tool !== "render_mermaid") {
+		return showItem;
+	}
+	const mermaidSource = showItem.produce.args.mermaidSource;
+	if (typeof mermaidSource !== "string" || !mermaidSource.trim()) {
+		return showItem;
+	}
+	const produced = produceMermaidShowArtifact({
+		mermaidSource,
+		ownerParticipantId: showItem.ownerParticipantId,
+		title: showItem.title,
+		caption: showItem.caption,
+		templateId: showItem.produce.templateId,
+	});
+	return {
+		...showItem,
+		uri: produced.item.uri,
+		status: "ready",
+		scoreReasons: [
+			...new Set([...showItem.scoreReasons, ...produced.item.scoreReasons]),
+		],
+	};
+}
+
 export function handleDriveCommand(
 	ctx: HubTransportContext,
 	envelope: HubCommandEnvelope,
@@ -102,11 +130,7 @@ function handleSpotlightSet(
 	const participantId = readString(envelope.payload, "participantId");
 	const reason = readString(envelope.payload, "reason") ?? "human";
 	if (!participantId) {
-		return errorReply(
-			envelope,
-			"invalid_payload",
-			"participantId is required",
-		);
+		return errorReply(envelope, "invalid_payload", "participantId is required");
 	}
 	const room = getOrCreateRoom(roomId);
 	const seated = new Set(room.seatedParticipantIds);
@@ -178,7 +202,9 @@ function handleShowPresent(
 	envelope: HubCommandEnvelope,
 ): HubReplyEnvelope {
 	const roomId = readString(envelope.payload, "roomId") ?? "default";
-	const parsedShow = ShowBacklogItemSchema.safeParse(envelope.payload?.showItem);
+	const parsedShow = ShowBacklogItemSchema.safeParse(
+		envelope.payload?.showItem,
+	);
 	if (!parsedShow.success) {
 		return errorReply(
 			envelope,
@@ -186,7 +212,7 @@ function handleShowPresent(
 			"showItem must be a valid ShowBacklogItem",
 		);
 	}
-	const showItem: ShowBacklogItem = parsedShow.data;
+	const showItem = materializeShowItem(parsedShow.data);
 	const room = getOrCreateRoom(roomId);
 	const showBacklog = [
 		showItem,
@@ -224,12 +250,3 @@ function handleShowPresent(
 export function __resetDriveRoomsForTests(): void {
 	rooms.clear();
 }
-
-/** @internal test helper */
-export function __getDriveRoomForTests(
-	roomId: string,
-): DriveRoomLiveState | undefined {
-	return rooms.get(roomId);
-}
-
-export type { ParticipantAudioFlags };

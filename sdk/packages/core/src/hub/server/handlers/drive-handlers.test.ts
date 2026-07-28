@@ -1,5 +1,5 @@
-import { describe, expect, it, beforeEach, vi } from "vitest";
 import type { HubCommandEnvelope, HubEventEnvelope } from "@cline/shared";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HubTransportContext } from "./context";
 import {
 	__resetDriveRoomsForTests,
@@ -73,9 +73,9 @@ describe("handleDriveCommand", () => {
 			}),
 		);
 		expect(reply.ok).toBe(true);
-		expect(published.some((event) => event.event === "drive.room.changed")).toBe(
-			true,
-		);
+		expect(
+			published.some((event) => event.event === "drive.room.changed"),
+		).toBe(true);
 		expect(
 			published.some((event) => event.event === "drive.spotlight.changed"),
 		).toBe(true);
@@ -107,5 +107,40 @@ describe("handleDriveCommand", () => {
 			muted: true,
 			deafened: true,
 		});
+	});
+
+	it("materializes mermaid show items without uri", () => {
+		const { ctx, published } = createCtx();
+		const reply = handleDriveCommand(
+			ctx,
+			envelope("drive.show.present", {
+				roomId: "r1",
+				showItem: {
+					id: "show-1",
+					ownerParticipantId: "drive:partner",
+					title: "Flow",
+					intent: "Explain",
+					artifactKind: "diagram.architecture",
+					mediaClass: "still",
+					caption: "Flow diagram",
+					produce: {
+						tool: "render_mermaid",
+						args: { mermaidSource: "graph TD; A-->B;" },
+					},
+					priority: 1,
+					status: "planned",
+					scoreReasons: [],
+				},
+			}),
+		);
+		expect(reply.ok).toBe(true);
+		const room = reply.payload?.room as {
+			director: { activeShowId: string; showBacklog: Array<{ uri?: string }> };
+		};
+		expect(room.director.activeShowId).toBe("show-1");
+		expect(room.director.showBacklog[0]?.uri).toMatch(/^data:image\/svg\+xml/);
+		expect(
+			published.some((event) => event.event === "drive.show.presented"),
+		).toBe(true);
 	});
 });
