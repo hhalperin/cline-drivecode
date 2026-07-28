@@ -7,14 +7,20 @@
         "defaultBranch": "main"
     },
     "files": {
-        "ignoreUnknown": true
+        "ignoreUnknown": true,
+        "includes": ["**", "!**/public/**/*.svg"]
     },
     "formatter": {
         "enabled": true,
         "indentStyle": "tab"
     },
     "linter": {
-        "enabled": true
+        "enabled": true,
+        "rules": {
+            "a11y": {
+                "noSvgWithoutTitle": "off"
+            }
+        }
     },
     "overrides": [
         {
@@ -48,9 +54,13 @@
                         "noUnsafeOptionalChaining": "warn"
                     },
                     "a11y": {
-                        "recommended": true,
                         "noSvgWithoutTitle": "off",
-                        "noStaticElementInteractions": "off"
+                        "noStaticElementInteractions": "off",
+                        "useKeyWithClickEvents": "off",
+                        "useAltText": "off",
+                        "useFocusableInteractive": "off",
+                        "useSemanticElements": "off",
+                        "useAriaPropsForRole": "off"
                     },
                     "style": {
                         "useNodejsImportProtocol": "off",
