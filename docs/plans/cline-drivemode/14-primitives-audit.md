@@ -49,6 +49,6 @@ rg -n 'createVoiceStack\(' apps/cline-hub
 
 ## Next (P2+)
 
-1. Further Chat.tsx split (still ~1.3k) — session chrome / approvals panel  
-2. U3 Zod desktop align / U4 AI SDK major as dedicated PRs  
-3. P4 CI lint rules where encode-able
+1. ~~Further Chat.tsx split~~ **P3 done** (~957 lines)  
+2. U4 AI SDK major / U5 lucide 1.x as dedicated PRs  
+3. **P4** unit guard: `planRoute.test.ts` bans `everyone` when seated
