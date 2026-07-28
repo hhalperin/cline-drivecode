@@ -455,14 +455,29 @@ export type HubCommandName =
 	| "connector.channels"
 	| "connector.configure"
 	| "connector.delete_config"
+
 	| "drive.room.get"
 	| "drive.spotlight.set"
 	| "drive.participant.mute.set"
 	| "drive.participant.deafen.set"
 	| "drive.show.present"
+	| "call_join"
+	| "call_leave"
+	| "call_mute"
+	| "call_set_stage"
+	| "call_set_mode"
+	| "call_record_work"
+	| "call_get_room"
 	| "cron.event.ingest"
 	| "cron.event.list"
 	| "cron.event.get"
+	| "status.publish"
+	| "status.query"
+	| "status.current"
+	| "status.board"
+	| "status.summary"
+	| "status.subjects"
+	| "status.prune"
 	| "ui.notify"
 	| "ui.show_window";
 
@@ -564,7 +579,10 @@ export type HubEventName =
 	| "drive.show.presented"
 	| "ui.notify"
 	| "ui.show_window"
-	| "hub.client.updated";
+	| "hub.client.updated"
+	| "room.snapshot"
+	| "room.event"
+	| "status.updated";
 
 export interface HubEventEnvelope {
 	version: HubProtocolVersion;

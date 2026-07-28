@@ -1,4 +1,105 @@
 export {
+	DEFAULT_DRIVE_MODE,
+	IllegalDriveModeTransitionError,
+	transitionDriveMode,
+	type DriveModeAction,
+	type DriveModeState,
+} from "./driveMode.js";
+export {
+	assertFakeHostFailClosed,
+	fakeHost,
+	FakeHostCapabilityError,
+	runHostConformance,
+	type ConformanceIssue,
+	type ConformanceReport,
+} from "./conformance/fakeHost.js";
+export {
+	CLINE_HOST_CAPABILITIES,
+	CLINE_HUB_WRITER_ENDPOINT,
+	type DriveHostPort,
+	type HostCapabilities,
+	type PromptRewriteDecision,
+	type RoomOp,
+} from "./hostPort.js";
+export {
+	classifyInterrupt,
+	decideReviseOrRestart,
+	type InterruptAction,
+	type InterruptClassification,
+	type InterruptInput,
+	type InterruptIntent,
+	type ReviseDecision,
+} from "./interruptPolicy.js";
+export {
+	narrate,
+	type NarrationCandidate,
+	type NarrationDensity,
+} from "./narrationPolicy.js";
+export {
+	createEmptyRoomSnapshot,
+	projectRoster,
+	projectStage,
+	reduceRoom,
+} from "./reduceRoom.js";
+export {
+	DEFAULT_AGENT_APPEARANCE,
+	DEFAULT_BODY_INK,
+	DEFAULT_NAME_INK,
+	DRIVE_FACET_CATALOG,
+	listFacetDefs,
+	type DriveFacetCatalog,
+	type DriveFacetKey,
+	type DriveFacetValue,
+} from "./facets/catalog.js";
+export {
+	createFacetStore,
+	type FacetStore,
+	type FacetStoreSnapshot,
+} from "./facets/store.js";
+export {
+	AdaptiveConcurrency,
+	DEFAULT_ADAPTIVE_CONCURRENCY,
+	DEFAULT_TOKEN_QUEUE,
+	DriveWaveCheckpointManager,
+	DriveWaveExecutor,
+	DriveWaveRunner,
+	DriveWorkMailbox,
+	DriveWorkScratch,
+	InMemoryWaveCheckpointStore,
+	TokenQueue,
+	abortReview,
+	alwaysContinueReview,
+	continueReview,
+	createDriveWaveResult,
+	createWorkItem,
+	evaluateReviews,
+	failFastReview,
+	pauseReview,
+	scratchPauseReview,
+	type AdaptiveConcurrencyConfig,
+	type DriveReviewAction,
+	type DriveReviewContext,
+	type DriveReviewDecision,
+	type DriveReviewGate,
+	type DriveReviewKind,
+	type DriveWaveCheckpoint,
+	type DriveWaveCheckpointStore,
+	type DriveWaveExecution,
+	type DriveWaveExecutorOptions,
+	type DriveWaveLogEntry,
+	type DriveWaveResult,
+	type DriveWaveRunnerOptions,
+	type DriveWaveStatus,
+	type DriveWorkExecutor,
+	type DriveWorkInput,
+	type DriveWorkInvocation,
+	type DriveWorkItem,
+	type DriveWorkMessage,
+	type DriveWorkOutcome,
+	type DriveWorkStatus,
+	type TokenQueueConfig,
+} from "./waves/index.js";
+export {
 	createMemoryBankFs,
 	type BankFs,
 } from "./bankFs.js";
@@ -38,17 +139,7 @@ export {
 	type MutationPolicyDecision,
 	type ResolveDriveLoopInput,
 } from "./driveLoop.js";
-export {
-	applyDerivedSubMode,
-	clearOverride,
-	createDriveModeState,
-	DriveModeError,
-	enterDrive,
-	exitDrive,
-	setOverride,
-	toNativeAgentMode,
-	type DriveModeState,
-} from "./driveMode.js";
+export { setPostureOverride as setOverride } from "./driveLoop.js";
 export {
 	assertProviderCompatible,
 	listProviders,

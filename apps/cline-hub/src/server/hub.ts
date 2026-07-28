@@ -213,6 +213,7 @@ export async function attachHub(ctx: HubContext): Promise<void> {
 				broadcastHubState(ctx);
 			}
 		},
+
 		onDriveRoomChanged(payload) {
 			const room = (payload as Record<string, unknown>).room;
 			if (!room || typeof room !== "object") return;
@@ -228,6 +229,51 @@ export async function attachHub(ctx: HubContext): Promise<void> {
 				ownerParticipantId: asString(payload.ownerParticipantId) ?? "",
 				uri: asString(payload.uri) ?? undefined,
 				caption: asString(payload.caption) ?? undefined,
+			});
+		},
+		onDriveSpotlightChanged(payload) {
+			ctx.broadcast({
+				type: "drive_spotlight_changed",
+				from: asString(payload.from) ?? null,
+				to: asString(payload.to) ?? null,
+				reason: asString(payload.reason) ?? undefined,
+			});
+		},
+		onRoomSnapshot(payload) {
+			const roomId = asString(payload.roomId);
+			const snapshot = payload.snapshot;
+			if (!roomId || !snapshot || typeof snapshot !== "object") {
+				return;
+			}
+			ctx.broadcast({
+				type: "room_snapshot",
+				roomId,
+				snapshot,
+			});
+		},
+		onRoomEvent(payload) {
+			const roomId = asString(payload.roomId);
+			const snapshot = payload.snapshot;
+			const event = payload.event;
+			if (!roomId || !snapshot || typeof snapshot !== "object") {
+				return;
+			}
+			ctx.broadcast({
+				type: "drive_event",
+				roomId,
+				event,
+				snapshot,
+			});
+		},
+		onStatusUpdated(payload) {
+			// Only the new row is pushed; open views append it to whatever page
+			// they already hold rather than refetching.
+			if (!asString(payload.updateId)) {
+				return;
+			}
+			ctx.broadcast({
+				type: "status_updated",
+				update: payload as unknown as import("@cline/shared").StatusUpdate,
 			});
 		},
 	});

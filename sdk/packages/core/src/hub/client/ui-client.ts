@@ -103,9 +103,13 @@ export class HubUIClient {
 		onSessionCreated?: (payload: Record<string, unknown>) => void;
 		onSessionUpdated?: (payload: Record<string, unknown>) => void;
 		onSessionDetached?: (payload: Record<string, unknown>) => void;
+
 		onDriveRoomChanged?: (payload: Record<string, unknown>) => void;
 		onDriveShowPresented?: (payload: Record<string, unknown>) => void;
 		onDriveSpotlightChanged?: (payload: Record<string, unknown>) => void;
+		onRoomSnapshot?: (payload: Record<string, unknown>) => void;
+		onRoomEvent?: (payload: Record<string, unknown>) => void;
+		onStatusUpdated?: (payload: Record<string, unknown>) => void;
 	}): () => void {
 		return this.client.subscribe((event: HubEventEnvelope) => {
 			switch (event.event) {
@@ -132,6 +136,7 @@ export class HubUIClient {
 				case "session.detached":
 					handlers.onSessionDetached?.(event.payload ?? {});
 					break;
+
 				case "drive.room.changed":
 					handlers.onDriveRoomChanged?.(event.payload ?? {});
 					break;
@@ -140,6 +145,15 @@ export class HubUIClient {
 					break;
 				case "drive.spotlight.changed":
 					handlers.onDriveSpotlightChanged?.(event.payload ?? {});
+					break;
+				case "room.snapshot":
+					handlers.onRoomSnapshot?.(event.payload ?? {});
+					break;
+				case "room.event":
+					handlers.onRoomEvent?.(event.payload ?? {});
+					break;
+				case "status.updated":
+					handlers.onStatusUpdated?.(event.payload ?? {});
 					break;
 			}
 		});

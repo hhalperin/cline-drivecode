@@ -1,9 +1,9 @@
+import type { RuntimeTopology } from "@cline/shared";
 import {
 	egressWithinCeiling,
 	sttBackendEgress,
 	ttsBackendEgress,
-	type RuntimeTopology,
-} from "@cline/shared";
+} from "./egressHelpers.js";
 
 export type TopologyRejectCode =
 	| "local_forbids_platform_cloud_stt"

@@ -1,41 +1,40 @@
 import { describe, expect, it } from "vitest";
 import {
-	applyDerivedSubMode,
-	clearOverride,
-	createDriveModeState,
-	enterDrive,
-	exitDrive,
-	setOverride,
-	toNativeAgentMode,
-} from "./driveMode.js";
+	DEFAULT_DRIVE_MODE,
+	IllegalDriveModeTransitionError,
+	transitionDriveMode,
+} from "./driveMode";
 
-describe("driveMode", () => {
-	it("enters and exits Drive", () => {
-		let state = createDriveModeState();
-		state = enterDrive(state);
-		expect(state.active).toBe(true);
-		state = exitDrive(state);
-		expect(state.active).toBe(false);
-		expect(state.override).toBeNull();
+describe("transitionDriveMode", () => {
+	it("activates and deactivates", () => {
+		const active = transitionDriveMode(DEFAULT_DRIVE_MODE, {
+			type: "activate",
+			subMode: "act",
+		});
+		expect(active).toEqual({ active: true, subMode: "act" });
+		expect(
+			transitionDriveMode(active, { type: "deactivate" }),
+		).toEqual({ active: false, subMode: "act" });
 	});
 
-	it("applies derived sub-mode unless override is set", () => {
-		let state = enterDrive(createDriveModeState());
-		state = applyDerivedSubMode(state, "agent");
-		expect(state.subMode).toBe("agent");
-		state = setOverride(state, "ask");
-		expect(state.subMode).toBe("ask");
-		state = applyDerivedSubMode(state, "agent");
-		expect(state.subMode).toBe("ask");
-		state = clearOverride(state, "agent");
-		expect(state.override).toBeNull();
-		expect(state.subMode).toBe("agent");
+	it("sets sub-mode while active", () => {
+		const active = transitionDriveMode(DEFAULT_DRIVE_MODE, {
+			type: "activate",
+		});
+		expect(
+			transitionDriveMode(active, {
+				type: "setSubMode",
+				subMode: "debug",
+			}).subMode,
+		).toBe("debug");
 	});
 
-	it("maps postures to native modes", () => {
-		expect(toNativeAgentMode("plan")).toBe("plan");
-		expect(toNativeAgentMode("ask")).toBe("plan");
-		expect(toNativeAgentMode("agent")).toBe("act");
-		expect(toNativeAgentMode("debug")).toBe("act");
+	it("rejects setSubMode while inactive", () => {
+		expect(() =>
+			transitionDriveMode(DEFAULT_DRIVE_MODE, {
+				type: "setSubMode",
+				subMode: "ask",
+			}),
+		).toThrow(IllegalDriveModeTransitionError);
 	});
 });

@@ -1,4 +1,5 @@
 import { ApertureIcon, HandIcon, HeadphonesIcon, MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon, Settings2Icon, VolumeXIcon } from "lucide-react";
+import type { StageCard } from "@cline/shared";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -258,6 +259,36 @@ export function DriveStagePanel({
 		</div>
 	);
 }
+
+export function DriveStageCards({ cards }: { cards: readonly StageCard[] }) {
+	return (
+		<div className="space-y-2">
+			<p className="text-xs text-muted-foreground">
+				Last-event-wins stage cards. Prefer <code>Stage.tsx</code> for live
+				ai-elements rendering.
+			</p>
+			{cards.map((card) => (
+				<div
+					className="rounded-md border bg-background p-2"
+					key={card.id}
+				>
+					<div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+						<span className="rounded border px-1.5 py-0.5">{card.category}</span>
+						<span className="truncate font-medium normal-case text-foreground">
+							{card.title}
+						</span>
+					</div>
+					{card.summary ? (
+						<pre className="mt-1 overflow-auto font-mono text-[11px] text-muted-foreground">
+							{card.summary}
+						</pre>
+					) : null}
+				</div>
+			))}
+		</div>
+	);
+}
+
 
 export function DriveNarrationBanner({
 	partnerName,

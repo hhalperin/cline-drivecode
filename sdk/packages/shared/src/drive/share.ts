@@ -46,11 +46,12 @@ export const DemoArtifactRefSchema = z
 	.strict();
 export type DemoArtifactRef = z.infer<typeof DemoArtifactRefSchema>;
 
-export const StageSharerSchema = z
+export const DemoStageSharerSchema = z
 	.object({
 		participantId: z.string().min(1),
 		kind: z.enum(["human", "agent"]),
 		shareMode: ShareModeSchema,
 	})
 	.strict();
-export type StageSharer = z.infer<typeof StageSharerSchema>;
+export type DemoStageSharer = z.infer<typeof DemoStageSharerSchema>;
+

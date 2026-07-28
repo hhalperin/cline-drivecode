@@ -270,6 +270,7 @@ export type WebviewInboundMessage =
 	| { type: "restore"; checkpointRunCount: number }
 	| { type: "forkSession" }
 	| {
+
 			type: "driveCommand";
 			command:
 				| "drive.room.get"
@@ -279,6 +280,80 @@ export type WebviewInboundMessage =
 				| "drive.show.present";
 			payload?: Record<string, unknown>;
 	  };
+			type: "call_join";
+			roomId: string;
+			human: { id: string; displayName: string };
+			agent: { id: string; displayName: string };
+			activateDrive?: boolean;
+			sessionId?: string;
+	  }
+	| {
+			type: "call_leave";
+			roomId: string;
+			participantId: string;
+			reason?: string;
+	  }
+	| {
+			type: "call_mute";
+			roomId: string;
+			participantId: string;
+			muted: boolean;
+	  }
+	| {
+			type: "call_set_stage";
+			roomId: string;
+			sharer: {
+				kind: "human" | "agent";
+				participantId: string;
+			} | null;
+			pin?: {
+				kind: "selection" | "file" | "terminal";
+				label: string;
+				ref?: string;
+			} | null;
+	  }
+	| {
+			type: "call_set_mode";
+			roomId: string;
+			subMode: "plan" | "act" | "ask" | "debug";
+			driveActive?: boolean;
+	  }
+	| {
+			type: "call_get_room";
+			roomId?: string;
+			sessionId?: string;
+	  }
+	| {
+			/** Paged changelog across every agent. */
+			type: "status_query";
+			requestId: string;
+			subject?: string;
+			subjectPrefix?: string;
+			state?: Array<
+				"queued" | "running" | "blocked" | "done" | "failed" | "cancelled"
+			>;
+			priority?: Array<"low" | "normal" | "high" | "critical">;
+			sessionId?: string;
+			agentId?: string;
+			text?: string;
+			cursor?: number;
+			limit?: number;
+	  }
+	| {
+			/** Current status per subject — the "where is everything" board. */
+			type: "status_board";
+			requestId: string;
+			state?: Array<
+				"queued" | "running" | "blocked" | "done" | "failed" | "cancelled"
+			>;
+			sessionId?: string;
+			agentId?: string;
+			text?: string;
+			cursor?: number;
+			limit?: number;
+	  }
+	| { type: "status_subjects"; requestId: string; limit?: number }
+	| { type: "status_summary"; requestId: string };
 
 export type WebviewOutboundMessage =
 	| { type: "status"; text: string }
@@ -353,6 +428,7 @@ export type WebviewOutboundMessage =
 	  }
 	| { type: "fork_error"; text: string }
 	| {
+
 			type: "drive_room_changed";
 			room: {
 				roomId: string;
@@ -383,4 +459,39 @@ export type WebviewOutboundMessage =
 			ownerParticipantId: string;
 			uri?: string;
 			caption?: string;
+			type: "room_snapshot";
+			roomId: string;
+			snapshot: import("@cline/shared").RoomSnapshot;
+	  }
+	| {
+			type: "drive_event";
+			roomId: string;
+			event: import("@cline/shared").DriveEvent;
+			snapshot: import("@cline/shared").RoomSnapshot;
+	  }
+	| { type: "call_error"; text: string; code?: string }
+	| {
+			type: "status_page";
+			requestId: string;
+			updates: import("@cline/shared").StatusUpdate[];
+			nextCursor: number | null;
+			hasMore: boolean;
+			ftsAvailable: boolean;
+	  }
+	| { type: "status_subjects_result"; requestId: string; subjects: string[] }
+	| {
+			type: "status_summary_result";
+			requestId: string;
+			summary: import("@cline/shared").StatusSummary;
+	  }
+	| {
+			/** Live append: a status landed while the view is open. */
+			type: "status_updated";
+			update: import("@cline/shared").StatusUpdate;
+	  }
+	| {
+			type: "status_error";
+			requestId: string;
+			text: string;
+			code?: string;
 	  };

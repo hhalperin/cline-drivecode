@@ -50,6 +50,7 @@ import {
 	type PendingApproval,
 	type PendingCapabilityRequest,
 } from "./handlers/context";
+import { handleDriveRoomCommand } from "./handlers/drive-room-handlers";
 import {
 	handleRunAbort,
 	handleSessionHook,
@@ -73,6 +74,10 @@ import {
 	handleSessionUpdateConnection,
 	handleSessionUpdatePendingPrompt,
 } from "./handlers/session-handlers";
+import {
+	attachStatusBroadcast,
+	handleStatusCommand,
+} from "./handlers/status-handlers";
 import { eventNameForScheduleCommand } from "./hub-schedule-events";
 import { logHubBoundaryError } from "./hub-server-logging";
 import type { HubWebSocketServerOptions } from "./hub-server-options";
@@ -183,6 +188,7 @@ export class HubServerTransport implements NativeHubTransport {
 		Partial<PendingPromptsRuntimeService>;
 	private readonly hubId = createSessionId("hub_");
 	private readonly ctx: HubTransportContext;
+	private readonly detachStatusBroadcast: () => void;
 
 	constructor(readonly options: HubWebSocketServerOptions) {
 		this.sessionHost =
@@ -220,6 +226,9 @@ export class HubServerTransport implements NativeHubTransport {
 					onProgress,
 				),
 		};
+		// Status Hub publishes reach the wire from here rather than from the
+		// command handler, so the `report_status` tool broadcasts too.
+		this.detachStatusBroadcast = attachStatusBroadcast(this.ctx);
 		this.schedules = new HubScheduleService({
 			...options.scheduleOptions,
 			runtimeHandlers: options.runtimeHandlers,
@@ -289,6 +298,7 @@ export class HubServerTransport implements NativeHubTransport {
 	}
 
 	async stop(): Promise<void> {
+		this.detachStatusBroadcast();
 		for (const approvalId of this.pendingApprovals.keys()) {
 			resolvePendingApproval(this.ctx, approvalId, {
 				approved: false,
@@ -413,12 +423,29 @@ export class HubServerTransport implements NativeHubTransport {
 			case "connector.configure":
 			case "connector.delete_config":
 				return await handleConnectorCommand(this.ctx, envelope);
+
 			case "drive.room.get":
 			case "drive.spotlight.set":
 			case "drive.participant.mute.set":
 			case "drive.participant.deafen.set":
 			case "drive.show.present":
 				return handleDriveCommand(this.ctx, envelope);
+			case "call_join":
+			case "call_leave":
+			case "call_mute":
+			case "call_set_stage":
+			case "call_set_mode":
+			case "call_record_work":
+			case "call_get_room":
+				return handleDriveRoomCommand(this.ctx, envelope);
+			case "status.publish":
+			case "status.query":
+			case "status.current":
+			case "status.board":
+			case "status.summary":
+			case "status.subjects":
+			case "status.prune":
+				return await handleStatusCommand(this.ctx, envelope);
 			case "settings.get":
 			case "settings.patch":
 				return {

@@ -1,4 +1,5 @@
-import { DRIVE_BANK_ROOT } from "@cline/shared";
+/** Mirrors @cline/shared DRIVE_BANK_ROOT — value import banned by boundary. */
+const DRIVE_BANK_ROOT = ".drive/bank";
 
 export function bankRoot(workspaceRoot: string): string {
 	return joinPath(workspaceRoot, DRIVE_BANK_ROOT);

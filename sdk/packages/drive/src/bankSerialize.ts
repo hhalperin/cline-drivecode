@@ -1,5 +1,4 @@
 import type { DrivePlan, DriveTask } from "@cline/shared";
-import { parseDrivePlan, parseDriveTask } from "@cline/shared";
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/;
 
@@ -25,15 +24,15 @@ export function serializeDrivePlan(plan: DrivePlan): string {
 
 export function deserializeDriveTask(raw: string): DriveTask {
 	const { meta, body } = splitFrontmatter(raw);
-	return parseDriveTask({
+	return {
 		id: String(meta.id ?? ""),
 		title: String(meta.title ?? ""),
-		status: meta.status,
+		status: meta.status as DriveTask["status"],
 		body: body.trimEnd(),
 		...(typeof meta.lastFailure === "string"
 			? { lastFailure: meta.lastFailure }
 			: {}),
-	});
+	};
 }
 
 export function deserializeDrivePlan(raw: string): DrivePlan {
@@ -41,12 +40,12 @@ export function deserializeDrivePlan(raw: string): DrivePlan {
 	const taskIds = Array.isArray(meta.taskIds)
 		? meta.taskIds.map(String)
 		: [];
-	return parseDrivePlan({
+	return {
 		id: String(meta.id ?? ""),
 		title: String(meta.title ?? ""),
-		status: meta.status,
+		status: meta.status as DrivePlan["status"],
 		taskIds,
-	});
+	};
 }
 
 function splitFrontmatter(raw: string): {

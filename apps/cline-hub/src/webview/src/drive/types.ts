@@ -4,11 +4,13 @@ import type { BankSnapshot } from "@cline/shared";
 import {
 	allowWorkspaceMutation,
 	resolveDriveLoop,
-	setOverride as setDriveOverride,
 	type DrivePostureOverride,
 } from "@cline/drive";
 
 export type DriveSubMode = "plan" | "agent" | "ask" | "debug";
+
+/** Projection of hub stage.sharer for strip/Stage chrome. */
+export type DriveStageSharerLocal = "agent" | "you";
 
 export type DriveUiState = {
 	active: boolean;
@@ -32,6 +34,18 @@ export type DriveUiState = {
 	partnerMuted: boolean;
 	/** Partner agent cannot hear (inbound context). */
 	partnerDeafened: boolean;
+	/**
+	 * Offline fixture cards when demo and no live session tools yet.
+	 * Room ownership still goes through hub call_* when connected.
+	 */
+	demo: boolean;
+	/**
+	 * Mirror of hub room stage.sharer (agent|you). Updated from room_snapshot.
+	 * Authority is hub call_set_stage — not this field alone.
+	 */
+	stageSharer: DriveStageSharerLocal;
+	/** Hub room id when Join has attached a call. */
+	roomId: string | null;
 };
 
 /** Stable ids until hub roster provides real participant UUIDs. */
@@ -59,6 +73,9 @@ export const DEFAULT_DRIVE_UI: DriveUiState = {
 	spotlightParticipantId: DRIVE_PARTICIPANT_PARTNER,
 	partnerMuted: false,
 	partnerDeafened: false,
+	demo: true,
+	stageSharer: "agent",
+	roomId: null,
 };
 
 /** Map Drive sub-mode onto native Cline plan|act for send config. */
@@ -70,6 +87,41 @@ export function toNativeMode(subMode: DriveSubMode): "act" | "plan" {
 		case "agent":
 		case "debug":
 			return "act";
+		default: {
+			const _exhaustive: never = subMode;
+			return _exhaustive;
+		}
+	}
+}
+
+/** Map UI sub-mode onto shared DriveSubMode for call_set_mode. */
+export function toSharedDriveSubMode(
+	subMode: DriveSubMode,
+): "plan" | "act" | "ask" | "debug" {
+	switch (subMode) {
+		case "agent":
+			return "act";
+		case "plan":
+		case "ask":
+		case "debug":
+			return subMode;
+		default: {
+			const _exhaustive: never = subMode;
+			return _exhaustive;
+		}
+	}
+}
+
+export function fromSharedDriveSubMode(
+	subMode: "plan" | "act" | "ask" | "debug",
+): DriveSubMode {
+	switch (subMode) {
+		case "act":
+			return "agent";
+		case "plan":
+		case "ask":
+		case "debug":
+			return subMode;
 		default: {
 			const _exhaustive: never = subMode;
 			return _exhaustive;
@@ -108,18 +160,10 @@ export function applySubModeIntent(
 		return state;
 	}
 	if (subMode === "ask" || subMode === "debug") {
-		const next = setDriveOverride(
-			{
-				active: state.active,
-				subMode: state.subMode,
-				override: state.postureOverride,
-			},
-			subMode,
-		);
 		return {
 			...state,
-			postureOverride: next.override,
-			subMode: next.subMode,
+			postureOverride: subMode,
+			subMode,
 		};
 	}
 	// Plan/Agent while override is set: ignore (override clears only explicitly).

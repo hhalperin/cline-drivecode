@@ -1,24 +1,14 @@
 import { z } from "zod";
+import {
+	AddressSetSchema,
+	parseAddressSet,
+	type AddressSet,
+} from "./address";
+
+export { AddressSetSchema, parseAddressSet, type AddressSet };
 
 export const RouterModeSchema = z.enum(["manual", "suggest", "auto"]);
 export type RouterMode = z.infer<typeof RouterModeSchema>;
-
-export const AddressSetSchema = z.discriminatedUnion("mode", [
-	z.object({ mode: z.literal("everyone") }).strict(),
-	z
-		.object({
-			mode: z.literal("agents"),
-			agentIds: z.array(z.string().min(1)).min(1),
-		})
-		.strict(),
-	z
-		.object({
-			mode: z.literal("pack"),
-			packId: z.string().min(1),
-		})
-		.strict(),
-]);
-export type AddressSet = z.infer<typeof AddressSetSchema>;
 
 export const RouteSliceSchema = z
 	.object({
@@ -55,8 +45,8 @@ export type RoutePlan = z.infer<typeof RoutePlanSchema>;
 export const SeatedAgentCardSchema = z
 	.object({
 		participantId: z.string().min(1),
-		profileId: z.string().min(1),
-		role: z.enum(["pair_partner", "specialist"]),
+		displayName: z.string().min(1),
+		role: z.enum(["pair_partner", "specialist", "host", "other"]),
 		labels: z.array(z.string()),
 		domains: z.array(z.string()),
 	})
@@ -65,8 +55,4 @@ export type SeatedAgentCard = z.infer<typeof SeatedAgentCardSchema>;
 
 export function parseRoutePlan(input: unknown): RoutePlan {
 	return RoutePlanSchema.parse(input);
-}
-
-export function parseAddressSet(input: unknown): AddressSet {
-	return AddressSetSchema.parse(input);
 }

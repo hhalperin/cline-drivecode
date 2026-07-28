@@ -47,6 +47,8 @@ import {
 } from "./server/sessions";
 import { HubContext } from "./server/state";
 import { broadcastHubState, hubStatusPayload } from "./server/state-payloads";
+import { handleCallCommand } from "./server/drive-calls";
+import { handleStatusCommand } from "./server/status-calls";
 import type { BrowserFrame, BrowserPeer } from "./server/types";
 
 export interface ClineHubDashboardServer {
@@ -69,6 +71,7 @@ const PUBLIC_BROWSER_PATHS = new Set([
 	"/icon.ico",
 	"/32x32.png",
 	"/cline-logo-filled.svg",
+	"/cline-drive-logo.svg",
 	"/favicon.svg",
 ]);
 
@@ -245,8 +248,25 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 						);
 					} else if (frame.type === "restart_hub") {
 						await restartHub(ctx);
+
 					} else if (frame.type === "driveCommand") {
 						await handleDriveWebviewCommand(ctx, peer, frame);
+					} else if (
+						frame.type === "call_join" ||
+						frame.type === "call_leave" ||
+						frame.type === "call_mute" ||
+						frame.type === "call_set_stage" ||
+						frame.type === "call_set_mode" ||
+						frame.type === "call_get_room"
+					) {
+						await handleCallCommand(ctx, peer, frame);
+					} else if (
+						frame.type === "status_query" ||
+						frame.type === "status_board" ||
+						frame.type === "status_subjects" ||
+						frame.type === "status_summary"
+					) {
+						await handleStatusCommand(ctx, peer, frame);
 					}
 				} catch (error) {
 					ctx.send(peer, {

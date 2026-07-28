@@ -37,6 +37,7 @@ export {
 	shouldIncludeConnectorField,
 } from "./connectors/platforms";
 export type { AutomationEventEnvelope } from "./cron";
+export * from "./drive";
 export type {
 	ClientContext,
 	ClientName,
@@ -450,7 +451,6 @@ export {
 	isChatWorkspacePath,
 } from "./storage/chat-workspace-paths";
 export * from "./team";
-export * from "./drive";
 export { createTool } from "./tools/create";
 export { AUTH_ERROR_PATTERNS, isLikelyAuthError } from "./types/auth";
 // VCR is Node-only (uses node:fs, node:path), excluded from browser build

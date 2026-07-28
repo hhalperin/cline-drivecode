@@ -21,7 +21,7 @@ import {
 	UserCircleIcon,
 	WrenchIcon,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import {
 	lazy,
 	Suspense,
@@ -60,9 +60,12 @@ import type {
 	WebviewOutboundMessage,
 	WebviewSessionSummary,
 } from "../../webview-protocol";
+import { DriveMarkIcon } from "./components/icons/drive-mark";
+import { DriveView } from "./components/views/drive-view";
 import { PageFrame, PageHeader } from "./components/views/page-layout";
 import type { CustomizationSection } from "./components/views/settings/extensions-view";
 import type { SettingsSection } from "./components/views/settings/settings-view";
+import { StatusView } from "./components/views/status-view";
 import { syncHubTheme } from "./lib/theme";
 import { postToHost } from "./vscode";
 
@@ -81,6 +84,8 @@ const CustomizationSectionView = lazy(() =>
 type View =
 	| "home"
 	| "sessions"
+	| "drive"
+	| "status"
 	| "chat"
 	| "models"
 	| "rules"
@@ -97,6 +102,8 @@ type View =
 const VIEW_PATHS: Record<View, string> = {
 	home: "/",
 	sessions: "/sessions",
+	drive: "/drive",
+	status: "/status",
 	chat: "/chat",
 	models: "/models",
 	rules: "/rules",
@@ -146,6 +153,8 @@ const EMPTY_HUB_STATE: WebviewHubState = {
 
 function viewFromPath(pathname: string): View {
 	if (pathname === VIEW_PATHS.sessions) return "sessions";
+	if (pathname === VIEW_PATHS.drive) return "drive";
+	if (pathname === VIEW_PATHS.status) return "status";
 	if (pathname === VIEW_PATHS.chat) return "chat";
 	if (pathname === VIEW_PATHS.models) return "models";
 	if (
@@ -370,6 +379,8 @@ function Shell({
 		view: Exclude<
 			View,
 			| "chat"
+			| "drive"
+			| "status"
 			| "rules"
 			| "hooks"
 			| "mcp"
@@ -380,6 +391,16 @@ function Shell({
 		>;
 		label: string;
 		icon: typeof HomeIcon;
+	}>;
+	const driveNavItems = [
+		{ view: "drive", label: "Drive", icon: DriveMarkIcon },
+		{ view: "status", label: "Status Hub", icon: ActivityIcon },
+	] satisfies Array<{
+		view: Extract<View, "drive" | "status">;
+		label: string;
+		// Wider than the lucide icons elsewhere: the Drive mark is a plain
+		// function component, and renderNavButton only needs `className`.
+		icon: ComponentType<{ className?: string }>;
 	}>;
 	const customizationNavItems = [
 		{ view: "plugins", label: "Plugins", icon: PlugIcon },
@@ -399,7 +420,11 @@ function Shell({
 	}>;
 
 	const renderNavButton = (
-		item: (typeof navItems | typeof customizationNavItems)[number],
+		item: (
+			| typeof navItems
+			| typeof driveNavItems
+			| typeof customizationNavItems
+		)[number],
 	) => {
 		const Icon = item.icon;
 		const active =
@@ -434,13 +459,17 @@ function Shell({
 						className="size-6 shrink-0 dark:invert"
 						src="/cline-logo-filled.svg"
 					/>
-					<span className="truncate">Cline Hub</span>
+					<span className="truncate">Cline</span>
 				</button>
 				<nav
 					className="grid gap-1 overflow-y-auto max-[720px]:grid-flow-col max-[720px]:auto-cols-max max-[720px]:overflow-x-auto max-[720px]:[scrollbar-width:none] max-[720px]:[&::-webkit-scrollbar]:hidden"
 					aria-label="Hub views"
 				>
 					{navItems.map(renderNavButton)}
+					<div className="mt-4 px-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground max-[720px]:mt-0 max-[720px]:self-center">
+						Drive
+					</div>
+					{driveNavItems.map(renderNavButton)}
 					<div className="mt-4 px-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground max-[720px]:mt-0 max-[720px]:self-center">
 						Customizations
 					</div>
@@ -1234,6 +1263,17 @@ function App() {
 					onSessionSelected={updateChatSessionRoute}
 				/>
 			);
+		}
+		if (view === "drive") {
+			return (
+				<DriveView
+					onOpenCall={() => navigate("chat")}
+					onOpenStatus={() => navigate("status")}
+				/>
+			);
+		}
+		if (view === "status") {
+			return <StatusView />;
 		}
 		if (view === "sessions") {
 			return (

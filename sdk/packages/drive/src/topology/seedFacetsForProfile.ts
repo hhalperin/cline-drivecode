@@ -1,10 +1,10 @@
-import {
-	BUILTIN_BROWSER_TTS_ID,
-	BUILTIN_LOCAL_WORKER_STT_ID,
-	BUILTIN_WEB_SPEECH_STT_ID,
-	defaultEgressCeiling,
-	type DeploymentProfile,
-} from "@cline/shared";
+import type { DeploymentProfile } from "@cline/shared";
+import { defaultEgressCeiling } from "./egressHelpers.js";
+
+/** Mirrors @cline/shared builtin ids — value import banned by boundary. */
+const BUILTIN_BROWSER_TTS_ID = "builtin.browserTts";
+const BUILTIN_LOCAL_WORKER_STT_ID = "builtin.localWorkerStt";
+const BUILTIN_WEB_SPEECH_STT_ID = "builtin.webSpeech";
 
 /** Partial facet values seeded when the user picks a runtime profile. */
 export interface ProfileFacetSeed {

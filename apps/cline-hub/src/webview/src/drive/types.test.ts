@@ -6,8 +6,10 @@ import {
 	clearPostureOverride,
 	DEFAULT_DRIVE_UI,
 	drivePersonaSystemHint,
+	fromSharedDriveSubMode,
 	syncDrivePostureFromBank,
 	toNativeMode,
+	toSharedDriveSubMode,
 	type DriveUiState,
 } from "./types";
 
@@ -17,6 +19,13 @@ describe("toNativeMode", () => {
 		expect(toNativeMode("ask")).toBe("plan");
 		expect(toNativeMode("agent")).toBe("act");
 		expect(toNativeMode("debug")).toBe("act");
+	});
+});
+
+describe("toSharedDriveSubMode", () => {
+	it("maps agent UI mode to shared act", () => {
+		expect(toSharedDriveSubMode("agent")).toBe("act");
+		expect(fromSharedDriveSubMode("act")).toBe("agent");
 	});
 });
 

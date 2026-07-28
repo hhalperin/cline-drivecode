@@ -1,29 +1,65 @@
-import {
-	BUILTIN_BROWSER_TTS_ID,
-	BUILTIN_PROVIDER_MANIFESTS,
-	parseDriveFacetValues,
-	type DriveFacetValues,
-	type DriveProviderManifest,
-	type ResolvedLlmEgress,
-	type RuntimeTopology,
-	type SttBackend,
-	type TtsBackend,
+import type {
+	DriveFacetValues,
+	DriveProviderManifest,
+	ResolvedLlmEgress,
+	RuntimeTopology,
+	SttBackend,
+	TtsBackend,
 } from "@cline/shared";
 import { assertProviderCompatible } from "./assertProviderCompatible.js";
 import { assertTopologyLegal } from "./assertTopologyLegal.js";
 import { seedFacetsForProfile } from "./seedFacetsForProfile.js";
 
+const BUILTIN_BROWSER_TTS_ID = "builtin.browserTts";
+
+/** Mirrors @cline/shared BUILTIN_PROVIDER_MANIFESTS without value-importing shared. */
+const BUILTIN_PROVIDER_MANIFESTS: readonly DriveProviderManifest[] = [
+	{
+		schemaVersion: 1,
+		id: "builtin.webSpeech",
+		slot: "stt",
+		title: "Web Speech (browser)",
+		origin: "builtin",
+		egress: "platform-cloud",
+		backend: { kind: "webSpeech" },
+		defaultConfig: {},
+		configSchemaId: "builtin.webSpeech.v1",
+	},
+	{
+		schemaVersion: 1,
+		id: "builtin.localWorkerStt",
+		slot: "stt",
+		title: "Local STT worker",
+		origin: "builtin",
+		egress: "loopback-only",
+		backend: { kind: "local-worker", engine: "whisper-cpp" },
+		defaultConfig: {},
+		configSchemaId: "builtin.localWorkerStt.v1",
+	},
+	{
+		schemaVersion: 1,
+		id: BUILTIN_BROWSER_TTS_ID,
+		slot: "tts",
+		title: "Browser speechSynthesis",
+		origin: "builtin",
+		egress: "loopback-only",
+		backend: { kind: "browser-speechSynthesis" },
+		defaultConfig: {},
+		configSchemaId: "builtin.browserTts.v1",
+	},
+];
+
 export function defaultFacetValuesFromProfile(
 	profile: DriveFacetValues["runtime.profile"],
 ): DriveFacetValues {
 	const seed = seedFacetsForProfile(profile);
-	return parseDriveFacetValues({
+	return {
 		...seed,
 		"tts.enabled": false,
 		"tts.maxSpokenSentences": 3,
 		"captions.enabled": true,
 		"drive.defaults.pairAgent": { kind: "builtin", id: "pair_partner" },
-	});
+	};
 }
 
 export function resolveTopologyFromFacets(input: {
@@ -57,7 +93,6 @@ export function resolveTopologyFromFacets(input: {
 		};
 	}
 
-	// Manifest parse already ties slot ↔ backend kind.
 	const stt = sttManifest.backend as SttBackend;
 	const tts = ttsManifest.backend as TtsBackend;
 

@@ -22,7 +22,9 @@ Keep these constraints:
 - Do not modify Cursor or VS Code chrome through DOM injection.
 - Do not create a second agent registry or a second runtime path.
 
-The phase 1 package decision remains open. Until Harrison answers it, use the reversible default in the Open Decision section.
+The phase 1 package decision is **closed** by [cline-drivemode/decisions/DEC-package-location.md](cline-drivemode/decisions/DEC-package-location.md): `@cline/drive` in this monorepo. Extract only when a second host needs the package.
+
+Leadership planning wave entry. [cline-drivemode/LEADERSHIP-BRIEF.md](cline-drivemode/LEADERSHIP-BRIEF.md). Phase 0 entry checklist. [cline-drivemode/CHECKLIST-phase0-entry.md](cline-drivemode/CHECKLIST-phase0-entry.md).
 
 ## State so far
 
@@ -30,14 +32,16 @@ The phase 1 package decision remains open. Until Harrison answers it, use the re
 
 - `docs/plans/cline-drivemode/00-vision.md` defines the Drive tab, pair-call experience, and staged product direction.
 - `docs/plans/cline-drivemode/01-architecture.md` defines the room model, the hub boundary, and the event-first architecture.
-- `docs/plans/cline-drivemode/05-workflows.md` contains 39 user workflows. It maps them to features and calls out gaps.
+- `docs/plans/cline-drivemode/05-workflows.md` contains 45 user workflows (incl. Group I SDLC / requirements leadership). It maps them to features and calls out gaps.
 - `docs/plans/cline-drivemode/06-platform-config.md` defines the 34-facet platform inventory, `RosterPack`, `AgentProfile`, ownership, privacy, and phases.
 - `docs/plans/cline-drivemode/features/` contains the DRV feature plans.
 - `docs/plans/cline-drivemode/TASK-GRAPH.md` orders phases and acceptance gates.
 - `docs/plans/cline-drivemode/AGENT-RUNBOOK.md` explains how the next agent should select, implement, and verify tasks.
 - `docs/plans/cline-drivemode/prd/prd-driveagent-portfolio.md` defines Driveagent portfolios, knowledge graphs, and recruit.
-- `docs/plans/cline-drivemode/ard/` records the proposed decisions for Driveagent home, canonical graph data, recruit, RosterPack, and gated learning.
+- `docs/plans/cline-drivemode/ard/` records the decisions for Driveagent home, canonical graph data, recruit, RosterPack, and gated learning (see status board).
 - `docs/plans/cline-drivemode/examples/driveagent-pair-partner/` is the concrete agent-home and graph fixture.
+- `docs/plans/cline-drivemode/LEADERSHIP-BRIEF.md` is the SE/PM planning wave that closes contradictions and names Phase 0 entry criteria.
+- `docs/plans/cline-drivemode/SYSTEMS-ANALYSIS.md` is the end-to-end systems analysis (context, interfaces, NFRs, as-is/to-be, delivery slices).
 
 ### Drivecode SDK plan
 
@@ -90,9 +94,13 @@ This code does not yet implement hub-owned Drive rooms, reconnect convergence, a
 
 - Cursor Drive prior art lives at `C:\Users\harri\Documents\dev\profiles\ai-secretagent\active\cursor-drive`.
 - Claude Drive prior art lives at `C:\Users\harri\Documents\dev\profiles\ai-secretagent\active\claude-drive`.
-- The overview canvas lives outside this repository at `C:\Users\harri\.cursor\projects\c-Users-harri-Documents-dev-profiles-ai-secretagent-active-cursor-drive\canvases\cline-drivecode-overview.canvas.tsx`.
-- The canvas is not in git. The next session must open it from that absolute path.
-- This handoff lives on branch `docs/drivecode-handoff`.
+- The overview canvas used to live outside this repository at `C:\Users\harri\.cursor\projects\c-Users-harri-Documents-dev-profiles-ai-secretagent-active-cursor-drive\canvases\cline-drivecode-overview.canvas.tsx`.
+- Prefer the in-repo twin: [docs/design/drive-wireframes/overview-canvas.html](../design/drive-wireframes/overview-canvas.html). Click-through runbook: [DEMO.md](../design/drive-wireframes/DEMO.md).
+- This handoff lives on the Drivecode stack tip (see open PRs / demo branch).
+
+## Demo
+
+Open [docs/design/drive-wireframes/DEMO.md](../design/drive-wireframes/DEMO.md) for HTML, hub Chat fixture, CLI `Ctrl+Shift+D`, and overview canvas steps. Hub Join/Stage uses a local `DriveDemoFixture` only. Hub-owned rooms are not wired yet.
 
 ## Core tension
 
@@ -102,6 +110,10 @@ The implementation must also keep `AgentProfile` separate from agent behavior. P
 
 ## Open Decision (needs Harrison)
 
-Should `drivecode-sdk` live as `sdk/packages/drivecode` or `@cline/drivecode` inside this monorepo in phase 1, or as a separate `drivecode-sdk` repo that cline-drivecode consumes?
+**Package location — closed as Recommended.** See [cline-drivemode/decisions/DEC-package-location.md](cline-drivemode/decisions/DEC-package-location.md). Flip to Accepted with `accept all` or override with `change: DEC-package-location …`.
 
-Recommended default. Put it in the monorepo first for delivery speed and direct conformance testing. Extract it only when a second host needs the package.
+**Still needs explicit reply:** Accept ARD-0001 through ARD-0004 (and the leadership DEC bundle) as written, or name one change before phase-0 schema work.
+
+Reply with one of: `accept all` | `change: <id and new default>`.
+
+Board: [cline-drivemode/ard/ARD-0000-status-board.md](cline-drivemode/ard/ARD-0000-status-board.md).

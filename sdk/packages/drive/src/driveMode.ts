@@ -1,83 +1,73 @@
-import type { DrivePosture, DrivePostureOverride } from "./driveLoop.js";
+/**
+ * Drive mode state machine (DRV-KERNEL).
+ * Pure: no IO. Illegal transitions throw typed errors.
+ */
 
-export interface DriveModeState {
-	active: boolean;
-	subMode: DrivePosture;
-	override: DrivePostureOverride | null;
-}
+import type { DriveSubMode } from "@cline/shared";
 
-export class DriveModeError extends Error {
-	constructor(message: string) {
+export type DriveModeState = {
+	readonly active: boolean;
+	readonly subMode: DriveSubMode;
+};
+
+export type DriveModeAction =
+	| { type: "activate"; subMode?: DriveSubMode }
+	| { type: "deactivate" }
+	| { type: "setSubMode"; subMode: DriveSubMode };
+
+export class IllegalDriveModeTransitionError extends Error {
+	readonly code = "illegal_drive_mode_transition" as const;
+
+	constructor(
+		readonly from: DriveModeState,
+		readonly action: DriveModeAction,
+		message: string,
+	) {
 		super(message);
-		this.name = "DriveModeError";
+		this.name = "IllegalDriveModeTransitionError";
 	}
 }
 
-export function createDriveModeState(
-	partial?: Partial<DriveModeState>,
-): DriveModeState {
-	return {
-		active: partial?.active ?? false,
-		subMode: partial?.subMode ?? "plan",
-		override: partial?.override ?? null,
-	};
-}
+export const DEFAULT_DRIVE_MODE: DriveModeState = {
+	active: false,
+	subMode: "plan",
+};
 
-export function enterDrive(state: DriveModeState): DriveModeState {
-	return { ...state, active: true };
-}
-
-export function exitDrive(_state: DriveModeState): DriveModeState {
-	return { active: false, subMode: "plan", override: null };
-}
-
-export function applyDerivedSubMode(
+export function transitionDriveMode(
 	state: DriveModeState,
-	derived: DrivePosture,
+	action: DriveModeAction,
 ): DriveModeState {
-	if (!state.active) {
-		throw new DriveModeError("Cannot set sub-mode while Drive is off");
-	}
-	if (state.override) {
-		return state;
-	}
-	return { ...state, subMode: derived };
-}
-
-export function setOverride(
-	state: DriveModeState,
-	override: DrivePostureOverride,
-): DriveModeState {
-	if (!state.active) {
-		throw new DriveModeError("Cannot set override while Drive is off");
-	}
-	return { ...state, override, subMode: override };
-}
-
-export function clearOverride(
-	state: DriveModeState,
-	derived: DrivePosture,
-): DriveModeState {
-	if (!state.active) {
-		throw new DriveModeError("Cannot clear override while Drive is off");
-	}
-	return { ...state, override: null, subMode: derived };
-}
-
-/** Map Drive posture onto native Cline plan|act. */
-export function toNativeAgentMode(
-	posture: DrivePosture,
-): "act" | "plan" {
-	switch (posture) {
-		case "plan":
-		case "ask":
-			return "plan";
-		case "agent":
-		case "debug":
-			return "act";
+	switch (action.type) {
+		case "activate":
+			return {
+				active: true,
+				subMode: action.subMode ?? state.subMode,
+			};
+		case "deactivate":
+			return {
+				active: false,
+				subMode: state.subMode,
+			};
+		case "setSubMode": {
+			if (!state.active) {
+				throw new IllegalDriveModeTransitionError(
+					state,
+					action,
+					"Cannot set Drive sub-mode while Drive is inactive",
+				);
+			}
+			return {
+				active: true,
+				subMode: action.subMode,
+			};
+		}
 		default: {
-			const _exhaustive: never = posture;
-			return _exhaustive;
+			const _exhaustive: never = action;
+			throw new IllegalDriveModeTransitionError(
+				state,
+				_exhaustive,
+				"Unknown Drive mode action",
+			);
 		}
 	}
 }

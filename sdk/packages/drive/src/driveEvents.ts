@@ -1,8 +1,6 @@
-import {
-	DRIVE_EVENT_SCHEMA_VERSION,
-	type DriveEvent,
-	parseDriveEvent,
-} from "@cline/shared";
+import type { BankDriveEvent } from "@cline/shared";
+
+const DRIVE_BANK_EVENT_SCHEMA_VERSION = 1 as const;
 
 let seq = 0;
 
@@ -19,13 +17,17 @@ export function resetDriveEventSeqForTests(): void {
 	seq = 0;
 }
 
+function asBankEvent(event: BankDriveEvent): BankDriveEvent {
+	return event;
+}
+
 export function createDriveTaskOpenedEvent(input: {
 	roomId: string;
 	taskId: string;
 	title: string;
-}): DriveEvent {
-	return parseDriveEvent({
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
+}): BankDriveEvent {
+	return asBankEvent({
+		schemaVersion: DRIVE_BANK_EVENT_SCHEMA_VERSION,
 		id: nextId(),
 		at: nowIso(),
 		roomId: input.roomId,
@@ -39,9 +41,9 @@ export function createDriveTaskBoundEvent(input: {
 	roomId: string;
 	taskId: string;
 	planId: string;
-}): DriveEvent {
-	return parseDriveEvent({
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
+}): BankDriveEvent {
+	return asBankEvent({
+		schemaVersion: DRIVE_BANK_EVENT_SCHEMA_VERSION,
 		id: nextId(),
 		at: nowIso(),
 		roomId: input.roomId,
@@ -54,9 +56,9 @@ export function createDriveTaskBoundEvent(input: {
 export function createDriveTaskCompletedEvent(input: {
 	roomId: string;
 	taskId: string;
-}): DriveEvent {
-	return parseDriveEvent({
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
+}): BankDriveEvent {
+	return asBankEvent({
+		schemaVersion: DRIVE_BANK_EVENT_SCHEMA_VERSION,
 		id: nextId(),
 		at: nowIso(),
 		roomId: input.roomId,
@@ -68,9 +70,9 @@ export function createDriveTaskCompletedEvent(input: {
 export function createDriveTaskArchivedEvent(input: {
 	roomId: string;
 	taskId: string;
-}): DriveEvent {
-	return parseDriveEvent({
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
+}): BankDriveEvent {
+	return asBankEvent({
+		schemaVersion: DRIVE_BANK_EVENT_SCHEMA_VERSION,
 		id: nextId(),
 		at: nowIso(),
 		roomId: input.roomId,
@@ -83,9 +85,9 @@ export function createDrivePlanActivatedEvent(input: {
 	roomId: string;
 	planId: string;
 	title: string;
-}): DriveEvent {
-	return parseDriveEvent({
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
+}): BankDriveEvent {
+	return asBankEvent({
+		schemaVersion: DRIVE_BANK_EVENT_SCHEMA_VERSION,
 		id: nextId(),
 		at: nowIso(),
 		roomId: input.roomId,
@@ -98,9 +100,9 @@ export function createDrivePlanActivatedEvent(input: {
 export function createDrivePlanArchivedEvent(input: {
 	roomId: string;
 	planId: string;
-}): DriveEvent {
-	return parseDriveEvent({
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
+}): BankDriveEvent {
+	return asBankEvent({
+		schemaVersion: DRIVE_BANK_EVENT_SCHEMA_VERSION,
 		id: nextId(),
 		at: nowIso(),
 		roomId: input.roomId,
@@ -115,9 +117,9 @@ export function createDrivePlanStepEvent(input: {
 	taskId: string;
 	title: string;
 	position: number;
-}): DriveEvent {
-	return parseDriveEvent({
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
+}): BankDriveEvent {
+	return asBankEvent({
+		schemaVersion: DRIVE_BANK_EVENT_SCHEMA_VERSION,
 		id: nextId(),
 		at: nowIso(),
 		roomId: input.roomId,

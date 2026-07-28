@@ -1,105 +1,228 @@
 import { describe, expect, it } from "vitest";
 import {
-	assertNeverDriveEventType,
-	assertNoForbiddenPayloadKeys,
-	DRIVE_EVENT_SCHEMA_VERSION,
+	DRIVE_EVENT_FORBIDDEN_KEYS,
+	DRIVE_SCHEMA_VERSION,
+	DriveEventSchema,
+	EVERYONE_ADDRESS,
+	parseAddressSet,
 	parseDriveEvent,
+	parseRoomSnapshot,
 	type DriveEvent,
-} from "./events";
+} from "./index";
 
-function base(type: DriveEvent["type"], extra: Record<string, unknown>) {
-	return {
-		schemaVersion: DRIVE_EVENT_SCHEMA_VERSION,
-		id: "evt-1",
-		at: "2026-07-27T12:00:00.000Z",
-		roomId: "room-1",
-		type,
-		...extra,
-	};
-}
+const base = {
+	schemaVersion: DRIVE_SCHEMA_VERSION,
+	id: "evt_1",
+	roomId: "room_1",
+	at: "2026-07-25T12:00:00.000Z",
+	actorId: "user_1",
+} as const;
 
-describe("DriveEventSchema", () => {
-	it("parses bank lifecycle events", () => {
-		const opened = parseDriveEvent(
-			base("drive_task_opened", { taskId: "t1", title: "Fix" }),
+describe("DriveEvent schemas", () => {
+	it("parses a versioned control.join event", () => {
+		const event = parseDriveEvent({
+			...base,
+			type: "control.join",
+			track: "control",
+			participant: {
+				id: "user_1",
+				kind: "human",
+				displayName: "Ada",
+				role: "host",
+				status: "idle",
+			},
+		});
+		expect(event.type).toBe("control.join");
+		expect(event.schemaVersion).toBe(1);
+	});
+
+	it("round-trips through JSON", () => {
+		const original = parseDriveEvent({
+			...base,
+			type: "conversation.message",
+			track: "conversation",
+			text: "hello",
+			addressSet: EVERYONE_ADDRESS,
+		});
+		const roundTripped = parseDriveEvent(
+			JSON.parse(JSON.stringify(original)) as unknown,
 		);
-		expect(opened.type).toBe("drive_task_opened");
-
-		const bound = parseDriveEvent(
-			base("drive_task_bound", { taskId: "t1", planId: "p1" }),
-		);
-		expect(bound.type).toBe("drive_task_bound");
-
-		const step = parseDriveEvent(
-			base("drive_plan_step", {
-				planId: "p1",
-				taskId: "t1",
-				title: "Fix",
-				position: 0,
-			}),
-		);
-		expect(step.type).toBe("drive_plan_step");
+		expect(roundTripped).toEqual(original);
 	});
 
 	it("rejects unversioned payloads", () => {
 		expect(() =>
 			parseDriveEvent({
-				type: "drive_task_opened",
-				id: "e",
-				at: "2026-07-27T12:00:00.000Z",
-				roomId: "r",
-				taskId: "t1",
-				title: "x",
+				id: "evt_1",
+				roomId: "room_1",
+				at: "2026-07-25T12:00:00.000Z",
+				type: "control.mute",
+				track: "control",
+				participantId: "user_1",
+				muted: true,
 			}),
 		).toThrow();
 	});
 
-	it("supports exhaustive switch over event types", () => {
-		const event = parseDriveEvent(
-			base("drive_plan_archived", { planId: "p1" }),
-		);
-		switch (event.type) {
-			case "drive_task_opened":
-			case "drive_task_bound":
-			case "drive_task_completed":
-			case "drive_task_archived":
-			case "drive_plan_activated":
-			case "drive_plan_archived":
-			case "drive_plan_step":
-				break;
-			default:
-				assertNeverDriveEventType(event.type);
+	it("rejects wrong schemaVersion", () => {
+		expect(() =>
+			parseDriveEvent({
+				...base,
+				schemaVersion: 99,
+				type: "control.mute",
+				track: "control",
+				participantId: "user_1",
+				muted: true,
+			}),
+		).toThrow();
+	});
+
+	it("supports addressSet on messages and control.address", () => {
+		const message = parseDriveEvent({
+			...base,
+			type: "conversation.message",
+			track: "conversation",
+			text: "only for partner",
+			addressSet: { mode: "agents", agentIds: ["agent_partner"] },
+		});
+		expect(message.type).toBe("conversation.message");
+		if (message.type === "conversation.message") {
+			expect(message.addressSet).toEqual({
+				mode: "agents",
+				agentIds: ["agent_partner"],
+			});
 		}
+
+		const address = parseDriveEvent({
+			...base,
+			id: "evt_2",
+			type: "control.address",
+			track: "control",
+			addressSet: { mode: "pack", packId: "pack_review" },
+		});
+		expect(address.type).toBe("control.address");
+	});
+
+	it("compiles an exhaustive switch over DriveEvent.type", () => {
+		const event = parseDriveEvent({
+			...base,
+			type: "work.plan_step",
+			track: "work",
+			title: "Ship schemas",
+			status: "in_progress",
+		});
+
+		const label = (e: DriveEvent): string => {
+			switch (e.type) {
+				case "control.join":
+				case "control.leave":
+				case "control.mute":
+				case "control.stage":
+				case "control.mode":
+				case "control.raise_hand":
+				case "control.address":
+					return "control";
+				case "conversation.message":
+				case "conversation.narration":
+					return "conversation";
+				case "work.edit":
+				case "work.command":
+				case "work.test_result":
+				case "work.plan_step":
+				case "work.decision":
+					return "work";
+				case "presence.speaking":
+				case "presence.typing":
+				case "presence.status":
+					return "presence";
+				default: {
+					const _exhaustive: never = e;
+					return _exhaustive;
+				}
+			}
+		};
+
+		expect(label(event)).toBe("work");
 	});
 });
 
-describe("privacy assertions", () => {
-	it("rejects raw audio / transcript payload keys", () => {
-		expect(() =>
-			assertNoForbiddenPayloadKeys({
-				type: "drive_task_opened",
-				audio: "raw",
-			}),
-		).toThrow(/audio/);
-
-		expect(() =>
-			assertNoForbiddenPayloadKeys({
-				nested: { transcript: "full" },
-			}),
-		).toThrow(/transcript/);
-
-		expect(() =>
-			assertNoForbiddenPayloadKeys({
-				demo: { imageBytes: "abc" },
-			}),
-		).toThrow(/imageBytes/);
+describe("Room / address schemas", () => {
+	it("parses a room snapshot with stage sharer and addressSet", () => {
+		const room = parseRoomSnapshot({
+			schemaVersion: 1,
+			roomId: "room_1",
+			createdAt: "2026-07-25T12:00:00.000Z",
+			driveActive: true,
+			subMode: "plan",
+			participants: [
+				{
+					id: "user_1",
+					kind: "human",
+					displayName: "Ada",
+					role: "host",
+					status: "idle",
+				},
+				{
+					id: "agent_1",
+					kind: "agent",
+					displayName: "Partner",
+					role: "partner",
+					status: "idle",
+					seatSources: [],
+				},
+			],
+			stage: {
+				sharer: { kind: "agent", participantId: "agent_1" },
+				pin: null,
+				cards: [],
+			},
+			addressSet: EVERYONE_ADDRESS,
+			muteByParticipantId: {},
+			raisedHandByParticipantId: {},
+			appliedEventIds: [],
+		});
+		expect(room.stage.sharer?.participantId).toBe("agent_1");
 	});
 
-	it("allows structured bank events without media keys", () => {
+	it("parses address sets including reserved pack mode", () => {
+		expect(parseAddressSet({ mode: "everyone" })).toEqual(EVERYONE_ADDRESS);
+		expect(
+			parseAddressSet({ mode: "agents", agentIds: ["a1"] }),
+		).toEqual({ mode: "agents", agentIds: ["a1"] });
+		expect(parseAddressSet({ mode: "pack", packId: "p1" })).toEqual({
+			mode: "pack",
+			packId: "p1",
+		});
 		expect(() =>
-			assertNoForbiddenPayloadKeys(
-				base("drive_task_completed", { taskId: "t1" }),
-			),
-		).not.toThrow();
+			parseAddressSet({ mode: "agents", agentIds: [] }),
+		).toThrow();
+	});
+});
+
+describe("privacy gate", () => {
+	it("does not accept forbidden audio / transcript payload fields", () => {
+		for (const key of DRIVE_EVENT_FORBIDDEN_KEYS) {
+			const result = DriveEventSchema.safeParse({
+				...base,
+				type: "conversation.message",
+				track: "conversation",
+				text: "hi",
+				[key]: "should-not-be-allowed",
+			});
+			expect(result.success).toBe(false);
+		}
+	});
+
+	it("rejects payloads that smuggle audio under an allowed envelope", () => {
+		const result = DriveEventSchema.safeParse({
+			...base,
+			type: "presence.speaking",
+			track: "presence",
+			participantId: "user_1",
+			speaking: true,
+			audio: { pcm: [0, 1, 2] },
+			transcript: "secret full transcript",
+		});
+		expect(result.success).toBe(false);
 	});
 });

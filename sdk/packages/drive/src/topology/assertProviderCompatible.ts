@@ -1,13 +1,13 @@
-import {
-	egressWithinCeiling,
-	type DriveProviderManifest,
-	type DriveProviderSlot,
-	type RuntimeTopology,
+import type {
+	DriveProviderManifest,
+	DriveProviderSlot,
+	RuntimeTopology,
 } from "@cline/shared";
 import {
 	assertTopologyLegal,
 	type TopologyReject,
 } from "./assertTopologyLegal.js";
+import { egressWithinCeiling } from "./egressHelpers.js";
 
 export function assertProviderCompatible(
 	manifest: DriveProviderManifest,
