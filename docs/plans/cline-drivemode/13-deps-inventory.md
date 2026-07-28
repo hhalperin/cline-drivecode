@@ -20,7 +20,7 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 | Dep | Current | Latest | Notes |
 |---|---|---|---|
 | React / react-dom | **19.2.4** hub/cli/ui/desktop; **^18.3.1** vscode webview-ui | 19.2.8 | Align vscode webview-ui to 19 when extension host allows |
-| Vite | **^8.0.0** hub webview; **^7.1.11** vscode webview-ui + sdk/ui | 8.1.5 | Hub already on 8; vscode/ui still on 7 |
+| Vite | **^8.0.0** hub + vscode webview-ui + sdk/ui | 8.1.5 | **U2 partial** — Vite 8 aligned; React 18 remains on vscode webview-ui |
 | Tailwind | ^4.2.x hub/ui; ^4.1.x vscode | 4.3.3 | Minor bump OK after visual smoke |
 | lucide-react | ^0.577 hub; ^0.511 vscode webview; ^0.564 desktop | **1.27.0** | Major icon package; audit renames (Headphones etc.) |
 | mermaid | **11.16.0** hub + vscode webview | 11.16.0 | Already current |
@@ -40,7 +40,7 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 ## Drift / inconsistency (fix in U2–U5)
 
 1. **React 18 vs 19** across vscode webview-ui vs hub/cli/ui.  
-2. **Vite 7 vs 8** across vscode webview-ui / sdk-ui vs hub.  
+2. ~~**Vite 7 vs 8**~~ **U2 fixed** (Vite 8 on vscode webview-ui + sdk/ui). React 18 remains on vscode webview-ui.  
 3. ~~**Vitest 3 vs 4** in vscode webview-ui.~~ **U1 fixed**  
 4. ~~**Zod 3 vs 4** in desktop-app example.~~ **U3 fixed**  
 5. **lucide-react** three different 0.x minors + looming 1.x.  

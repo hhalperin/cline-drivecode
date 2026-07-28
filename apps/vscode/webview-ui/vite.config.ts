@@ -98,8 +98,6 @@ export default defineConfig({
 				entryFileNames: `assets/[name].js`,
 				chunkFileNames: `assets/[name].js`,
 				assetFileNames: `assets/[name].[ext]`,
-				// Disable compact output for dev build
-				compact: !isDevBuild,
 				// Add generous formatting for dev build
 				...(isDevBuild && {
 					generatedCode: {
