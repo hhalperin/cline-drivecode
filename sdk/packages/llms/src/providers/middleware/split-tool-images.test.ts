@@ -1,6 +1,6 @@
 import type {
-	LanguageModelV3CallOptions,
-	LanguageModelV3Message,
+	LanguageModelV4CallOptions,
+	LanguageModelV4Message,
 } from "@ai-sdk/provider";
 import { describe, expect, it } from "vitest";
 import {
@@ -15,7 +15,7 @@ const imageData = (byteLength: number, fill = 1) =>
 
 describe("rewritePromptToolImages", () => {
 	it("leaves prompts without tool messages unchanged", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{ role: "system", content: "you are a helpful assistant" },
 			{
 				role: "user",
@@ -36,7 +36,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("leaves text-only tool messages unchanged", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -66,7 +66,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("splits image-data parts into a synthetic user message", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -99,7 +99,7 @@ describe("rewritePromptToolImages", () => {
 		expect(toolMsg.role).toBe("tool");
 		// Tool-result should now have placeholder text instead of image-data.
 		const toolResult = (
-			toolMsg as Extract<LanguageModelV3Message, { role: "tool" }>
+			toolMsg as Extract<LanguageModelV4Message, { role: "tool" }>
 		).content[0];
 		if (toolResult.type !== "tool-result") {
 			throw new Error("expected tool-result");
@@ -126,7 +126,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("preserves filename and provider options on file-data parts", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -173,7 +173,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("converts image-url parts to file parts", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -208,7 +208,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("omits image-url parts that exceed the aggregate media budget", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -249,7 +249,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("omits invalid data URL image-url parts instead of splitting them", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -280,7 +280,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("omits unsupported uppercase data URL image-url parts before splitting", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -311,7 +311,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("omits file-url parts that exceed the aggregate media budget", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -358,7 +358,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("omits malformed file-url data URLs instead of splitting them", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -390,7 +390,7 @@ describe("rewritePromptToolImages", () => {
 
 	it("omits oversized file-data parts instead of splitting them", () => {
 		const oversizedFile = "A".repeat(6 * 1024 * 1024);
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -422,7 +422,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("replaces invalid image-data with a text placeholder instead of splitting it", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -450,7 +450,7 @@ describe("rewritePromptToolImages", () => {
 		expect(out.mutated).toBe(true);
 		expect(out.prompt).toHaveLength(1);
 		const toolResult = (
-			out.prompt[0] as Extract<LanguageModelV3Message, { role: "tool" }>
+			out.prompt[0] as Extract<LanguageModelV4Message, { role: "tool" }>
 		).content[0];
 		if (toolResult.type !== "tool-result") {
 			throw new Error("expected tool-result");
@@ -468,10 +468,10 @@ describe("rewritePromptToolImages", () => {
 
 	it("leaves image-file-id parts in place (no FilePart equivalent)", () => {
 		// image-file-id is an OpenAI-specific provider reference. It can't
-		// be expressed as a `LanguageModelV3FilePart`, so we leave it inside
+		// be expressed as a `LanguageModelV4FilePart`, so we leave it inside
 		// the tool-result. That path is already multimodal-aware and doesn't
 		// need the rewrite.
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -495,7 +495,7 @@ describe("rewritePromptToolImages", () => {
 
 		expect(out.mutated).toBe(false);
 		const toolResult = (
-			out.prompt[0] as Extract<LanguageModelV3Message, { role: "tool" }>
+			out.prompt[0] as Extract<LanguageModelV4Message, { role: "tool" }>
 		).content[0];
 		if (toolResult.type !== "tool-result") {
 			throw new Error("expected tool-result");
@@ -515,7 +515,7 @@ describe("rewritePromptToolImages", () => {
 		// with two `tool-result` parts (or one tool-result with two images,
 		// depending on how the agent emits them). Either way, the rewritten
 		// user message should carry both images.
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -571,7 +571,7 @@ describe("rewritePromptToolImages", () => {
 	it("omits images that exceed the aggregate media budget in the split backstop", () => {
 		const firstImage = imageData(3_600_000, 1);
 		const secondImage = imageData(3_600_000, 2);
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -628,7 +628,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("handles multiple separate tool messages in the same prompt", () => {
-		const prompt: LanguageModelV3Message[] = [
+		const prompt: LanguageModelV4Message[] = [
 			{
 				role: "user",
 				content: [{ type: "text", text: "show me both" }],
@@ -701,7 +701,7 @@ describe("rewritePromptToolImages", () => {
 	});
 
 	it("does not mutate the input prompt array or its messages", () => {
-		const original: LanguageModelV3Message[] = [
+		const original: LanguageModelV4Message[] = [
 			{
 				role: "tool",
 				content: [
@@ -729,12 +729,12 @@ describe("rewritePromptToolImages", () => {
 });
 
 describe("splitToolImagesMiddleware", () => {
-	it("has v3 specification version", () => {
-		expect(splitToolImagesMiddleware.specificationVersion).toBe("v3");
+	it("has v4 specification version", () => {
+		expect(splitToolImagesMiddleware.specificationVersion).toBe("v4");
 	});
 
 	it("returns the same params object reference when no rewrite is needed", async () => {
-		const params: LanguageModelV3CallOptions = {
+		const params: LanguageModelV4CallOptions = {
 			prompt: [
 				{
 					role: "user",
@@ -756,7 +756,7 @@ describe("splitToolImagesMiddleware", () => {
 	});
 
 	it("returns transformed params with rewritten prompt when images are present", async () => {
-		const params: LanguageModelV3CallOptions = {
+		const params: LanguageModelV4CallOptions = {
 			prompt: [
 				{
 					role: "tool",
@@ -790,7 +790,7 @@ describe("splitToolImagesMiddleware", () => {
 	});
 
 	it("preserves call-options siblings (temperature, tools, etc.)", async () => {
-		const params: LanguageModelV3CallOptions = {
+		const params: LanguageModelV4CallOptions = {
 			prompt: [
 				{
 					role: "tool",

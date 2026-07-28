@@ -30,10 +30,11 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 | Dep | Current | Latest | Notes |
 |---|---|---|---|
 | zod | **^4.3.6** sdk/cli/desktop/agents-squad | 4.4.3 | **U3 done** — desktop off Zod 3; minors aligned to 4.3.6 |
-| ai | ^6.0.144 llms; ^6.0.116 hub webview | **7.0.40** | Major — coordinate with @ai-sdk/* |
-| @ai-sdk/anthropic | ^3.0.68 | **4.0.23** | Major with `ai@7` |
-| @ai-sdk/openai | ^3.0.52 | **4.0.22** | Major with `ai@7` |
-| @ai-sdk/provider | ^3.0.8 | check with ai@7 | Keep peer-aligned |
+| ai | **^7.0.40** llms/hub | 7.0.40 | **U4 in progress** — LanguageModelV4 middleware; split-tool-images needs media-shape rewrite |
+| @ai-sdk/anthropic | **^4.0.23** | 4.0.23 | Aligned with ai@7 |
+| @ai-sdk/openai | **^4.0.22** | 4.0.22 | Aligned with ai@7 |
+| @ai-sdk/provider | **^4.0.4** | 4.0.4 | Aligned with ai@7 |
+
 | @ai-sdk/amazon-bedrock | ^4.0.89 | check | Already on 4.x line |
 | @modelcontextprotocol/sdk | ^1.29.0 core; ^1.25.1 vscode | check | Prefer single range |
 
