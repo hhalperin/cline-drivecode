@@ -1,5 +1,6 @@
 import {
 	createEmptyDriveRoomLiveState,
+	ShowBacklogItemSchema,
 	type DriveRoomLiveState,
 	type ParticipantAudioFlags,
 	type ShowBacklogItem,
@@ -177,10 +178,15 @@ function handleShowPresent(
 	envelope: HubCommandEnvelope,
 ): HubReplyEnvelope {
 	const roomId = readString(envelope.payload, "roomId") ?? "default";
-	const showItem = envelope.payload?.showItem as ShowBacklogItem | undefined;
-	if (!showItem || typeof showItem !== "object" || !showItem.id) {
-		return errorReply(envelope, "invalid_payload", "showItem is required");
+	const parsedShow = ShowBacklogItemSchema.safeParse(envelope.payload?.showItem);
+	if (!parsedShow.success) {
+		return errorReply(
+			envelope,
+			"invalid_payload",
+			"showItem must be a valid ShowBacklogItem",
+		);
 	}
+	const showItem: ShowBacklogItem = parsedShow.data;
 	const room = getOrCreateRoom(roomId);
 	const showBacklog = [
 		showItem,
