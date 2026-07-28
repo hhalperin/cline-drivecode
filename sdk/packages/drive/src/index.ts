@@ -90,3 +90,9 @@ export {
 	planRoute,
 	type RouteReject,
 } from "./router/planRoute.js";
+export {
+	setParticipantDeafened,
+	setParticipantMuted,
+	setSpotlight,
+	type SpotlightReject,
+} from "./room/participantControls.js";
