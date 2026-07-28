@@ -14,5 +14,7 @@ describe("createVoiceStack", () => {
 		expect(stack.stt.backend.kind).toBe("local-worker");
 		expect(stack.tts.backend.kind).toBe("browser-speechSynthesis");
 		expect(stack.stt.egress).toBe("loopback-only");
+		expect(typeof stack.tts.speak).toBe("function");
+		expect(typeof stack.tts.cancel).toBe("function");
 	});
 });

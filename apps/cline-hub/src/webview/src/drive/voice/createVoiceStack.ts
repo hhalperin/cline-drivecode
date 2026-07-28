@@ -91,19 +91,34 @@ function createBuiltinSttPort(manifest: DriveProviderManifest): SttPort {
 
 function createBuiltinTtsPort(manifest: DriveProviderManifest): TtsPort {
 	const backend = manifest.backend as TtsBackend;
-	let cancelled = false;
+	let utterance: SpeechSynthesisUtterance | null = null;
 	return {
 		backend,
 		egress: manifest.egress,
-		async speak(_text) {
-			cancelled = false;
-			if (cancelled) {
+		async speak(text) {
+			if (backend.kind !== "browser-speechSynthesis") {
 				return;
 			}
-			// Playback lands with DRV-TTS; port exists for selection/smoke.
+			if (typeof window === "undefined" || !window.speechSynthesis) {
+				return;
+			}
+			window.speechSynthesis.cancel();
+			utterance = new SpeechSynthesisUtterance(text);
+			await new Promise<void>((resolve) => {
+				if (!utterance) {
+					resolve();
+					return;
+				}
+				utterance.onend = () => resolve();
+				utterance.onerror = () => resolve();
+				window.speechSynthesis.speak(utterance);
+			});
 		},
 		cancel() {
-			cancelled = true;
+			if (typeof window !== "undefined" && window.speechSynthesis) {
+				window.speechSynthesis.cancel();
+			}
+			utterance = null;
 		},
 	};
 }
