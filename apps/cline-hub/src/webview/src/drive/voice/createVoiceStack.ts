@@ -1,0 +1,109 @@
+import {
+	BUILTIN_PROVIDER_MANIFESTS,
+	type DriveProviderManifest,
+	type EgressClass,
+	type RuntimeTopology,
+	type SttBackend,
+	type TtsBackend,
+} from "@cline/shared";
+
+export interface SttHandlers {
+	onInterim?(text: string): void;
+	onFinal(text: string): void;
+	onError(error: { code: string; message: string }): void;
+}
+
+export interface SttSession {
+	stop(): void;
+}
+
+export interface SttPort {
+	readonly backend: SttBackend;
+	readonly egress: EgressClass;
+	start(handlers: SttHandlers): SttSession;
+}
+
+export interface TtsPort {
+	readonly backend: TtsBackend;
+	readonly egress: EgressClass;
+	speak(text: string, opts?: { voiceSlot?: string }): Promise<void>;
+	cancel(): void;
+}
+
+export interface VoiceStack {
+	readonly stt: SttPort;
+	readonly tts: TtsPort;
+	readonly topology: RuntimeTopology;
+}
+
+/**
+ * Composition root for Drive voice adapters (ARD-0010).
+ * Builtins only for now; workspace plugins load in a later phase.
+ */
+export function createVoiceStack(
+	topology: RuntimeTopology,
+	registry: readonly DriveProviderManifest[] = BUILTIN_PROVIDER_MANIFESTS,
+): VoiceStack {
+	const sttManifest = registry.find(
+		(manifest) =>
+			manifest.slot === "stt" &&
+			JSON.stringify(manifest.backend) === JSON.stringify(topology.stt),
+	);
+	const ttsManifest = registry.find(
+		(manifest) =>
+			manifest.slot === "tts" &&
+			JSON.stringify(manifest.backend) === JSON.stringify(topology.tts),
+	);
+	if (!sttManifest || !ttsManifest) {
+		throw new Error("No builtin adapter matches the resolved topology");
+	}
+
+	return {
+		topology,
+		stt: createBuiltinSttPort(sttManifest),
+		tts: createBuiltinTtsPort(ttsManifest),
+	};
+}
+
+function createBuiltinSttPort(manifest: DriveProviderManifest): SttPort {
+	const backend = manifest.backend as SttBackend;
+	return {
+		backend,
+		egress: manifest.egress,
+		start(handlers) {
+			if (backend.kind === "webSpeech") {
+				// Real Web Speech wiring lands with DRV-MIC. Stub reports unsupported
+				// until the browser adapter is attached by the webview host.
+				handlers.onError({
+					code: "stt_not_wired",
+					message: `STT adapter ${manifest.id} is selected but not wired to the mic yet.`,
+				});
+			} else {
+				handlers.onError({
+					code: "stt_not_wired",
+					message: `Local STT adapter ${manifest.id} is selected but the worker is not wired yet.`,
+				});
+			}
+			return { stop() {} };
+		},
+	};
+}
+
+function createBuiltinTtsPort(manifest: DriveProviderManifest): TtsPort {
+	const backend = manifest.backend as TtsBackend;
+	let cancelled = false;
+	return {
+		backend,
+		egress: manifest.egress,
+		async speak(_text) {
+			cancelled = false;
+			if (cancelled) {
+				return;
+			}
+			// Playback lands with DRV-TTS; port exists for selection/smoke.
+		},
+		cancel() {
+			cancelled = true;
+		},
+	};
+}
