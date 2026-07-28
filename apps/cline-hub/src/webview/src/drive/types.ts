@@ -18,9 +18,16 @@ export type DriveUiState = {
 	/** Explicit Ask/Debug override; null means bank-derived Plan/Agent. */
 	postureOverride: DrivePostureOverride | null;
 	partnerName: string;
+	/** Human mic mute (DRV-MIC). */
 	muted: boolean;
 	handRaised: boolean;
 	bankSnapshot: BankSnapshot;
+	/** Who has presentation floor for show/say/voice. */
+	spotlightParticipantId: "human" | "partner";
+	/** Partner agent cannot speak (TTS/narration). */
+	partnerMuted: boolean;
+	/** Partner agent cannot hear (inbound context). */
+	partnerDeafened: boolean;
 };
 
 export const EMPTY_BANK_SNAPSHOT: BankSnapshot = {
@@ -41,6 +48,9 @@ export const DEFAULT_DRIVE_UI: DriveUiState = {
 	muted: false,
 	handRaised: false,
 	bankSnapshot: EMPTY_BANK_SNAPSHOT,
+	spotlightParticipantId: "partner",
+	partnerMuted: false,
+	partnerDeafened: false,
 };
 
 /** Map Drive sub-mode onto native Cline plan|act for send config. */

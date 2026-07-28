@@ -773,6 +773,14 @@ export default function Chat({
 					bankSnapshot:
 						state.driveUi.bankSnapshot ?? DEFAULT_DRIVE_UI.bankSnapshot,
 					postureOverride: state.driveUi.postureOverride ?? null,
+					spotlightParticipantId:
+						state.driveUi.spotlightParticipantId ??
+						DEFAULT_DRIVE_UI.spotlightParticipantId,
+					partnerMuted:
+						state.driveUi.partnerMuted ?? DEFAULT_DRIVE_UI.partnerMuted,
+					partnerDeafened:
+						state.driveUi.partnerDeafened ??
+						DEFAULT_DRIVE_UI.partnerDeafened,
 				};
 			}
 		} catch {
@@ -1475,6 +1483,27 @@ export default function Chat({
 						setDriveVoice((current) => ({
 							...current,
 							settingsOpen: !current.settingsOpen,
+						}));
+					}}
+					onTogglePartnerDeafen={() => {
+						setDrive((current) => ({
+							...current,
+							partnerDeafened: !current.partnerDeafened,
+						}));
+					}}
+					onTogglePartnerMute={() => {
+						setDrive((current) => ({
+							...current,
+							partnerMuted: !current.partnerMuted,
+						}));
+					}}
+					onToggleSpotlight={() => {
+						setDrive((current) => ({
+							...current,
+							spotlightParticipantId:
+								current.spotlightParticipantId === "partner"
+									? "human"
+									: "partner",
 						}));
 					}}
 					onSubModeChange={(subMode) => {

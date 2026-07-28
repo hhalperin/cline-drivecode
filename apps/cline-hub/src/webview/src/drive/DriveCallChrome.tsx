@@ -1,4 +1,4 @@
-import { HandIcon, MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon, Settings2Icon } from "lucide-react";
+import { ApertureIcon, EarOffIcon, HandIcon, MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon, Settings2Icon, VolumeXIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,9 @@ export function DriveCallStrip({
 	onSubModeChange,
 	onClearOverride,
 	onOpenSettings,
+	onToggleSpotlight,
+	onTogglePartnerMute,
+	onTogglePartnerDeafen,
 }: {
 	drive: DriveUiState;
 	disabled?: boolean;
@@ -85,10 +88,16 @@ export function DriveCallStrip({
 	onSubModeChange: (mode: DriveSubMode) => void;
 	onClearOverride?: () => void;
 	onOpenSettings?: () => void;
+	onToggleSpotlight?: () => void;
+	onTogglePartnerMute?: () => void;
+	onTogglePartnerDeafen?: () => void;
 }) {
 	if (!drive.active) {
 		return null;
 	}
+
+	const spotlightLabel =
+		drive.spotlightParticipantId === "human" ? "you" : drive.partnerName;
 
 	return (
 		<div className="flex flex-wrap items-center gap-2 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2">
@@ -101,7 +110,10 @@ export function DriveCallStrip({
 			/>
 			<span className="text-sm font-medium">{drive.partnerName}</span>
 			<span className="text-xs text-muted-foreground">
-				{drive.muted ? "muted" : "listening"} · {drive.subMode}
+				{drive.muted ? "you muted" : "listening"} · spotlight {spotlightLabel}
+				{drive.partnerMuted ? " · partner muted" : ""}
+				{drive.partnerDeafened ? " · partner deafened" : ""}
+				{` · ${drive.subMode}`}
 				{drive.postureOverride ? ` · override` : " · bank"}
 				{drive.handRaised ? " · hand raised" : ""}
 			</span>
@@ -131,6 +143,45 @@ export function DriveCallStrip({
 						Clear override
 					</Button>
 				) : null}
+				<Button
+					aria-label={`Spotlight ${spotlightLabel}`}
+					disabled={disabled}
+					onClick={() => onToggleSpotlight?.()}
+					size="icon-sm"
+					type="button"
+					variant="ghost"
+					title="Toggle spotlight between you and partner"
+				>
+					<ApertureIcon className="size-3.5" />
+				</Button>
+				<Button
+					aria-label={
+						drive.partnerMuted ? "Unmute partner" : "Mute partner"
+					}
+					disabled={disabled}
+					onClick={() => onTogglePartnerMute?.()}
+					size="icon-sm"
+					type="button"
+					variant={drive.partnerMuted ? "default" : "ghost"}
+					title="Partner mute (cannot speak)"
+				>
+					<VolumeXIcon className="size-3.5" />
+				</Button>
+				<Button
+					aria-label={
+						drive.partnerDeafened
+							? "Undeafen partner"
+							: "Deafen partner"
+					}
+					disabled={disabled}
+					onClick={() => onTogglePartnerDeafen?.()}
+					size="icon-sm"
+					type="button"
+					variant={drive.partnerDeafened ? "default" : "ghost"}
+					title="Partner deafen (cannot hear)"
+				>
+					<EarOffIcon className="size-3.5" />
+				</Button>
 				<Button
 					aria-label="Drive settings"
 					disabled={disabled}
