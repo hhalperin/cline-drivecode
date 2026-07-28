@@ -29,7 +29,7 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 
 | Dep | Current | Latest | Notes |
 |---|---|---|---|
-| zod | **^4.3.6** sdk; ^4.1.11 cli; **^3.24.1** desktop-app | 4.4.3 | Align desktop-app off Zod 3 |
+| zod | **^4.3.6** sdk/cli/desktop/agents-squad | 4.4.3 | **U3 done** — desktop off Zod 3; minors aligned to 4.3.6 |
 | ai | ^6.0.144 llms; ^6.0.116 hub webview | **7.0.40** | Major — coordinate with @ai-sdk/* |
 | @ai-sdk/anthropic | ^3.0.68 | **4.0.23** | Major with `ai@7` |
 | @ai-sdk/openai | ^3.0.52 | **4.0.22** | Major with `ai@7` |
@@ -42,7 +42,7 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 1. **React 18 vs 19** across vscode webview-ui vs hub/cli/ui.  
 2. **Vite 7 vs 8** across vscode webview-ui / sdk-ui vs hub.  
 3. ~~**Vitest 3 vs 4** in vscode webview-ui.~~ **U1 fixed**  
-4. **Zod 3 vs 4** in desktop-app example.  
+4. ~~**Zod 3 vs 4** in desktop-app example.~~ **U3 fixed**  
 5. **lucide-react** three different 0.x minors + looming 1.x.  
 6. **ai** package slightly different minors between hub webview and llms.
 
