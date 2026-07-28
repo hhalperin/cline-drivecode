@@ -1,6 +1,6 @@
 # Smoke · Voice local profile
 
-Back to [TASK-GRAPH](../TASK-GRAPH.md) phase 3 gate.
+Back to [TASK-GRAPH](./TASK-GRAPH.md) phase 3 gate.
 
 ## Preconditions
 

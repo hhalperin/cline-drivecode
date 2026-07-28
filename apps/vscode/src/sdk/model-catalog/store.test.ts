@@ -984,7 +984,7 @@ describe("createProviderConfigStore", () => {
 		const entry = mocks.getModelsFile().providers["openai-compatible"]?.models?.["contract-model"]
 		expect(entry).toBeDefined()
 		// No SDK capability may be silently stripped by the store's converter.
-		expect([...(entry?.capabilities as string[])].sort()).toEqual([...ModelCapabilitySchema.options].sort())
+		expect([...(entry?.capabilities ?? [])].sort()).toEqual([...ModelCapabilitySchema.options].sort())
 		// The entry written by the extension must satisfy the real schema that
 		// the SDK's writeModelsFileSync enforces.
 		expect(() => StoredModelEntrySchema.parse(entry)).not.toThrow()

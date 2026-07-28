@@ -11,7 +11,7 @@ function envelope(
 	payload?: Record<string, unknown>,
 ): HubCommandEnvelope {
 	return {
-		version: 1 as HubCommandEnvelope["version"],
+		version: "v1",
 		command,
 		requestId: "req-1",
 		payload,
@@ -35,10 +35,10 @@ function createCtx() {
 			payload?: Record<string, unknown>,
 		) =>
 			({
-				version: 1,
+				version: "v1",
 				event,
 				payload,
-			}) as HubEventEnvelope,
+			}) as unknown as HubEventEnvelope,
 		requestCapability: vi.fn(),
 	} as unknown as HubTransportContext;
 	return { ctx, published };
