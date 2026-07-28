@@ -1,4 +1,4 @@
-import { HandIcon, MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon } from "lucide-react";
+import { HandIcon, MicIcon, MicOffIcon, PhoneIcon, PhoneOffIcon, Settings2Icon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,12 +75,16 @@ export function DriveCallStrip({
 	onMuteToggle,
 	onHandToggle,
 	onSubModeChange,
+	onClearOverride,
+	onOpenSettings,
 }: {
 	drive: DriveUiState;
 	disabled?: boolean;
 	onMuteToggle: () => void;
 	onHandToggle: () => void;
 	onSubModeChange: (mode: DriveSubMode) => void;
+	onClearOverride?: () => void;
+	onOpenSettings?: () => void;
 }) {
 	if (!drive.active) {
 		return null;
@@ -98,6 +102,7 @@ export function DriveCallStrip({
 			<span className="text-sm font-medium">{drive.partnerName}</span>
 			<span className="text-xs text-muted-foreground">
 				{drive.muted ? "muted" : "listening"} · {drive.subMode}
+				{drive.postureOverride ? ` · override` : " · bank"}
 				{drive.handRaised ? " · hand raised" : ""}
 			</span>
 			<div className="ml-auto flex flex-wrap items-center gap-1">
@@ -114,6 +119,28 @@ export function DriveCallStrip({
 						{mode}
 					</Button>
 				))}
+				{drive.postureOverride ? (
+					<Button
+						disabled={disabled}
+						onClick={() => onClearOverride?.()}
+						size="sm"
+						type="button"
+						variant="outline"
+						className="h-7 px-2 text-xs"
+					>
+						Clear override
+					</Button>
+				) : null}
+				<Button
+					aria-label="Drive settings"
+					disabled={disabled}
+					onClick={() => onOpenSettings?.()}
+					size="icon-sm"
+					type="button"
+					variant="ghost"
+				>
+					<Settings2Icon className="size-3.5" />
+				</Button>
 				<Button
 					aria-label={drive.muted ? "Unmute" : "Mute"}
 					disabled={disabled}
