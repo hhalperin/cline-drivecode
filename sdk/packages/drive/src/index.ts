@@ -85,6 +85,11 @@ export {
 	type RankedShow,
 } from "./director/rankBacklogs.js";
 export {
+	getShowTemplate,
+	SHOW_TEMPLATE_KIT,
+	type ShowTemplate,
+} from "./director/showTemplates.js";
+export {
 	assertDeliveryAllowed,
 	assertRouteLegal,
 	planRoute,

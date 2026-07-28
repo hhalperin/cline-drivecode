@@ -69,6 +69,7 @@ import {
 	DriveNarrationBanner,
 	DriveStagePanel,
 } from "./drive/DriveCallChrome";
+import { StickyStagePane } from "./drive/StickyStagePane";
 import {
 	createDriveBankSession,
 	listPlanTasks,
@@ -1867,6 +1868,7 @@ export default function Chat({
 						}
 						sharingLabel={latestToolLabel}
 					>
+						<StickyStagePane drive={drive} />
 						<div className="space-y-3 text-xs text-muted-foreground">
 							<p>
 								Task bank cursor drives now/next. Edit plan refs below; completed
