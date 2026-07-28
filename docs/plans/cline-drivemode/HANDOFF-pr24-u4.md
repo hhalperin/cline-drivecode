@@ -18,33 +18,35 @@
 | `@ai-sdk/anthropic|openai|google|mistral|provider|…` majors aligned | Done |
 | `LanguageModelV3` → `LanguageModelV4` renames in middleware/vendors | Done |
 | `streamText`: `experimental_telemetry` → `telemetry`; omit empty `tools` | Done |
+| U4-A `split-tool-images` V4 rewrite (no `@ts-nocheck`) | Done |
 | `bun run build:sdk` | Green at tip |
-| `bun -F @cline/llms test` | **420 passed** at tip |
+| `bun -F @cline/llms test` | **420 passed** at tip (re-verify after U4-B) |
 
 ## Must finish before merging PR 24
 
-### U4-A · Rewrite `split-tool-images` for LanguageModelV4 (blocking)
+### U4-A · Rewrite `split-tool-images` for LanguageModelV4 (**done**)
 
 **File.** `sdk/packages/llms/src/providers/middleware/split-tool-images.ts`  
-**Problem.** File starts with `// @ts-nocheck` because V4 `LanguageModelV4ToolResultOutput` no longer has `image-data` / `image-url` / `file-data` / `file-url` / `image-file-id` content parts. V4 outputs are roughly: `text` | `json` | `execution-denied` | `error-text` | `error-json` | (and related). Media now flows through file/`LanguageModelV4FilePart` differently.
-
-**Acceptance.**
-
-1. Remove `@ts-nocheck`.
-2. Middleware compiles under strict `tsc` with V4 types.
-3. `split-tool-images.test.ts` updated for V4 shapes; keep coverage for: tool result with embedded images → rewritten prompt with file parts; no-op when no media; openai-compatible / mistral / ollama wrap paths still attach middleware.
-4. `bun -F @cline/llms test` green; `bun run build:sdk` green.
-5. Smoke: tool result that returns an image (or fixture) still reaches the model as multimodal content on openai-compatible path.
-
-**Refs.** AI SDK 7 migration guide; `@ai-sdk/provider` `LanguageModelV4ToolResultOutput` / `LanguageModelV4FilePart`.
+**Done.** Canonical V4 `{ type: 'file', data: SharedV4FileData }` content parts; `@ts-nocheck` removed; tests updated.
 
 ### U4-B · Clear remaining `experimental_*` / deprecation warnings (should land with 24)
 
 | Item | Where | Notes |
 |---|---|---|
-| `experimental_repairToolCall` | `sdk/packages/llms/src/providers/ai-sdk.ts` | Still passed to `streamText`; migrate to non-experimental API if renamed in v7 (`repairToolCall` / docs). |
-| Deprecation: providerOptions key `'openai-compatible'` → `'openaiCompatible'` | Runtime warnings in llms tests | Routing already emits `openaiCompatible` in many paths; hunt remaining `'openai-compatible'` option buckets that still warn. |
-| Peer packages | `ai-sdk-ollama`, `ai-sdk-provider-opencode-sdk`, `dify-ai-provider`, SAP provider | Confirm peer ranges work with `ai@7`; bump or pin with documented incompatibility. |
+| `experimental_repairToolCall` → `repairToolCall` | `sdk/packages/llms/src/providers/ai-sdk.ts` | **Done** — stable AI SDK 7 name |
+| Deprecation: providerOptions key `'openai-compatible'` → `'openaiCompatible'` | `routing/utils.ts` `buildProviderAndAliasPatch` | **Done** — never emit deprecated kebab bucket |
+| Peer packages | see below | Partial — ollama bumped; others pinned with noted incompatibility |
+
+**Peer alignment (ai@7):**
+
+| Package | Action |
+|---|---|
+| `ai-sdk-ollama` | **Bumped to ^4.1.0** (`peer: ai@^7`, `@ai-sdk/provider@^4`) |
+| `ai-sdk-provider-opencode-sdk` | **Pinned ^3.0.1** — still on `@ai-sdk/provider@^3`; no ai@7 release yet |
+| `dify-ai-provider` | **Pinned ^1.1.0** — still on `@ai-sdk/provider@^2`; no ai@7 release yet |
+| `@jerome-benoit/sap-ai-provider` | **Pinned 4.8.0** — peer `ai@^5 \|\| ^6` only; no ai@7 release yet |
+
+Community providers without V4 peers remain available behind their vendor factories; treat as best-effort until upstream ships ai@7.
 
 ### U4-C · Verify consumers (should land with 24)
 
