@@ -27,6 +27,8 @@ Repo-level continuation brief. [HANDOFF-drivecode.md](../HANDOFF-drivecode.md).
 | [10-agent-router.md](10-agent-router.md) | Multi-agent utterance router (suggest/auto among seated) |
 | [11-spotlight-a2a.md](11-spotlight-a2a.md) | Spotlight, per-agent bags, mute/deafen, A2A |
 | [12-performance.md](12-performance.md) | Drive compute/memory measurement and optimization architecture |
+| [13-deps-inventory.md](13-deps-inventory.md) | Dependency inventory and compatible upgrade matrix (U0) |
+| [14-primitives-audit.md](14-primitives-audit.md) | Primitives misuse / dead-code audit (P0) |
 | [share-and-router/](share-and-router/) | Full reference PLAN for demo share + agent router |
 | [prd/](prd/) | Product requirements. PRD 6 portfolio; PRD 7 PiP; PRD 8 Drive-as-mode; PRD 9 task-bank loop |
 | [task-bank-drive-loop/](task-bank-drive-loop/) | Multi-phase plan for the task-bank Drive loop |

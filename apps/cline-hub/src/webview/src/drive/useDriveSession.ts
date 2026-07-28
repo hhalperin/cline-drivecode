@@ -18,6 +18,10 @@ import {
 	type DriveUiState,
 } from "./types";
 import {
+	isDrivePartnerId,
+	toggleDriveSpotlightId,
+} from "./participantIds";
+import {
 	createDriveBankSession,
 	listPlanTasks,
 	seedDemoBank,
@@ -201,11 +205,8 @@ export function useDriveSession(
 			}
 			const room = message.room;
 			setDrive((current) => {
-				const partnerFlags = room.participantAudio?.find(
-					(flag) =>
-						flag.participantId === DRIVE_PARTICIPANT_PARTNER ||
-						flag.participantId === "partner" ||
-						flag.participantId === "drive:partner",
+				const partnerFlags = room.participantAudio?.find((flag) =>
+					isDrivePartnerId(flag.participantId),
 				);
 				const spotlight =
 					room.spotlightParticipantId ?? current.spotlightParticipantId;
@@ -356,11 +357,9 @@ export function useDriveSession(
 			},
 			onToggleSpotlight: () => {
 				setDrive((current) => {
-					const spotlightParticipantId =
-						current.spotlightParticipantId === DRIVE_PARTICIPANT_PARTNER ||
-						current.spotlightParticipantId === "partner"
-							? DRIVE_PARTICIPANT_HUMAN
-							: DRIVE_PARTICIPANT_PARTNER;
+					const spotlightParticipantId = toggleDriveSpotlightId(
+						current.spotlightParticipantId,
+					);
 					postToHost({
 						type: "driveCommand",
 						command: "drive.spotlight.set",

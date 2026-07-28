@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
+import { isDriveHumanId } from "../participantIds";
 import type { DriveUiState } from "../types";
-import { DRIVE_PARTICIPANT_HUMAN } from "../types";
 
 export function StickyStagePane({
 	drive,
@@ -19,11 +19,9 @@ export function StickyStagePane({
 		return null;
 	}
 
-	const spotlightLabel =
-		drive.spotlightParticipantId === DRIVE_PARTICIPANT_HUMAN ||
-		drive.spotlightParticipantId === "human"
-			? "You"
-			: drive.partnerName;
+	const spotlightLabel = isDriveHumanId(drive.spotlightParticipantId)
+		? "You"
+		: drive.partnerName;
 
 	return (
 		<div
