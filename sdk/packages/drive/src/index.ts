@@ -75,3 +75,18 @@ export {
 	type VoiceAckInput,
 	type VoiceAckResult,
 } from "./voiceAck.js";
+export {
+	advanceScriptBeat,
+	buildDirectorStateFromBags,
+	mergeAgentShowBacklogs,
+	pickActiveScript,
+	rankDoBacklog,
+	rankShowBacklog,
+	type RankedShow,
+} from "./director/rankBacklogs.js";
+export {
+	assertDeliveryAllowed,
+	assertRouteLegal,
+	planRoute,
+	type RouteReject,
+} from "./router/planRoute.js";
