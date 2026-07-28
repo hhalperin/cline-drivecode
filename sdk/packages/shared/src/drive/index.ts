@@ -41,6 +41,18 @@ export {
 	type PairAgentRef,
 } from "./facets";
 export {
+	DRIVE_DIRECTORY_NAME,
+	DRIVE_FACETS_FILE_NAME,
+	DRIVE_PROVIDER_MANIFEST_FILE_NAME,
+	DRIVE_PROVIDERS_DIRECTORY_NAME,
+	DRIVE_REGISTRY_FILE_NAME,
+	resolveDriveConfigDir,
+	resolveDriveDir,
+	resolveDriveFacetsPath,
+	resolveDriveProviderManifestPath,
+	resolveDriveProvidersDir,
+} from "./paths";
+export {
 	assertNoSecretProviderConfigKeys,
 	BUILTIN_BROWSER_TTS_ID,
 	BUILTIN_LOCAL_WORKER_STT_ID,

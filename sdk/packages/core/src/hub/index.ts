@@ -31,6 +31,7 @@ export * from "./daemon/start-shared-server";
 export * from "./discovery";
 export * from "./discovery/defaults";
 export * from "./discovery/workspace";
+export * from "./drive-providers/loadDriveProviderRegistry";
 export * from "./server";
 export * from "./server/browser-websocket";
 export * from "./server/command-transport";
