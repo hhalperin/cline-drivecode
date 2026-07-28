@@ -23,6 +23,9 @@ Repo-level continuation brief. [HANDOFF-drivecode.md](../HANDOFF-drivecode.md).
 | [07-runtime-topology.md](07-runtime-topology.md) | Local / cloud / hybrid runtime topology, egress matrix, voice planes |
 | [08-provider-harness.md](08-provider-harness.md) | BYOK STT/TTS provider registry, OOTB default packs, Drive Settings IA |
 | [local-stt.md](local-stt.md) | Loopback whisper-compatible STT for MediaRecorder / local-worker |
+| [09-demo-share.md](09-demo-share.md) | Demo artifact share track (Cursor-like proof on stage) |
+| [10-agent-router.md](10-agent-router.md) | Multi-agent utterance router (suggest/auto among seated) |
+| [share-and-router/](share-and-router/) | Full reference PLAN for demo share + agent router |
 | [prd/](prd/) | Product requirements. PRD 6 portfolio; PRD 7 PiP; PRD 8 Drive-as-mode; PRD 9 task-bank loop |
 | [task-bank-drive-loop/](task-bank-drive-loop/) | Multi-phase plan for the task-bank Drive loop |
 | [ard/](ard/) | Architecture decision records for Driveagent home, graph, recruit, gated learn |
@@ -77,6 +80,8 @@ MVP is phases 0 through 3. Future is phases 4 and 5.
 | [DRV-MIC](features/DRV-MIC.md) | Mic input and mute | 3 | MVP |
 | [DRV-TTS](features/DRV-TTS.md) | Partner voice out | 3 | MVP |
 | [DRV-CAPTIONS](features/DRV-CAPTIONS.md) | Live captions | 3 | MVP |
+| [DRV-DEMO-SHARE](features/DRV-DEMO-SHARE.md) | Demo artifact share (screenshots / clips) | 2+ | Planned |
+| [DRV-AGENT-ROUTER](features/DRV-AGENT-ROUTER.md) | Route utterances among seated agents | 4 | Planned |
 | [DRV-CLI-PARITY](features/DRV-CLI-PARITY.md) | Drive in the TUI | 4 | Future |
 | [DRV-TEAM-OPT](features/DRV-TEAM-OPT.md) | Optional specialist agents (flagged) | 4 | Future |
 

@@ -13,6 +13,8 @@
 | [ARD-0008](ARD-0008-task-bank.md) | Task bank is Drive’s execution primitive | Proposed | [DRV-TASK-BANK](../features/DRV-TASK-BANK.md), [DRV-NOWNEXT](../features/DRV-NOWNEXT.md), [DRV-MODE-OVERLAY](../features/DRV-MODE-OVERLAY.md) |
 | [ARD-0009](ARD-0009-runtime-topology-local-cloud.md) | Runtime topology for local and cloud Drive | Accepted | [DRV-MIC](../features/DRV-MIC.md), [DRV-TTS](../features/DRV-TTS.md), [DRV-PRIVACY](../features/DRV-PRIVACY.md) |
 | [ARD-0010](ARD-0010-provider-harness-byok.md) | Drive provider harness (BYOK) with OOTB packs | Accepted | [DRV-PLATFORM-CONFIG](../features/DRV-PLATFORM-CONFIG.md), [DRV-MIC](../features/DRV-MIC.md), [DRV-TTS](../features/DRV-TTS.md) |
+| [ARD-0011](ARD-0011-demo-share-track.md) | Demo share track (Cursor-like proof on stage) | Proposed | [DRV-DEMO-SHARE](../features/DRV-DEMO-SHARE.md), [DRV-SHARE](../features/DRV-SHARE.md), [DRV-STAGE](../features/DRV-STAGE.md) |
+| [ARD-0012](ARD-0012-agent-router.md) | Agent router for multi-agent rooms | Proposed | [DRV-AGENT-ROUTER](../features/DRV-AGENT-ROUTER.md), [DRV-ADDRESS](../features/DRV-ADDRESS.md) |
 
 Product requirements: [../prd/prd-driveagent-portfolio.md](../prd/prd-driveagent-portfolio.md), [../prd/prd-pip-partner.md](../prd/prd-pip-partner.md), [../prd/prd-drive-as-cline-mode.md](../prd/prd-drive-as-cline-mode.md), [../prd/prd-task-bank-drive-loop.md](../prd/prd-task-bank-drive-loop.md).
 
