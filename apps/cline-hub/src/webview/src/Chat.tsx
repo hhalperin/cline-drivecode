@@ -1,5 +1,6 @@
 "use client";
 
+import { buildVoiceAckNarration } from "@cline/drive";
 import {
 	CheckIcon,
 	GitBranchIcon,
@@ -92,6 +93,7 @@ import {
 	resolveDriveVoiceTopology,
 	type DriveVoiceUi,
 } from "./drive/voice/driveVoiceUi";
+import { createVoiceStack } from "./drive/voice/createVoiceStack";
 import { getVsCodeApi, postToHost } from "./vscode";
 
 type ChatMessage = WebviewChatMessage;
@@ -779,9 +781,26 @@ export default function Chat({
 		return DEFAULT_DRIVE_UI;
 	});
 	const [driveJoinNote, setDriveJoinNote] = useState<string | null>(null);
-	const [driveVoice, setDriveVoice] = useState<DriveVoiceUi>(() =>
-		createDefaultDriveVoiceUi("cloud"),
-	);
+	const [driveVoice, setDriveVoice] = useState<DriveVoiceUi>(() => {
+		try {
+			const state = getVsCodeApi()?.getState() as
+				| { driveVoice?: DriveVoiceUi }
+				| undefined;
+			if (state?.driveVoice?.facets && state.driveVoice.profile) {
+				return {
+					...createDefaultDriveVoiceUi(state.driveVoice.profile),
+					...state.driveVoice,
+					facets: {
+						...createDefaultDriveVoiceUi(state.driveVoice.profile).facets,
+						...state.driveVoice.facets,
+					},
+				};
+			}
+		} catch {
+			// ignore
+		}
+		return createDefaultDriveVoiceUi("cloud");
+	});
 	const [voiceCaption, setVoiceCaption] = useState("");
 	const bankSessionRef = useRef<DriveBankSession>(createDriveBankSession());
 	const [planEditorTasks, setPlanEditorTasks] = useState<
@@ -1186,11 +1205,11 @@ export default function Chat({
 				return;
 			}
 			const state = (api.getState() as Record<string, unknown>) ?? {};
-			api.setState({ ...state, driveUi: drive });
+			api.setState({ ...state, driveUi: drive, driveVoice });
 		} catch {
 			// ignore
 		}
-	}, [drive]);
+	}, [drive, driveVoice]);
 
 	const latestToolLabel = useMemo(() => {
 		for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -1218,6 +1237,17 @@ export default function Chat({
 			if (!trimmed || isHydrating) {
 				return;
 			}
+
+			if (driveVoice.profile === "local" && driveVoiceResolved.ok) {
+				const ack = buildVoiceAckNarration({
+					profile: "local",
+					partnerName: drive.partnerName,
+					utterance: trimmed,
+				});
+				setDriveJoinNote(ack.text);
+				void createVoiceStack(driveVoiceResolved.topology).tts.speak(ack.text);
+			}
+
 			const assistantMessage = createMessage("assistant", "");
 			activeAssistantIdRef.current = assistantMessage.id;
 			setMessages((current) => [
@@ -1250,15 +1280,13 @@ export default function Chat({
 					})(),
 				},
 			});
-			if (driveJoinNote) {
-				setDriveJoinNote(null);
-			}
 			setVoiceCaption("");
 		},
 		[
 			autoApproveTools,
 			drive,
-			driveJoinNote,
+			driveVoice.profile,
+			driveVoiceResolved,
 			effectiveReasonLevel,
 			enableSpawn,
 			enableTeams,
@@ -1671,10 +1699,12 @@ export default function Chat({
 							forceMode={driveVoiceResolved.forceMode}
 							muted={drive.muted}
 							onCaptionChange={setVoiceCaption}
+							onSttError={(message) => setStatus(message)}
 							onTranscription={(text) => {
-								// Confirm-first: land text as caption; user taps Send spoken.
 								setVoiceCaption(text.trim());
 							}}
+							sttBackend={driveVoiceResolved.topology.stt}
+							sttConfig={driveVoice.facets["providers.sttConfig"]}
 						/>
 						{voiceCaption.trim() ? (
 							<div className="flex items-center justify-end gap-2 border-t bg-background px-3 py-2">

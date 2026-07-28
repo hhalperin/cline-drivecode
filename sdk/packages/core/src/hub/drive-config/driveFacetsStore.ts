@@ -46,7 +46,19 @@ export function setDriveFacets(input: {
 	configParent: string;
 	facets: DriveFacetValues;
 	llm: ResolvedLlmEgress;
-}): { ok: true; facets: DriveFacetValues } | { ok: false; message: string } {
+}):
+	| {
+			ok: true;
+			facets: DriveFacetValues;
+			/** Payload for hub CONFIG_SNAPSHOT broadcast (no secrets). */
+			snapshot: {
+				profile: DriveFacetValues["runtime.profile"];
+				sttId: string;
+				ttsId: string;
+				egressCeiling: DriveFacetValues["runtime.egressCeiling"];
+			};
+	  }
+	| { ok: false; message: string } {
 	const check = assertFacetProviderSelection({
 		facets: input.facets,
 		llm: input.llm,
@@ -55,7 +67,16 @@ export function setDriveFacets(input: {
 		return check;
 	}
 	writeDriveFacetsFile(input.configParent, input.facets);
-	return { ok: true, facets: input.facets };
+	return {
+		ok: true,
+		facets: input.facets,
+		snapshot: {
+			profile: input.facets["runtime.profile"],
+			sttId: input.facets["providers.sttId"],
+			ttsId: input.facets["providers.ttsId"],
+			egressCeiling: input.facets["runtime.egressCeiling"],
+		},
+	};
 }
 
 export function loadOrSeedDriveFacets(input: {
