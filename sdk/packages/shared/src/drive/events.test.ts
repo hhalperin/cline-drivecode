@@ -87,6 +87,12 @@ describe("privacy assertions", () => {
 				nested: { transcript: "full" },
 			}),
 		).toThrow(/transcript/);
+
+		expect(() =>
+			assertNoForbiddenPayloadKeys({
+				demo: { imageBytes: "abc" },
+			}),
+		).toThrow(/imageBytes/);
 	});
 
 	it("allows structured bank events without media keys", () => {

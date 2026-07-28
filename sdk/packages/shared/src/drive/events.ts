@@ -70,7 +70,16 @@ export const DriveEventSchema = z.discriminatedUnion("type", [
 export type DriveEvent = z.infer<typeof DriveEventSchema>;
 export type DriveEventType = DriveEvent["type"];
 
-const FORBIDDEN_PAYLOAD_KEYS = ["audio", "rawTranscript", "transcript"] as const;
+const FORBIDDEN_PAYLOAD_KEYS = [
+	"audio",
+	"rawTranscript",
+	"transcript",
+	"rawFrame",
+	"imageBytes",
+	"videoBytes",
+	"pcm",
+	"pixels",
+] as const;
 
 export function parseDriveEvent(input: unknown): DriveEvent {
 	const event = DriveEventSchema.parse(input);
