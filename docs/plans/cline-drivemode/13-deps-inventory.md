@@ -20,7 +20,7 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 | Dep | Current | Latest | Notes |
 |---|---|---|---|
 | React / react-dom | **19.2.4** hub/cli/ui/desktop; **^18.3.1** vscode webview-ui | 19.2.8 | Align vscode webview-ui to 19 when extension host allows |
-| Vite | **^8.0.0** hub + vscode webview-ui + sdk/ui | 8.1.5 | **U2 partial** — Vite 8 aligned; React 18 remains on vscode webview-ui |
+| Vite | **^8.0.0** hub + sdk/ui; **^7.1.11** vscode webview-ui | 8.1.5 | **U2 partial** — hub/sdk-ui on 8; vscode webview stays on 7 until rolldown OutputOptions migrate |
 | Tailwind | ^4.2.x hub/ui; ^4.1.x vscode | 4.3.3 | Minor bump OK after visual smoke |
 | lucide-react | ^0.577 hub; ^0.511 vscode webview; ^0.564 desktop | **1.27.0** | Major icon package; audit renames (Headphones etc.) |
 | mermaid | **11.16.0** hub + vscode webview | 11.16.0 | Already current |
