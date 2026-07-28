@@ -22,6 +22,7 @@ Repo-level continuation brief. [HANDOFF-drivecode.md](../HANDOFF-drivecode.md).
 | [06-platform-config.md](06-platform-config.md) | Platform configuration surface. `AgentProfile` and `RosterPack` domain model, facet inventory with owner/scope/lane/privacy/phase, ownership matrix, phasing, open forks |
 | [07-runtime-topology.md](07-runtime-topology.md) | Local / cloud / hybrid runtime topology, egress matrix, voice planes |
 | [08-provider-harness.md](08-provider-harness.md) | BYOK STT/TTS provider registry, OOTB default packs, Drive Settings IA |
+| [local-stt.md](local-stt.md) | Loopback whisper-compatible STT for MediaRecorder / local-worker |
 | [prd/](prd/) | Product requirements. PRD 6 portfolio; PRD 7 PiP; PRD 8 Drive-as-mode; PRD 9 task-bank loop |
 | [task-bank-drive-loop/](task-bank-drive-loop/) | Multi-phase plan for the task-bank Drive loop |
 | [ard/](ard/) | Architecture decision records for Driveagent home, graph, recruit, gated learn |
