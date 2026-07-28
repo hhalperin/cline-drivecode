@@ -12,8 +12,8 @@ export interface ProfileFacetSeed {
 	readonly "runtime.egressCeiling": ReturnType<typeof defaultEgressCeiling>;
 	readonly "providers.sttId": string;
 	readonly "providers.ttsId": string;
-	readonly "providers.sttConfig": Record<string, never>;
-	readonly "providers.ttsConfig": Record<string, never>;
+	readonly "providers.sttConfig": Record<string, unknown>;
+	readonly "providers.ttsConfig": Record<string, unknown>;
 }
 
 export function seedFacetsForProfile(
@@ -27,7 +27,10 @@ export function seedFacetsForProfile(
 				"runtime.egressCeiling": egressCeiling,
 				"providers.sttId": BUILTIN_LOCAL_WORKER_STT_ID,
 				"providers.ttsId": BUILTIN_BROWSER_TTS_ID,
-				"providers.sttConfig": {},
+				"providers.sttConfig": {
+					baseUrl: "http://127.0.0.1:8080/v1",
+					model: "whisper-1",
+				},
 				"providers.ttsConfig": {},
 			};
 		case "cloud":
@@ -45,7 +48,10 @@ export function seedFacetsForProfile(
 				"runtime.egressCeiling": egressCeiling,
 				"providers.sttId": BUILTIN_LOCAL_WORKER_STT_ID,
 				"providers.ttsId": BUILTIN_BROWSER_TTS_ID,
-				"providers.sttConfig": {},
+				"providers.sttConfig": {
+					baseUrl: "http://127.0.0.1:8080/v1",
+					model: "whisper-1",
+				},
 				"providers.ttsConfig": {},
 			};
 		default: {

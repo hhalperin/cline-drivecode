@@ -70,3 +70,8 @@ export {
 	seedFacetsForProfile,
 	type ProfileFacetSeed,
 } from "./topology/seedFacetsForProfile.js";
+export {
+	buildVoiceAckNarration,
+	type VoiceAckInput,
+	type VoiceAckResult,
+} from "./voiceAck.js";
