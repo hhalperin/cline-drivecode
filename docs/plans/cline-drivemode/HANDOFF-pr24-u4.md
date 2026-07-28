@@ -29,7 +29,7 @@
 **File.** `sdk/packages/llms/src/providers/middleware/split-tool-images.ts`  
 **Done.** Canonical V4 `{ type: 'file', data: SharedV4FileData }` content parts; `@ts-nocheck` removed; tests updated.
 
-### U4-B · Clear remaining `experimental_*` / deprecation warnings (should land with 24)
+### U4-B · Clear remaining `experimental_*` / deprecation warnings (**done**)
 
 | Item | Where | Notes |
 |---|---|---|
@@ -48,21 +48,22 @@
 
 Community providers without V4 peers remain available behind their vendor factories; treat as best-effort until upstream ships ai@7.
 
-### U4-C · Verify consumers (should land with 24)
+### U4-C · Verify consumers (**done**)
 
-| Check | Command / action |
+| Check | Result |
 |---|---|
-| Hub webview build | `bun -F @cline/cline-hub build:webview` |
-| Hub tests | `bun -F @cline/cline-hub test` |
-| Core typecheck/tests touching stream | `bun -F @cline/core test` (or scoped hub/llms paths) |
-| VCR suite | `bun -F @cline/llms test:vcr` if API keys/cassettes available |
-| Live smoke (optional) | `bun -F @cline/llms test:live` only with credentials |
+| `bun run build:sdk` | Green |
+| `bun -F @cline/llms test` | **420 passed** / 4 skipped |
+| `bun -F @cline/cline-hub build:webview` | Green (fixed Tool.description ReactNode narrowing) |
+| `bun -F @cline/cline-hub test` | **154 passed** |
+| `bun -F @cline/llms test:vcr` | **4 passed** (cassette playback) |
 
 ### U4-D · PR hygiene before merge
 
 1. Mark PR 24 ready-for-review (undraft) once U4-A–C green.
 2. Confirm CI on the branch: Quality Checks + sdk-test matrix.
 3. Do **not** pull vscode Vite 8 / React 19 into this PR (see out-of-scope).
+4. Squash-merge when CI is green.
 
 ## Explicitly out of scope for PR 24 (follow-up PRs)
 
