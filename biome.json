@@ -1,5 +1,5 @@
 {
-    "$schema": "https://biomejs.dev/schemas/2.4.5/schema.json",
+    "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
     "vcs": {
         "enabled": true,
         "clientKind": "git",
@@ -44,9 +44,14 @@
                         "noConstructorReturn": "off",
                         "noInvalidPositionAtImportRule": "off",
                         "noSwitchDeclarations": "off",
-                        "noUnusedImports": "error"
+                        "noUnusedImports": "error",
+                        "noUnsafeOptionalChaining": "warn"
                     },
-                    "a11y": "info",
+                    "a11y": {
+                        "recommended": true,
+                        "noSvgWithoutTitle": "off",
+                        "noStaticElementInteractions": "off"
+                    },
                     "style": {
                         "useNodejsImportProtocol": "off",
                         "useImportType": "off",

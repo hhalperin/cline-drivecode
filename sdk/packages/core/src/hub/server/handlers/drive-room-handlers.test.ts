@@ -129,11 +129,10 @@ describe("handleDriveRoomCommand", () => {
 			},
 		});
 		expect(cmd.ok).toBe(true);
-		const cards = (
-			cmd.payload?.snapshot as {
-				stage: { cards: Array<{ category: string }> };
-			}
-		).stage.cards;
+		const snapshot = cmd.payload?.snapshot as
+			| { stage: { cards: Array<{ category: string }> } }
+			| undefined;
+		const cards = snapshot?.stage.cards ?? [];
 		expect(cards.map((c) => c.category).sort()).toEqual(["command", "edit"]);
 	});
 
