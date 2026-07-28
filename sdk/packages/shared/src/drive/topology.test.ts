@@ -4,6 +4,10 @@ import {
 	egressWithinCeiling,
 	parseRuntimeTopology,
 	sttBackendEgress,
+	sttBackendsEqual,
+	topologiesEqual,
+	topologyCacheKey,
+	ttsBackendsEqual,
 } from "./topology";
 
 describe("parseRuntimeTopology", () => {
@@ -46,11 +50,62 @@ describe("egress helpers", () => {
 	});
 
 	it("allows loopback under declared-providers ceiling", () => {
+		expect(egressWithinCeiling("loopback-only", "declared-providers")).toBe(
+			true,
+		);
+		expect(egressWithinCeiling("platform-cloud", "loopback-only")).toBe(false);
+	});
+});
+
+describe("backend / topology equality", () => {
+	it("compares stt backends by kind and engine", () => {
 		expect(
-			egressWithinCeiling("loopback-only", "declared-providers"),
+			sttBackendsEqual(
+				{ kind: "local-worker", engine: "whisper-cpp" },
+				{ kind: "local-worker", engine: "whisper-cpp" },
+			),
 		).toBe(true);
 		expect(
-			egressWithinCeiling("platform-cloud", "loopback-only"),
+			sttBackendsEqual(
+				{ kind: "local-worker", engine: "whisper-cpp" },
+				{ kind: "local-worker", engine: "faster-whisper" },
+			),
 		).toBe(false);
+		expect(sttBackendsEqual({ kind: "webSpeech" }, { kind: "webSpeech" })).toBe(
+			true,
+		);
+	});
+
+	it("compares tts backends without stringify", () => {
+		expect(
+			ttsBackendsEqual(
+				{ kind: "browser-speechSynthesis" },
+				{ kind: "browser-speechSynthesis" },
+			),
+		).toBe(true);
+		expect(
+			ttsBackendsEqual(
+				{ kind: "browser-speechSynthesis" },
+				{ kind: "local-worker", engine: "piper" },
+			),
+		).toBe(false);
+	});
+
+	it("builds stable topology cache keys", () => {
+		const topology = parseRuntimeTopology({
+			profile: "local",
+			llm: {
+				kind: "local",
+				providerId: "ollama",
+				baseUrlClass: "loopback",
+			},
+			stt: { kind: "local-worker", engine: "whisper-cpp" },
+			tts: { kind: "browser-speechSynthesis" },
+			egressCeiling: "loopback-only",
+		});
+		expect(topologyCacheKey(topology)).toBe(
+			"local|loopback-only|local:ollama:loopback|local-worker:whisper-cpp|browser-speechSynthesis",
+		);
+		expect(topologiesEqual(topology, topology)).toBe(true);
 	});
 });

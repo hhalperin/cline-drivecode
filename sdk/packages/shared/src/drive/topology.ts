@@ -76,9 +76,7 @@ export function parseRuntimeTopology(input: unknown): RuntimeTopology {
 	return RuntimeTopologySchema.parse(input);
 }
 
-export function defaultEgressCeiling(
-	profile: DeploymentProfile,
-): EgressClass {
+export function defaultEgressCeiling(profile: DeploymentProfile): EgressClass {
 	switch (profile) {
 		case "local":
 			return "loopback-only";
@@ -144,4 +142,83 @@ export function egressWithinCeiling(
 	ceiling: EgressClass,
 ): boolean {
 	return egressRank(required) <= egressRank(ceiling);
+}
+
+export function sttBackendsEqual(a: SttBackend, b: SttBackend): boolean {
+	switch (a.kind) {
+		case "webSpeech":
+			return b.kind === "webSpeech";
+		case "local-worker":
+			return b.kind === "local-worker" && a.engine === b.engine;
+		case "cloud-api":
+			return b.kind === "cloud-api" && a.engine === b.engine;
+		default: {
+			const _exhaustive: never = a;
+			return _exhaustive;
+		}
+	}
+}
+
+export function ttsBackendsEqual(a: TtsBackend, b: TtsBackend): boolean {
+	switch (a.kind) {
+		case "browser-speechSynthesis":
+			return b.kind === "browser-speechSynthesis";
+		case "local-worker":
+			return b.kind === "local-worker" && a.engine === b.engine;
+		case "cloud-api":
+			return b.kind === "cloud-api" && a.engine === b.engine;
+		default: {
+			const _exhaustive: never = a;
+			return _exhaustive;
+		}
+	}
+}
+
+export function llmEgressEqual(
+	a: ResolvedLlmEgress,
+	b: ResolvedLlmEgress,
+): boolean {
+	if (a.kind !== b.kind || a.providerId !== b.providerId) {
+		return false;
+	}
+	if (a.kind === "local" && b.kind === "local") {
+		return a.baseUrlClass === b.baseUrlClass;
+	}
+	return true;
+}
+
+/** Stable Map key for topology memoization (no JSON.stringify). */
+export function topologyCacheKey(topology: RuntimeTopology): string {
+	const llmKey =
+		topology.llm.kind === "local"
+			? `local:${topology.llm.providerId}:${topology.llm.baseUrlClass}`
+			: `cloud:${topology.llm.providerId}`;
+	const sttKey =
+		topology.stt.kind === "webSpeech"
+			? "webSpeech"
+			: `${topology.stt.kind}:${topology.stt.engine}`;
+	const ttsKey =
+		topology.tts.kind === "browser-speechSynthesis"
+			? "browser-speechSynthesis"
+			: `${topology.tts.kind}:${topology.tts.engine}`;
+	return [
+		topology.profile,
+		topology.egressCeiling,
+		llmKey,
+		sttKey,
+		ttsKey,
+	].join("|");
+}
+
+export function topologiesEqual(
+	a: RuntimeTopology,
+	b: RuntimeTopology,
+): boolean {
+	return (
+		a.profile === b.profile &&
+		a.egressCeiling === b.egressCeiling &&
+		llmEgressEqual(a.llm, b.llm) &&
+		sttBackendsEqual(a.stt, b.stt) &&
+		ttsBackendsEqual(a.tts, b.tts)
+	);
 }

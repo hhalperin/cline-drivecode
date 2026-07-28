@@ -502,6 +502,7 @@ export {
 	isChatWorkspacePath,
 } from "./storage/chat-workspace-paths";
 export * from "./team";
+export * from "./drive";
 export { createTool } from "./tools/create";
 export * from "./types";
 export { AUTH_ERROR_PATTERNS, isLikelyAuthError } from "./types/auth";

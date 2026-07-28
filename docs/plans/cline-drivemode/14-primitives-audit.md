@@ -24,8 +24,8 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 | High | Soft-widen to everyone when seated | `planRoute` | Fall back to pair_partner | **Fixed** earlier |
 | Med | Legacy `"human"` / `"partner"` string compares beside `drive:*` ids | `DriveCallChrome`, `StickyStagePane`, `useDriveSession` | Normalize via helper `isHumanSpotlightId` / only constants | **Fix in this pass** |
 | Med | Sticky pane not always fed from hub until present event | `StickyStagePane` + session | Bridge landed; keep single source from `presentedShow` | Open (improve) |
-| Med | Chat.tsx still ~1.6k lines | `Chat.tsx` | Continue ConversationPanel extraction | Open |
-| Low | `createVoiceStack` JSON.stringify backend match | `createVoiceStack.ts` | Compare typed fields instead of stringify | Open |
+| Med | Chat.tsx still large | `Chat.tsx` | ConversationPanel extraction | **Fixed** (~1.4k; panel extracted) |
+| Low | `createVoiceStack` JSON.stringify backend match | `createVoiceStack.ts` | Compare typed fields instead of stringify | **Fixed** (`sttBackendsEqual` / `topologyCacheKey`) |
 | Low | Empty seated → `everyone` in planRoute | `planRoute.ts` | OK when no agents; document | Accepted |
 | Low | Mermaid producer is SVG stub not layout engine | `produceMermaid.ts` | Optional webview re-render; or lazy mermaid in core later | Accepted MVP |
 | Info | Pass-through re-exports in drive index | `drive/src/index.ts` | Keep as public API surface; not dead | OK |

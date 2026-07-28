@@ -4,7 +4,10 @@ import {
 	type EgressClass,
 	type RuntimeTopology,
 	type SttBackend,
+	sttBackendsEqual,
 	type TtsBackend,
+	topologyCacheKey,
+	ttsBackendsEqual,
 } from "@cline/shared";
 
 export interface SttHandlers {
@@ -38,14 +41,24 @@ export interface VoiceStack {
 
 const voiceStackCache = new Map<string, VoiceStack>();
 
-function topologyCacheKey(topology: RuntimeTopology): string {
-	return JSON.stringify({
-		profile: topology.profile,
-		stt: topology.stt,
-		tts: topology.tts,
-		egressCeiling: topology.egressCeiling,
-		llm: topology.llm,
-	});
+function matchSttManifest(
+	manifest: DriveProviderManifest,
+	stt: SttBackend,
+): boolean {
+	if (manifest.slot !== "stt") {
+		return false;
+	}
+	return sttBackendsEqual(manifest.backend as SttBackend, stt);
+}
+
+function matchTtsManifest(
+	manifest: DriveProviderManifest,
+	tts: TtsBackend,
+): boolean {
+	if (manifest.slot !== "tts") {
+		return false;
+	}
+	return ttsBackendsEqual(manifest.backend as TtsBackend, tts);
 }
 
 /**
@@ -62,15 +75,11 @@ export function createVoiceStack(
 	if (cached) {
 		return cached;
 	}
-	const sttManifest = registry.find(
-		(manifest) =>
-			manifest.slot === "stt" &&
-			JSON.stringify(manifest.backend) === JSON.stringify(topology.stt),
+	const sttManifest = registry.find((manifest) =>
+		matchSttManifest(manifest, topology.stt),
 	);
-	const ttsManifest = registry.find(
-		(manifest) =>
-			manifest.slot === "tts" &&
-			JSON.stringify(manifest.backend) === JSON.stringify(topology.tts),
+	const ttsManifest = registry.find((manifest) =>
+		matchTtsManifest(manifest, topology.tts),
 	);
 	if (!sttManifest || !ttsManifest) {
 		throw new Error("No builtin adapter matches the resolved topology");
