@@ -1,30 +1,20 @@
-# PLAN · Drive share screen (demo track) + multi-agent router
+# PLAN · Drive demo stage + multi-agent orchestration (SDK-first)
 
-Reference architecture plan. Implementation follows the phases below after approval.
+Revised architecture plan. Incorporates: **cline-sdk first**, **Apache-2.0 licensing**, **non-live “appearing live” demo backlog**, and **specialized room agents** (router, backlog planner, screen manager).
 
-**Index.** [README.md](README.md) · [09-demo-share.md](../09-demo-share.md) · [10-agent-router.md](../10-agent-router.md)
-
-**Principles that shaped this plan:** redesign-from-first-principles, model-the-domain, boundary-discipline, experience-first, exhaust-the-design-space, laziness-protocol, separate-before-serializing-shared-state, foundational-thinking, type-system-discipline, minimize-reader-load.
-
-**pstack playbook:** multi-phase-plan (+ architect Agree checkpoint). How grounding from existing DRV-SHARE / DRV-ADDRESS / DRV-RECRUIT / D4.
+**Principles:** redesign-from-first-principles, model-the-domain, boundary-discipline, laziness-protocol, experience-first, exhaust-the-design-space, foundational-thinking, migrate-callers-then-delete-legacy-apis, encode-lessons-in-structure.
 
 ---
 
-## Context
+## Context (updated)
 
-Drive already designed an events-first Call Stage and explicit addressing:
+Prior plan (share-and-router) chose Cursor-like demo *artifacts* over WebRTC. That direction is confirmed and strengthened:
 
-- **DRV-STAGE / DRV-SHARE.** Stage is a last-event-wins reducer. Sharer is `human | agent`. MVP human share is structured (selection / file / terminal). WebRTC pixels are deferred ([04-future-multi-user.md](../04-future-multi-user.md)).
-- **DRV-ADDRESS.** Sends carry `addressSet`. Hub enforces delivery. Never silent widen.
-- **DRV-RECRUIT.** Ranks agents to *seat* into the room. Does not decide who receives the next utterance among seated agents.
-- **DRV-TEAM-OPT.** Spawns a specialist seat. Different verb from routing a message.
+> Agent share screen need not be truly live. Intelligent planning of what to show, plus continuously building and reranking a backlog of demos and work, is enough to *appear* live and is more feasible.
 
-Two product gaps remain.
+Also confirmed:
 
-1. **Share screen for demos.** Users and agents need to show work the way Cursor demos do: screenshots and short recordings as proof, not only structured IDE events.
-2. **Agent router.** In a room with multiple seated agents, a message (or parts of it) should reach the best agent for that work, with clear, reviewable routing.
-
-**Who this is for.** Pair programmers who want Cursor-style demo proof on the stage, and multi-agent rooms that should not require manual recipient chips every turn.
+> Leverage **cline-sdk** as much as possible. Improve and contribute back. Respect licensing.
 
 ---
 
@@ -32,369 +22,505 @@ Two product gaps remain.
 
 ### In scope
 
-- Technical architecture for an extended **share / demo track** on the stage.
-- Technical architecture for an **AgentRouter** that plans delivery among seated agents (whole message or slices).
-- Types, package ownership, ADRs, feature specs, phased landing that fits TASK-GRAPH.
-- Explicit mapping from Cursor browser / computer-use demo patterns into Drive events.
+- Architecture that prefers existing `@cline/*` SDK seams (agents loop, Team tools, hooks, extensions, hub, llms, ConfiguredAgent).
+- Licensing posture for fork work and upstream contributions.
+- **Demo backlog** model: plan → produce → rank → present on stage (simulated live).
+- **DirectorScript** + sticky explanatory artifacts (diagrams, animations, walkthroughs, plans).
+- **Spotlight** control: prioritize what is on screen, what is said, and who says it (per-agent voices).
+- **Per-agent** discretionary scripts/artifacts; router + director choose what is shown (may reassign spotlight).
+- **Mute / deafen** per participant + **A2A** (agent-to-agent) delivery respecting those toggles.
+- Room agent roles: **router**, **backlog planner**, **screen share manager** (+ optional extras).
+- How these relate to Drive seats, DRV-ADDRESS, DRV-RECRUIT, Cline `Team`.
 
 ### Out of scope
 
-- Building a custom SFU or human↔human WebRTC media plane (still phase 5 design).
-- Replacing DRV-ADDRESS manual chips (router sits beside them).
-- Embeddings-first recruit rewrite (router MVP reuses lexical scoring among seated agents).
-- Implementing code in this planning pass.
+- True live pixel SFU / WebRTC for agent demos.
+- Replacing Cline Team with a Drive-owned execution group.
+- Non-Apache copyleft dependencies in the SDK contribution path.
+- Implementation in this planning pass (repo docs update lands on approval).
 
-### Definition of done (this planning effort)
+### Definition of done (plan)
 
-- ADR-0011 (demo share track) + ADR-0012 (agent router) drafted in the plan and ready to land as docs.
-- Alternatives compared; chosen shapes named with types and ownership.
-- Phased tasks with acceptance criteria and verification commands.
+- SDK capability map + contribution rules written.
+- Demo backlog + stage presentation pipeline typed.
+- Explanatory artifact kinds + director script model written.
+- **Spotlight, mute/deafen, A2A, per-agent script ownership** typed and related to router/director.
+- Agent role graph with ownership and defaults.
+- Phased tasks with acceptance criteria.
 - Open decisions have defaults.
 
 ---
 
-## Research · How Cursor supports agent demos
-
-Synthesized from Cursor docs and product reports (Browser tool, Cloud Agents / computer use, Automations).
-
-| Cursor pattern | What it does | Drive translation |
-|---|---|---|
-| **Browser tool** | Agent navigates a page, clicks, fills forms, takes screenshots the model can *see* as images | Agent tools emit `drive_demo_frame` events (image refs + caption + url) onto the stage demo track |
-| **Computer use (cloud VM)** | Agent runs a full desktop, records video / screenshots as proof-of-work on PRs | Optional `drive_demo_clip` events (short recording URI + transcript caption); ephemeral unless user exports |
-| **Artifacts over continuous media** | Demo is a discrete artifact attached to an outcome, not a live SFU stream | Stage renders last N demo artifacts; no media server; hub stores metadata + short-lived blob refs only |
-| **Human review without checkout** | Reviewer watches the demo artifact | Drive stage + transcript show the demo card; PiP can surface “latest demo” |
-
-**Anti-pattern to avoid.** Treating “share screen” as Discord Go Live for the agent. That forces WebRTC early and conflicts with D4 (events-first agent stage) and privacy defaults.
-
----
-
-## Target architecture
-
-### 1. Share screen · three share modes (one stage)
+## Cline SDK capability map (leverage first)
 
 ```mermaid
 flowchart TB
-  subgraph Modes["ShareMode on room.live.sharer"]
-    S["structured — selection / file / terminal pin"]
-    D["demo — screenshot / short clip artifacts"]
-    P["pixel — WebRTC later only"]
+  subgraph SDK["cline-sdk stack — reuse"]
+    Shared["@cline/shared\nschemas, hooks, extensions, Team schemas"]
+    LLMs["@cline/llms\nproviders, streaming"]
+    Agents["@cline/agents\nstateless loop, tools, events"]
+    Core["@cline/core\nsessions, hub, Team tools, plugins"]
   end
 
-  subgraph Produce["Producers"]
-    Human["Human share controls"]
-    Tools["Agent tools: browser / capture"]
+  subgraph Drive["@cline/drive — pure room policies"]
+    Kernel["mode, bank, topology, route, backlog rank"]
   end
 
-  subgraph Hub["Hub single writer"]
-    Op["call_set_stage / publish_demo"]
-    Ev["DriveEvent stream"]
+  subgraph Apps["apps/cline-hub — render + capture adapters"]
+    UI["Stage, chips, share chrome"]
   end
 
-  subgraph Stage["Stage projection"]
-    R["reduceStage(events) → cards"]
-    Demo["DemoTrack: last N frames/clips"]
-    Work["WorkTrack: edit/command/test"]
-  end
-
-  Human --> Op
-  Tools --> Op
-  Op --> Ev --> R
-  R --> Demo
-  R --> Work
-  S --> Op
-  D --> Op
-  P -.->|"phase 5"| Op
+  Shared --> LLMs --> Agents --> Core --> Apps
+  Shared --> Drive
+  Core --> Drive
+  Apps --> Core
+  Apps --> Drive
 ```
 
-#### Domain types
+| SDK capability | Use for Drive |
+|---|---|
+| `ConfiguredAgent` + `.cline/agents` | Role prompts for router / planner / screen manager as real agents (or compiled overlays) |
+| `@cline/agents` loop + tool orchestration | Each specialist runs a normal agent turn with tools |
+| Team tools (spawn/claim/mailbox/outcomes) | Optional *execution* group for bounded multi-agent jobs — keep distinct from Drive roster |
+| Hooks (`prompt_submit`, tool lifecycle) | Inject route plan, backlog context, narration policy without monkey-patching |
+| Extension / plugin registry | Register `drive_browser_snapshot`, backlog tools as plugins or core tools |
+| Hub sessions + event stream | Broadcast stage/demo/backlog events; single writer already on `:25463` |
+| `@cline/llms` streaming | Local/cloud providers unchanged (topology from prior work) |
+| Task bank / DriveTask (existing `@cline/drive`) | **Do backlog** items map to DriveTasks; **show backlog** is parallel queue |
 
-```ts
-type ShareMode = "structured" | "demo" | "pixel"; // pixel reserved, unimplemented
-
-type StructuredSharePayload =
-  | { kind: "selection"; path: string; startLine: number; endLine: number; textHash: string }
-  | { kind: "file"; path: string }
-  | { kind: "terminal"; sessionId: string; excerptHash: string };
-
-/** Cursor-like proof-of-work unit. No raw PCM/video bytes in the event. */
-type DemoArtifactRef = {
-  artifactId: string;
-  mediaKind: "screenshot" | "video_clip";
-  /** Hub-issued short-lived blob URI or workspace-relative export path when user saved. */
-  uri: string;
-  caption: string;
-  sourceUrl?: string;      // page under test
-  width?: number;
-  height?: number;
-  durationMs?: number;     // video only
-  createdAt: string;
-};
-
-type StageSharer = {
-  participantId: string;
-  kind: "human" | "agent";
-  shareMode: ShareMode;
-};
-```
-
-#### Event additions (DRV-EVENTS)
-
-- `drive_share_started` / `drive_share_ended` (sharer + mode)
-- `drive_structured_share` (payload)
-- `drive_demo_frame` / `drive_demo_clip` (DemoArtifactRef metadata only)
-- Blob bytes travel out-of-band via hub blob store or webview object URLs; events stay privacy-clean (no `audio` / raw frames in schema — extend forbidden-key tests)
-
-#### Agent demo tool surface (Cursor-aligned)
-
-| Tool (conceptual) | Maps from Cursor | Emits |
-|---|---|---|
-| `drive_browser_snapshot` | Browser screenshot | `drive_demo_frame` |
-| `drive_browser_act` | navigate/click/fill (existing browser/computer-use host capability) | work events + optional frame |
-| `drive_record_clip_start/stop` | computer-use video proof | `drive_demo_clip` |
-
-HostCapabilities gains:
-
-```ts
-readonly demoCapture: boolean;      // can produce screenshot blobs
-readonly demoRecord: boolean;       // can produce short video clips
-readonly structuredShare: boolean;  // selection/file/terminal pin
-```
-
-Pixel/WebRTC remains absent from capabilities until phase 5.
-
-#### Privacy
-
-- Demo blobs are **ephemeral by default** (session memory / temp dir). Export is an explicit user act.
-- `privacy.debugRetention` may keep blobs for the session with visible indicator (existing facet).
-- Stage shows captions + thumbnails; full image bytes are fetched by the renderer on demand.
+**Contribution rule.** Prefer extending SDK packages (`shared` schemas, `core` tools/hub ops, `agents` hooks) with Apache-2.0-compatible patches that could upstream to `cline/cline`. Keep Drive-specific room IA in `@cline/drive` + hub webview. Do not fork a parallel agent runtime.
 
 ---
 
-### 2. Agent router · route among seated agents
+## Licensing (must respect)
+
+| Fact | Implication |
+|---|---|
+| Repo / SDK packages are **Apache-2.0** (root `LICENSE`, `@cline/*` package.json) | Contributions to SDK code stay Apache-2.0; retain copyright/NOTICE; document material changes |
+| Hosted Cline API ToS ≠ SDK license | BYOK / self-hosted paths remain Apache-governed; do not bake hosted ToS assumptions into Drive |
+| Copyleft deps (GPL/AGPL) in SDK path | **Forbidden** for new SDK contributions unless upstream already accepts them |
+| Proprietary demo codecs / closed SDKs | Isolate behind host adapters; never require them in `@cline/drive` pure kernel |
+| Third-party browser/capture binaries | Document license in NOTICE; prefer OS/browser APIs already used by the host |
+
+**Architecture encoding.** CI/docs checklist: new `sdk/packages/**` files must declare Apache-2.0; dependency review for license compatibility before merge; Drive docs cite “contribute upstream when general”.
+
+---
+
+## Revised product model · Simulated-live stage
+
+### Insight
+
+“Live share” for an *agent* is a planning problem:
+
+1. Decide what the human should see next (and what to say while it is on screen).
+2. Produce discrete **show artifacts** — not only live captures, but **explanatory stills, animations, and short demos** planned ahead.
+3. Continuously **rerank** a backlog of show-items and do-items as work progresses.
+4. Present the top show-item on the stage so it *feels* live, while a **director script** keeps narration aligned with the sticky on-screen artifact.
+
+True pixel streaming is unnecessary for this loop.
+
+```mermaid
+flowchart TB
+  Work["Do backlog — DriveTasks / Team tasks"]
+  Show["Show backlog — ShowBacklogItem[]"]
+  Script["Director script — beats: say + showId"]
+  Rank["rankBacklogs(state) → nextDo, nextShow"]
+  Produce["Produce artifact / advance task"]
+  Stage["Stage holds sticky show artifact\nbetween script beats"]
+
+  Work --> Rank
+  Show --> Rank
+  Rank --> Produce
+  Produce --> Work
+  Produce --> Show
+  Script --> Stage
+  Show --> Stage
+  Produce --> Stage
+```
+
+### Explanatory show catalog (planning, results, review)
+
+Show backlog items are not limited to “screenshot the running app.” A large class is **explanatory media** used while planning work and while explaining results, tests, and code review.
+
+| Purpose | Typical artifacts | Sticky on stage for |
+|---|---|---|
+| Planning | Architecture diagram, data-flow diagram, plan file / task bank view, sequence sketch | Discussing approach before coding |
+| Explaining results | Before/after UI still or animation, test-results card, metric snapshot | Walkthrough of what changed |
+| Code review / rubber duck | Highlighted file walkthrough slides, call-graph diagram, “explain this function” panels | Line-by-line or module narration |
+| Network / security | Trust-boundary diagram, request-flow diagram, threat sketch | Auth, egress, threat review |
+| Ops / data | ERD, pipeline diagram, state-machine diagram | Persistence and migrations |
+
+**“Static” includes motion.** A show artifact may be:
+
+- still image (PNG/SVG/WebP)
+- **animation** (animated WebP/GIF, short silent loop, diagram reveal)
+- **short demo clip** (bounded video)
+- structured pin / work card (selection, diff, terminal, tests)
+- rendered **document surface** (plan markdown, ADR excerpt) as a stage card
+
+All remain **pre-planned or generated as files**, then presented — not a continuous desktop stream.
+
+### Standardized artifact workflow (common kit)
+
+Build show items through a small, repeatable pipeline so planners and screen managers share one vocabulary:
+
+```text
+1. Choose template from ArtifactKind catalog
+2. Fill slots (paths, mermaid source, caption, audience)
+3. Produce file(s) via SDK tools (write mermaid→SVG, snapshot, record loop, render plan)
+4. Register ShowBacklogItem { artifactKind, uri, stickyPolicy, scriptBeats[] }
+5. Rank / present; keep sticky until script advances or human dismisses
+```
+
+| ArtifactKind (catalog) | Produce hint (tools) |
+|---|---|
+| `diagram.architecture` | mermaid/SVG generate + optional annotate |
+| `diagram.data_flow` | mermaid/SVG |
+| `diagram.network_security` | mermaid/SVG |
+| `diagram.sequence` | mermaid/SVG |
+| `walkthrough.code` | rubber-duck slides: file+range panels or multi-step stills |
+| `walkthrough.animation` | short loop / reveal animation of a diagram or UI |
+| `doc.plan` | render plan / DriveTask / ADR excerpt card |
+| `doc.review` | review checklist + linked diffs |
+| `capture.screenshot` | browser/app snapshot |
+| `capture.demo_clip` | short recording |
+| `share.structured` | selection / file / terminal pin |
+| `work.card` | reuse edit/command/test event as show |
+
+Templates live as data (YAML/JSON under `.cline/drive/show-templates/` or shared package constants) so new kinds are additive (**OCP**).
+
+### Director script (say + show)
+
+A **DirectorScript** is an ordered list of beats. Each beat pairs narration with a show artifact that can **persist across beats**.
+
+```ts
+type StickyPolicy =
+  | { mode: "replace" }                 // new show clears previous
+  | { mode: "hold" }                    // keep current until explicit advance
+  | { mode: "hold_until"; beatId: string };
+
+type ScriptBeat = {
+  beatId: string;
+  say: string;                          // narration / TTS / caption source
+  showItemId: string;                   // ShowBacklogItem.id
+  sticky: StickyPolicy;
+  advance: "auto_after_say" | "on_tool" | "on_human" | "with_do_item";
+};
+
+type DirectorScript = {
+  scriptId: string;
+  title: string;
+  beats: ScriptBeat[];
+  /** Show ids that remain mounted while later beats only change `say` */
+  stickyShowIds: string[];
+};
+```
+
+**Stage behavior.** While a script runs, the stage’s primary pane holds the active sticky artifact; narration advances beat-to-beat without tearing down the diagram. Screen manager advances sticky only when the beat’s `sticky` policy says so. This is the “stay on screen between scripts” requirement.
+
+### Domain types
+
+```ts
+/** What to *do* — prefer existing DriveTask / Team task ids when present. */
+type DoBacklogItem = {
+  id: string;
+  title: string;
+  goal: string;
+  assigneeParticipantId?: string;
+  priority: number;
+  status: "queued" | "active" | "blocked" | "done";
+  dependsOn: string[];
+  source: "human" | "planner" | "router" | "system";
+};
+
+type ShowArtifactKind =
+  | "diagram.architecture"
+  | "diagram.data_flow"
+  | "diagram.network_security"
+  | "diagram.sequence"
+  | "walkthrough.code"
+  | "walkthrough.animation"
+  | "doc.plan"
+  | "doc.review"
+  | "capture.screenshot"
+  | "capture.demo_clip"
+  | "share.structured"
+  | "work.card";
+
+/** What to *show* — planned beats, including explanatory media. */
+type ShowBacklogItem = {
+  id: string;
+  title: string;
+  intent: string;
+  artifactKind: ShowArtifactKind;
+  mediaClass: "still" | "animation" | "video" | "document" | "structured" | "work";
+  uri?: string;
+  caption: string;
+  produce: {
+    tool: string;
+    templateId?: string;
+    args: Record<string, unknown>;
+  };
+  priority: number;
+  status: "planned" | "ready" | "showing" | "shown" | "cancelled";
+  linkedDoItemId?: string;
+  linkedScriptId?: string;
+  scoreReasons: string[];
+};
+
+type StageDirectorState = {
+  doBacklog: DoBacklogItem[];
+  /** Merged view; sources include per-agent bags (see Spotlight section). */
+  showBacklog: ShowBacklogItem[];
+  activeScript: DirectorScript | null;
+  activeBeatId: string | null;
+  activeShowId: string | null;
+  stickyShowIds: string[];
+  spotlightParticipantId: string | null;
+  lastPresentedAt: string | null;
+};
+```
+
+Events (extend DRV-EVENTS): `drive_show_planned`, `drive_show_ranked`, `drive_show_presented`, `drive_script_beat`, `drive_spotlight_changed`, plus `drive_demo_frame` / structured share / diagram cards.
+
+Privacy unchanged: metadata in events; media bytes ephemeral unless exported.
+
+---
+
+## Spotlight, per-agent scripts, mute/deafen, A2A
+
+### Spotlight button (priority focus)
+
+**Spotlight** is room live state: `room.live.spotlightParticipantId` (human or agent). It is the call’s “who has the floor” for presentation — orthogonal to mute/deafen, but the director uses it as a strong ranking prior for screen, speech, and voice identity.
+
+| Dimension | Spotlight effect |
+|---|---|
+| **What is on screen** | Bias rank toward the spotlighted agent’s Show backlog / sticky artifacts |
+| **What is said** | Prefer that agent’s DirectorScript `say` beats (and Narrator TTS) |
+| **Who is saying it** | TTS uses that participant’s `voiceSlotId` (AgentProfile); agents may share a voice or each have a distinct slot |
+
+```mermaid
+flowchart TB
+  SpotBtn["Spotlight on roster / strip"] --> HubOp["hub: call_set_spotlight"]
+  HubOp --> Live["room.live.spotlightParticipantId"]
+  Live --> Rank["rankBacklogs + pick script"]
+  Rank --> Screen["Sticky show from owner bag"]
+  Rank --> Voice["TTS voiceSlot of spotlight speaker"]
+  Router["Router / Director"] -->|"may propose switch"| HubOp
+  Human["Human"] --> SpotBtn
+```
+
+**Who may change spotlight**
+
+| Actor | Power |
+|---|---|
+| Human | Always (strip / roster Spotlight control) |
+| Director / Screen manager | May switch when presenting another agent’s artifact (`suggest` asks; `auto` allowed with audit event) |
+| Router | May request spotlight follow primary assignee on send |
+| Spotlighted agent | May *request* spotlight; cannot unilaterally steal it |
+
+**Defaults.** One partner: spotlight = pair_partner. Multi-agent: last human-selected, else pair_partner. Never leave presentation without a fallback owner when agents are seated.
+
+**UI.** Distinct from mute and stage-share. Roster glyph + strip label `Spotlight: {name}`.
+
+### Per-agent discretionary scripts and artifacts
+
+Each seated agent owns a bag the planner/director can pull from:
+
+```ts
+type AgentMediaBag = {
+  participantId: string;
+  showBacklog: ShowBacklogItem[];
+  scripts: DirectorScript[];
+  voiceSlotId?: string;
+};
+```
+
+**Global StageDirectorState selects, it does not erase ownership:**
+
+1. Candidates = union of agent bags (+ system templates).
+2. Rank with weights: spotlight owner ≫ addressed agents ≫ others; human pin ≫ auto.
+3. Present selected show + advance selected script beat.
+4. Optionally emit `drive_spotlight_changed` if policy allows follow-the-owner.
+
+Agents may prefetch off-spotlight. Only the selected sticky mounts on the primary stage pane.
+
+### Mute and deafen (independent toggles)
+
+Per-participant hub flags (extend DRV-MIC beyond human-only strip mute):
+
+| Flag | Agents | Human |
+|---|---|---|
+| **muted** | No outbound TTS / `say` / speak turns as narration | Mic / utterance ingress blocked |
+| **deafened** | No inbound room/A2A turns into their context | Optional suppress of partner TTS/captions |
+
+Mute ⟂ deafen. Ops: `call_set_participant_mute`, `call_set_participant_deafen`. Facet `agents.allowSilentWorkWhenMuted` default `true` (muted agents may still tool/edit).
+
+### Agent-to-agent (A2A)
+
+A2A = addressed delivery between agents via existing `addressSet` (`mode: "agents"`), not a second bus.
+
+- Facet `a2a.enabled` default on when seatCap > 1.
+- Transcript `channel: "a2a" | "room"` for human filter.
+- Facet `spotlightFollowA2A` default **off** (A2A does not steal the stage).
+- Mute/deafen still apply on A2A paths.
+
+### Voice identity
+
+- `AgentProfile.voiceSlotId` binds TTS per agent.
+- Spotlight speaker’s slot is used for active `say` beats.
+- `voice.allowSharedSlot` default true; UI may warn on collisions.
+
+### Relation to existing controls
+
+| Control | Role |
+|---|---|
+| Strip mute (DRV-MIC) | Human muted |
+| TTS quiet (DRV-TTS) | Global suppress of speech out |
+| Per-agent mute/deafen | Roster-level speak/hear |
+| Spotlight | Priority for show / say / voice — not a mute |
+| Stage sharer / shareMode | What kind of share is mounted |
+
+---
+
+## Room agent roles (open to more)
+
+These are **ConfiguredAgents** (or Driveagent homes) that may be seated as specialists or run as background policies. Prefer SDK Team *only* when a bounded multi-agent *job* needs mailbox/outcomes; room presence stays Drive roster.
 
 ```mermaid
 flowchart LR
-  Utter["Utterance text"] --> Mode{"router.mode"}
-  Mode -->|manual| Chips["Human addressSet chips"]
-  Mode -->|suggest| Plan["AgentRouter.plan"]
-  Mode -->|auto| Plan
-  Plan --> Preview["Chip preview / reason chips"]
-  Preview -->|confirm or auto| HubSend["Hub send with addressSet"]
-  Chips --> HubSend
-  HubSend --> Deliver["Deliver only to addressed agents"]
+  Human --> Router
+  Router -->|"addressSet / assignee"| Workers
+  Router --> Planner
+  Planner -->|"Do + Show backlog"| Director
+  Director -->|"next show + next do"| ScreenMgr
+  ScreenMgr -->|"demo_frame / pin"| Stage
+  Workers -->|"work events"| Stage
+  Workers --> Planner
 ```
 
-#### Domain types
+| Role | Responsibility | SDK leverage | Drive seat? |
+|---|---|---|---|
+| **Router** | Map utterance (or slices) → best seated agent / addressSet | Pure `@cline/drive` scorer + optional cheap model via `@cline/llms` | Policy first; optional visible “Router” specialist |
+| **Backlog planner** | Maintain/rerank **Do** and **Show** backlogs; enqueue explanatory artifacts (diagrams, walkthroughs, plan cards) from templates | Agent turn + tools; may use Team task board for Do items | Optional seated `specialist` or hub-side periodic turn |
+| **Screen share manager** | Pick top Show / advance **DirectorScript** beats; keep sticky artifacts on stage while `say` changes; invoke produce tools | Tools via core/plugins; hooks for post-tool publish | Optional seated specialist or pure director in `@cline/drive` + hub executor |
+| **Pair partner** (existing) | Primary collaborator | ConfiguredAgent | Yes (`pair_partner`) |
+| **Domain specialists** (existing TEAM-OPT) | Execute routed work | ConfiguredAgent / Team teammate | Yes when flagged |
 
-```ts
-type RouterMode = "manual" | "suggest" | "auto";
+### Additional role ideas (optional, not required for MVP)
 
-/** One delivery unit. Whole message = single slice spanning full text. */
-type RouteSlice = {
-  sliceId: string;
-  /** Inclusive UTF-16 offsets into the original utterance, or full span. */
-  start: number;
-  end: number;
-  text: string;
-  addressSet:
-    | { mode: "everyone" }
-    | { mode: "agents"; agentIds: string[] }
-    | { mode: "pack"; packId: string };
-  score: number;
-  reasons: string[];  // reviewable, cite capability/graph labels
-};
+| Role | When it earns a seat |
+|---|---|
+| **Critic / QA** | Ranks Show items by “would a reviewer understand this?”; vetoes weak demos |
+| **Narrator** | Speaks DirectorScript `say` beats (TTS/captions) while sticky show holds |
+| **Diagrammer** | Specialized producer for mermaid/SVG/architecture templates |
+| **Synthesizer** | Merges multi-slice answers into one human-facing summary after parallel specialists finish |
+| **Librarian** | Keeps artifact index / export pack for PR attachment (Cursor proof-of-work analog) |
 
-type RoutePlan = {
-  utteranceId: string;
-  mode: RouterMode;
-  slices: RouteSlice[];
-  /** true when any slice score < threshold → UI must warn or force confirm */
-  lowConfidence: boolean;
-};
+**Default MVP cast.** Router (pure + suggest UI) + Screen director (pure rank + hub execute) + Backlog planner (lightweight agent or heuristic). Do not seat five specialists until `teamOpt` / seatCap allow.
 
-type SeatedAgentCard = {
-  participantId: string;
-  profileId: string;
-  role: "pair_partner" | "specialist";
-  /** Capability labels from AgentProfile / driveagent catalog — not prompts */
-  labels: string[];
-  domains: string[];
-};
-```
+### Naming
 
-#### Pure API (`@cline/drive`)
+- Room-facing: “Backlog planner”, “Screen manager”, “Router” — never Drive `Team*`.
+- If a role needs Cline Team mailbox semantics, spawn a **Team** under the hood and mirror status into Drive events — do not rename Team to Drive.
 
-```ts
-function planRoute(input: {
-  utterance: string;
-  seated: readonly SeatedAgentCard[];
-  allowFractions: boolean;
-  threshold: number;
-}): RoutePlan;
+---
 
-function assertRouteLegal(
-  plan: RoutePlan,
-  seatedIds: ReadonlySet<string>,
-): { ok: true } | { ok: false; code: string; message: string };
-```
+## Integration with prior share/router plan
 
-**MVP scorer.** Lexical/tag overlap with seated agents’ labels (same spirit as DRV-RECRUIT, but **seated-only** and produces `addressSet`, not seat ops).
+| Prior decision | Update |
+|---|---|
+| Demo artifacts over WebRTC | **Confirmed**; emphasize backlog-driven presentation |
+| Router suggest/auto | **Confirmed**; router feeds Do assignee + optional Show hints |
+| Structured share MVP | Remains; Screen manager may enqueue structured pins as Show items |
+| Pixel ShareMode | Still reserved / unimplemented |
 
-**Fraction routing.** Optional second stage: split utterance on explicit markers (`and also`, `;`, numbered lists) or a cheap classifier into 1..N slices. Default `allowFractions: false` until tests prove quality. When false, always one slice.
+New center of gravity: **StageDirectorState** (dual backlog) owned as pure policy in `@cline/drive`, executed by hub/tools from SDK.
 
-**Delivery.** Hub runs existing DRV-ADDRESS enforcement per slice. Multi-slice send becomes N conversation events sharing `utteranceId` / `routePlanId` for transcript grouping.
+---
 
-#### Modes (experience-first)
+## Package / contribution split
 
-| Mode | Behavior | Default |
+| Change | Where | Upstream? |
 |---|---|---|
-| `manual` | Human chips only; router idle | single-agent rooms |
-| `suggest` | Router fills chips + shows reasons; send requires human glance | **multi-agent rooms** |
-| `auto` | Router commits on send; lowConfidence forces suggest fallback | opt-in facet |
-
-Facet: `router.mode` (durable), `router.allowFractions` (durable), `router.threshold` (durable).
-
-#### What the router is not
-
-| Concern | Owner |
-|---|---|
-| Who to add to the room | DRV-RECRUIT |
-| Spawn specialist seat | DRV-TEAM-OPT |
-| Manual override chips | DRV-ADDRESS |
-| LLM provider choice | `@cline/llms` / ConfiguredAgent |
+| RoutePlan, Show/Do backlog, DirectorScript, Spotlight, mute/deafen schemas | `@cline/shared` | Yes if generally useful |
+| `planRoute`, `rankBacklogs`, `advanceScriptBeat`, spotlight-aware rank | `@cline/drive` | Drive-first; extract if others need |
+| Capture / diagram tools, blob mint, spotlight/mute/deafen/A2A hub ops | `@cline/core` | Prefer upstreamable tools |
+| Show templates + AgentMediaBag | `@cline/shared` (+ `.cline/drive/show-templates/`) | Templates yes if general |
+| Stage UI, sticky pane, spotlight button, mute/deafen toggles | `apps/cline-hub` | App-specific |
+| Role agent YAMLs / driveagent homes | `.cline/agents` / `.driveagent` | Examples only |
 
 ---
 
-### 3. Package ownership
-
-| Concern | Owner |
-|---|---|
-| ShareMode, DemoArtifactRef, RoutePlan schemas | `@cline/shared` |
-| `reduceStage` demo track, `planRoute`, `assertRouteLegal` | `@cline/drive` |
-| Blob mint/GC, `call_set_stage`, send-time route apply, delivery | `@cline/core` hub |
-| Browser/capture tool adapters | host binding (`apps/cline-hub` / core tools) |
-| Stage UI, share controls, route preview chips | `apps/cline-hub` |
-
-Dependency rule unchanged: drive pure; no `@cline/llms` import for routing MVP.
-
----
-
-### 4. SOLID sketch
-
-| Letter | Application |
-|---|---|
-| **S** | Share publish ≠ stage reduce ≠ route plan ≠ hub deliver |
-| **O** | New demo media kinds = new event variants + renderers; router scorers pluggable later |
-| **L** | Every RouteSlice must be a valid addressSet the hub already understands |
-| **I** | `demoCapture` / `demoRecord` / `structuredShare` separate HostCapabilities |
-| **D** | UI depends on RoutePlan and StageState values; not on scorer internals |
-
----
-
-## Alternatives
-
-### Share
+## Alternatives (exhaust)
 
 | Option | Verdict |
 |---|---|
-| WebRTC pixel share as MVP | Rejected — conflicts D4, privacy, SFU cost |
-| Structured share only | Rejected as sole answer — weak for demos |
-| **Structured + demo artifacts (Cursor-like)** | **Chosen** |
-| Always-on agent desktop stream | Rejected — continuous media plane |
-
-### Router
-
-| Option | Verdict |
-|---|---|
-| Manual chips only | Rejected as sole answer for multi-agent |
-| LLM classifies every send | Deferred — expensive; use as optional P2 scorer |
-| **Suggest/auto + lexical seated scorer + optional fractions** | **Chosen** |
-| Silent fan-out to all agents | Rejected — violates DRV-ADDRESS |
+| Live WebRTC agent desktop | Rejected for agent path |
+| Single monolithic “share agent” does all | Rejected — mix routing, planning, capture |
+| **Dual backlog + specialized roles on SDK agents** | **Chosen** |
+| Only human-planned demos | Rejected — too slow; planner must continuous-rerank |
+| Replace SDK Team with Drive execution | Rejected — reuse Team where mailbox/outcomes needed |
+| Spotlight = mute | Rejected — orthogonal; mute is speak/hear, spotlight is priority |
+| Only human can change spotlight | Rejected — director may follow presented owner under policy |
+| Separate A2A websocket | Rejected — reuse addressSet + channel tag |
 
 ---
 
-## Relationship to existing docs
+## Phases (revised)
 
-| Doc / feature | Change |
-|---|---|
-| D4 / DRV-SHARE | Add `shareMode` + demo artifact events; keep pixel later |
-| DRV-STAGE | Demo track in reducer (last N artifacts + work cards) |
-| DRV-ADDRESS | Router emits addressSets; chips remain source of truth in manual/suggest |
-| DRV-RECRUIT | Unchanged verb (seat); router may call same label index for seated cards |
-| DRV-TEAM-OPT | Unchanged (spawn) |
-| DRV-PRIVACY | Demo blob ephemerality + schema forbidden keys |
-| HostCapabilities | `demoCapture`, `demoRecord`, `structuredShare` |
-| New ADR-0011 | Demo share track |
-| New ADR-0012 | Agent router |
-| New features | `DRV-DEMO-SHARE`, `DRV-AGENT-ROUTER` |
-| New docs | `09-demo-share.md`, `10-agent-router.md` |
+No dates. Prefer SDK extension before new packages.
 
-Does **not** reopen: hub single writer, no second daemon, events-first agent work stage, RosterPack naming.
+### Phase 1 · Docs amend (licensing + backlog + roles)
 
----
-
-## Phases
-
-No dates. Independently shippable.
-
-### Phase 1 · Docs and ADRs
-
-**Goal.** Freeze D10 (demo share) and D11 (router) in prose.  
-**Changes.** ADR-0011, ADR-0012, `09-demo-share.md`, `10-agent-router.md`, amend DRV-SHARE/STAGE/ADDRESS, README, TASK-GRAPH phase notes.  
-**Verify.** Docs linked.  
-**Acceptance.** Engineer can explain demo artifacts vs WebRTC, and router vs recruit vs address.
+**Goal.** Update `share-and-router/PLAN.md`, `09`/`10`, ADRs with this revision; add licensing section to drivemode README.  
+**Verify.** Docs linked; LICENSE/NOTICE expectations stated.  
+**Acceptance.** Reader sees SDK-first + non-live backlog model.
 
 ### Phase 2 · Schemas
 
-**Goal.** Types first.  
-**Changes.** `@cline/shared` ShareMode, DemoArtifactRef, share/demo events, RoutePlan/RouteSlice, facet ids for `router.*`. Forbidden-key tests cover demo blob fields.  
-**Verify.** `bun -F @cline/shared test`.
+**Goal.** Dual backlog + ShowArtifactKind + DirectorScript + **Spotlight** + **ParticipantAudioFlags** (muted/deafened) + A2A channel field in `@cline/shared`.  
+**Verify.** `bun -F @cline/shared test` + forbidden media keys.  
+**Acceptance.** Types cover per-agent bags, spotlight id, mute⟂deafen, A2A addressSets.
 
-### Phase 3 · Stage demo track (pure)
+### Phase 3 · Pure director + router (spotlight-aware)
 
-**Goal.** Reducer understands demo frames/clips.  
-**Changes.** `@cline/drive` `reduceStage` adds DemoTrack (last N). Fixture tests.  
-**Verify.** `bun -F @cline/drive test`.
+**Goal.** `rankBacklogs` (spotlight bias), `advanceScriptBeat`, `planRoute`, `assertRouteLegal`, `assertDeliveryAllowed(sender, receiver, flags)`.  
+**Verify.** Fixtures: sticky hold; spotlight bias; muted sender drops speak; deafened receiver drops hear; A2A deliver matrix.
 
-### Phase 4 · Structured share complete (DRV-SHARE MVP)
+### Phase 4 · Hub live ops
 
-**Goal.** Human structured share works end-to-end (unblocks bidirectional stage).  
-**Changes.** Hub `call_set_stage`, webview share controls, Stage header labels sharer.  
-**Verify.** hub + core unit tests; control-ui smoke.
+**Goal.** `call_set_spotlight`, mute/deafen ops, director tick respects flags; A2A transcript channel.  
+**Verify.** `bun -F @cline/core test:unit`.
 
-### Phase 5 · Demo capture tools + blob mint
+### Phase 5 · Standard template kit MVP
 
-**Goal.** Agent can publish a screenshot proof like Cursor browser tool.  
-**Changes.** Hub blob mint/GC; `drive_browser_snapshot` tool (or host bridge); stage renders demo cards.  
-**Verify.** Unit + hub test with fixture PNG; live smoke optional.  
-**Acceptance.** Tool call → stage shows captioned screenshot without WebRTC.
+**Goal.** Architecture, data-flow, code walkthrough, plan doc, screenshot (+ animation optional).  
+**Verify.** Golden fixtures → ShowBacklogItems in an AgentMediaBag.
 
-### Phase 6 · AgentRouter pure MVP
+### Phase 6 · Strip/roster UI: Spotlight + mute/deafen
 
-**Goal.** planRoute among seated agents.  
-**Changes.** `@cline/drive` scorer + assertRouteLegal; fixtures with two specialists.  
-**Verify.** `bun -F @cline/drive test`.  
-**Acceptance.** “fix the flake” ranks test specialist over docs agent; empty seated set rejected.
+**Goal.** Spotlight button; per-agent mute/deafen; voiceSlot indicator.  
+**Verify.** hub webview tests + smoke.
 
-### Phase 7 · Suggest/auto wiring on send
+### Phase 7 · Suggest/auto router + sticky stage + A2A filter
 
-**Goal.** Multi-agent rooms get router UX.  
-**Changes.** Facets `router.mode` default `suggest` when seatCap>1 else `manual`; composer preview chips; hub applies plan → addressSet(s). LowConfidence forces confirm.  
-**Verify.** hub unit + cline-hub tests; smoke with two seated agents.  
-**Acceptance.** Suggest pre-fills chips with reasons; auto delivers without silent everyone-widen.
+**Goal.** Composer preview; stage sticky; human feed filter room vs a2a.  
+**Verify.** hub webview tests + smoke with two agents.
 
-### Phase 8 · Fraction routing (optional gate)
+### Phase 8 · Optional seats + fractions + synthesizer
 
-**Goal.** Split utterance into slices when enabled.  
-**Changes.** `router.allowFractions`; splitter + multi-event send grouping.  
-**Verify.** Fixture utterances with two clear intents.  
-**Acceptance.** Off by default; on → two slices two addressSets; transcript groups by utteranceId.
+**Goal.** Planner/screen manager as seats behind flag; fraction routing.  
+**Verify.** Fixtures; defaults off where specified.
 
-### Phase 9 · Demo clip + gate docs
+### Phase 9 · Upstream contribution pass
 
-**Goal.** Short video proof path (Cursor computer-use analog) + TASK-GRAPH update.  
-**Changes.** `drive_demo_clip` if `demoRecord`; smokes for share + router; privacy checklist for blobs.  
-**Verify.** Unit + optional live; update phase 2/4 gates.
+**Goal.** Apache-safe upstreamable commits for shared schemas/tools.  
+**Verify.** License headers; dependency license scan.
+
+### Phase 10 · Gates + smokes
+
+**Goal.** Smoke: spotlight B → B’s diagram sticky while B’s voice narrates; mute A → no A TTS; deafen B → B skips A2A; director may move spotlight with audit event.
 
 ---
 
@@ -406,26 +532,24 @@ bun run build:sdk && bun run types
 bun -F @cline/shared test
 bun -F @cline/drive test
 bun -F @cline/core test:unit
+bun -F @cline/agents test
 bun -F @cline/cline-hub test
 ```
 
-Runtime (control-ui):
+Runtime: control-ui — planner enqueues architecture diagram (sticky) while two script beats narrate; optional animation loop; send “fix flake” with two agents → suggest chip.
 
-1. Structured share handoff human↔agent.  
-2. Agent snapshot tool → demo card on stage.  
-3. Two agents seated, suggest mode, send “fix flake” → test agent chip selected with reason.  
-4. Auto mode lowConfidence → confirm UI, never silent everyone.
+License: `bun`/CI grep that new SDK files include Apache-2.0 header where required by repo convention; no GPL deps added to `sdk/packages/**`.
 
 ---
 
 ## Implementation guidance
 
-1. **how** on stage reducer, hub send path, recruit scorer before edits.  
-2. Router must emit DRV-ADDRESS shapes only (**Liskov**).  
-3. No pixel SFU in phases 1–8.  
-4. `/deslop` + **unslop** on ADRs; **interrogate** if auto-mode defaults contested.  
-5. **show-me-your-work** for shareMode and router.mode defaults.  
-6. Minimal diff: extend existing features; do not invent a second room bus.
+1. **how** on Team tools, hooks, hub handlers before inventing Drive-only runtimes.  
+2. Prefer ConfiguredAgent + tools over new agent frameworks.  
+3. Dual backlog + DirectorScript is the domain model; UI is projection.  
+4. Contribute upstream in separate commits from Drive IA.  
+5. `/deslop`, **unslop**, **show-me-your-work** on ADR updates.  
+6. No time frames in phase text.
 
 ---
 
@@ -433,30 +557,42 @@ Runtime (control-ui):
 
 | Risk | Mitigation |
 |---|---|
-| Demo blobs become transcript dumps | Ephemeral default; export explicit; schema forbids inline bytes |
-| Router silent fan-out | assertRouteLegal + never empty→everyone |
-| Fraction splits garbage | Default off; high threshold; suggest mode |
-| Confuse recruit vs router | Separate features/ADRs; different verbs seat vs deliver |
-| Premature WebRTC | Pixel ShareMode reserved unimplemented |
+| Rebuilding Team inside Drive | Explicit verb table; Team only for mailbox jobs |
+| License drift / proprietary capture SDKs | Apache-only SDK path; host adapters for optional binaries |
+| Backlog thrash (constant rerank) | Rate-limit director ticks; hysteresis on activeShowId / stickyShowIds |
+| Fake-live feels laggy | Prefetch next Show item; keep sticky diagrams while narration advances |
+| Too many artifact kinds | Start with template kit MVP; catalog is additive |
+| Script/show desync | advanceScriptBeat is pure; hub applies atomically with present |
+| Too many seated agents | Default planner/screen manager as policies, not seats |
 
 ---
 
 ## Open decisions (defaults)
 
-1. **Default multi-agent router mode:** `suggest` (not auto).  
-2. **Fractions:** off until phase 8 gate.  
-3. **Demo blob retention:** ephemeral session; export opt-in.  
-4. **MVP demo tool:** screenshot only; video in phase 9.  
-5. **Scorer:** lexical seated labels first; optional LLM rerank later behind facet.
+1. **MVP screen manager / backlog planner run as hub policies**, not seated agents; promote to seats when `teamOpt` on.  
+2. **Do backlog** prefers existing DriveTask bank; Team tasks only when mailbox/outcomes required.  
+3. **Show backlog** Drive-owned director over **per-agent bags**; includes diagrams/walkthroughs/animations.  
+4. **DirectorScript sticky default** = `hold` for diagram/doc; `replace` for captures unless script says otherwise.  
+5. **Spotlight** default = pair_partner; human always wins; director may switch only under auto/suggest policy with audit.  
+6. **Mute ⟂ deafen**; `allowSilentWorkWhenMuted` default true; `spotlightFollowA2A` default false.  
+7. **Per-agent voices** via `voiceSlotId`; shared slots allowed.  
+8. **Router** suggest-default for multi-seat.  
+9. **Upstream** general `@cline/shared` schemas when not Drive-UI-specific.
 
 ---
 
 ## Hand back
 
-**Share.** Cursor-like demo artifact track on the events-first stage; structured share remains MVP; WebRTC still later.
+**SDK-first + Apache-2.0.** Extend agents/Team/hooks/hub; contribute upstream when general.
 
-**Router.** Pure RoutePlan over seated agents; suggest/auto modes; delivers via existing addressSet; fractions optional.
+**Share.** Dual backlog + explanatory artifacts (stills/animations/demos) + DirectorScript sticky presentation — appear live, not WebRTC.
 
-**Phases.** Docs → schemas → stage demo reduce → structured share → snapshot tool → router pure → suggest/auto wire → fractions → clips/gates.
+**Spotlight.** Prioritizes on-screen, spoken content, and speaker voice; human control + director/router may reassign under policy.
 
-Stop for review. Execution starts only after explicit approval.
+**Per-agent bags.** Each agent keeps discretionary scripts/artifacts; director selects with spotlight bias.
+
+**Mute / deafen / A2A.** Independent speak/hear flags; A2A via addressSet + channel tag; hub-enforced.
+
+**Phases.** Docs → schemas (spotlight/flags/bags) → pure rank/route/delivery asserts → hub ops → templates → strip UI → router/stage UI → optional seats → upstream → gates.
+
+Stop for review. Approve to execute (including syncing `docs/plans/cline-drivemode/share-and-router/`).

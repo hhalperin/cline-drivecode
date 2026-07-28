@@ -25,6 +25,7 @@ Repo-level continuation brief. [HANDOFF-drivecode.md](../HANDOFF-drivecode.md).
 | [local-stt.md](local-stt.md) | Loopback whisper-compatible STT for MediaRecorder / local-worker |
 | [09-demo-share.md](09-demo-share.md) | Demo artifact share track (Cursor-like proof on stage) |
 | [10-agent-router.md](10-agent-router.md) | Multi-agent utterance router (suggest/auto among seated) |
+| [11-spotlight-a2a.md](11-spotlight-a2a.md) | Spotlight, per-agent bags, mute/deafen, A2A |
 | [share-and-router/](share-and-router/) | Full reference PLAN for demo share + agent router |
 | [prd/](prd/) | Product requirements. PRD 6 portfolio; PRD 7 PiP; PRD 8 Drive-as-mode; PRD 9 task-bank loop |
 | [task-bank-drive-loop/](task-bank-drive-loop/) | Multi-phase plan for the task-bank Drive loop |
