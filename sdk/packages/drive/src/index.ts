@@ -59,6 +59,14 @@ export {
 	type TopologyRejectCode,
 } from "./topology/assertTopologyLegal.js";
 export {
+	assertFacetProviderSelection,
+	cloudDefaultsWithAnthropic,
+	defaultFacetValuesFromProfile,
+	localDefaultsWithOllama,
+	resolveTopologyFromFacets,
+	DEFAULT_TTS_PROVIDER_ID,
+} from "./topology/resolveTopologyFromFacets.js";
+export {
 	seedFacetsForProfile,
 	type ProfileFacetSeed,
 } from "./topology/seedFacetsForProfile.js";

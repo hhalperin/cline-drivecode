@@ -31,6 +31,16 @@ export {
 	type DriveEventType,
 } from "./events";
 export {
+	DriveFacetIdSchema,
+	DriveFacetValuesSchema,
+	PairAgentRefSchema,
+	parseDriveFacetValues,
+	ProviderConfigSchema,
+	type DriveFacetId,
+	type DriveFacetValues,
+	type PairAgentRef,
+} from "./facets";
+export {
 	assertNoSecretProviderConfigKeys,
 	BUILTIN_BROWSER_TTS_ID,
 	BUILTIN_LOCAL_WORKER_STT_ID,

@@ -9,6 +9,11 @@ import {
 	assertProviderCompatible,
 	listProviders,
 } from "./assertProviderCompatible.js";
+import {
+	cloudDefaultsWithAnthropic,
+	localDefaultsWithOllama,
+	resolveTopologyFromFacets,
+} from "./resolveTopologyFromFacets.js";
 import { seedFacetsForProfile } from "./seedFacetsForProfile.js";
 
 const localTopology: RuntimeTopology = {
@@ -115,6 +120,32 @@ describe("assertProviderCompatible", () => {
 			return;
 		}
 		const result = assertProviderCompatible(manifest, localTopology);
+		expect(result.ok).toBe(false);
+	});
+});
+
+describe("resolveTopologyFromFacets", () => {
+	it("accepts local defaults with ollama", () => {
+		const { facets, llm } = localDefaultsWithOllama();
+		const result = resolveTopologyFromFacets({ facets, llm });
+		expect(result.ok).toBe(true);
+	});
+
+	it("accepts cloud defaults with anthropic", () => {
+		const { facets, llm } = cloudDefaultsWithAnthropic();
+		const result = resolveTopologyFromFacets({ facets, llm });
+		expect(result.ok).toBe(true);
+	});
+
+	it("rejects local facets that select webSpeech", () => {
+		const { facets, llm } = localDefaultsWithOllama();
+		const result = resolveTopologyFromFacets({
+			facets: {
+				...facets,
+				"providers.sttId": BUILTIN_WEB_SPEECH_STT_ID,
+			},
+			llm,
+		});
 		expect(result.ok).toBe(false);
 	});
 });
