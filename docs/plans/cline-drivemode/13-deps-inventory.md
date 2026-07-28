@@ -12,8 +12,8 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 |---|---|---|---|
 | Bun | 1.3.x (AGENTS: 1.3.13) | track bun.sh | Keep Node >=22 |
 | TypeScript | 5.9.3 (hub/ui); 5.4.5 (vscode) | **7.0.2** | Major; stay on 5.9 until TS7 migration planned |
-| @biomejs/biome | 2.4.5 root; ^2.3.14 vscode | 2.5.5 | Low risk patch/minor |
-| Vitest | ^4.0.18 most; **3.0.5** vscode webview-ui | 4.1.10 | Align vscode webview-ui off Vitest 3 |
+| @biomejs/biome | **2.5.5** root; **^2.5.5** vscode | 2.5.5 | **U1 done** — aligned |
+| Vitest | **^4.1.10** most + vscode webview-ui | 4.1.10 | **U1 done** — vscode webview-ui off Vitest 3 |
 
 ## UI / bundler
 
@@ -37,18 +37,18 @@ Back to [README](README.md). Parent plan: upgrade + primitives audit.
 | @ai-sdk/amazon-bedrock | ^4.0.89 | check | Already on 4.x line |
 | @modelcontextprotocol/sdk | ^1.29.0 core; ^1.25.1 vscode | check | Prefer single range |
 
-## Drift / inconsistency (fix in U1–U5)
+## Drift / inconsistency (fix in U2–U5)
 
 1. **React 18 vs 19** across vscode webview-ui vs hub/cli/ui.  
 2. **Vite 7 vs 8** across vscode webview-ui / sdk-ui vs hub.  
-3. **Vitest 3 vs 4** in vscode webview-ui.  
+3. ~~**Vitest 3 vs 4** in vscode webview-ui.~~ **U1 fixed**  
 4. **Zod 3 vs 4** in desktop-app example.  
 5. **lucide-react** three different 0.x minors + looming 1.x.  
 6. **ai** package slightly different minors between hub webview and llms.
 
 ## Recommended upgrade order (unchanged from plan)
 
-U1 toolchain (Biome, Vitest align) → U2 hub Vite already 8; vscode Vite/React later → U3 Zod align desktop → U4 AI SDK major as dedicated PR → U5 lucide 1.x with icon audit → U6 mermaid stay / patch.
+~~U1 toolchain (Biome, Vitest align)~~ **done** → U2 hub Vite already 8; vscode Vite/React later → U3 Zod align desktop → U4 AI SDK major as dedicated PR → U5 lucide 1.x with icon audit → U6 mermaid stay / patch.
 
 ## License gate
 
