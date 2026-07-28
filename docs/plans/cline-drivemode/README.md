@@ -1,8 +1,8 @@
 # cline-drivemode · Plan index
 
-Drive mode for cline-drivecode. The user opens the **Drive tab**, joins a call room, and pair-programs with a senior-engineer agent that shares work on the stage. Chat Join call is a shortcut into the active room. This folder is the complete plan set. Plans only, no implementation here.
+Drive **mode** for Cline (cline-drivecode). The user switches into Drive like Plan/Act; that enables pair-call features inside Cline Hub Chat—room, roster, stage, addressing—without a second product shell. The hub Drive activity remains optional room management. This folder is the complete plan set. Plans only, no implementation here.
 
-UX north star decision. [DRIVE-TAB.md](../../design/drive-wireframes/DRIVE-TAB.md) and [drive-tab-discord-slack.html](../../design/drive-wireframes/drive-tab-discord-slack.html).
+Mode-first integration. [ARD-0007](ard/ARD-0007-drive-as-cline-mode.md), [PRD 8](prd/prd-drive-as-cline-mode.md). Room IA wireframes. [DRIVE-TAB.md](../../design/drive-wireframes/DRIVE-TAB.md).
 
 Repo-level continuation brief. [HANDOFF-drivecode.md](../HANDOFF-drivecode.md).
 
@@ -12,14 +12,18 @@ Repo-level continuation brief. [HANDOFF-drivecode.md](../HANDOFF-drivecode.md).
 
 | File | What it holds |
 |---|---|
-| [00-vision.md](00-vision.md) | Drive-tab north star and staged delivery (tab + room, stage/share/address, voice) |
-| [01-architecture.md](01-architecture.md) | Kernel `@cline/drive`, hub `:25463` as single writer, room-first model, Drive tab primary, events-first stage, decisions D1 through D6 |
+| [../../drivecode/native-vs-drivecode.md](../../drivecode/native-vs-drivecode.md) | Native Cline vs Drivecode value matrix with maturity labels |
+| [00-vision.md](00-vision.md) | Drive mode inside Cline; Chat default work surface; staged delivery |
+| [01-architecture.md](01-architecture.md) | Kernel `@cline/drive`, hub `:25463` single writer, room-first, **Drive mode** primary activation, Chat default surface, events-first stage, D1–D9 |
 | [02-research-streaming.md](02-research-streaming.md) | Call-architecture research synthesis (Discord, Zoom, Meet, Teams, Webex, Huddles, Twitch) with adopted anti-patterns |
 | [03-research-inventory.md](03-research-inventory.md) | Cline surface inventory, hub and hook gaps, workflows and skills to define |
 | [04-future-multi-user.md](04-future-multi-user.md) | Discord-in-IDE desired state, room/participant/track model, phased media strategy |
 | [05-workflows.md](05-workflows.md) | Canonical workflow catalog. 36 sequences a human performs, cited to cursor-drive and claude-drive prior art, tiered and mapped to DRV features or gaps |
-| [06-platform-config.md](06-platform-config.md) | Platform configuration surface. `AgentProfile` and `RosterPack` domain model, 34-facet inventory with owner/scope/lane/privacy/phase, ownership matrix, phasing, open forks |
-| [prd/](prd/) | Product requirements. PRD 6 Driveagent portfolio / knowledge graph / recruit (imports BRIEF lessons) |
+| [06-platform-config.md](06-platform-config.md) | Platform configuration surface. `AgentProfile` and `RosterPack` domain model, facet inventory with owner/scope/lane/privacy/phase, ownership matrix, phasing, open forks |
+| [07-runtime-topology.md](07-runtime-topology.md) | Local / cloud / hybrid runtime topology, egress matrix, voice planes |
+| [08-provider-harness.md](08-provider-harness.md) | BYOK STT/TTS provider registry, OOTB default packs, Drive Settings IA |
+| [prd/](prd/) | Product requirements. PRD 6 portfolio; PRD 7 PiP; PRD 8 Drive-as-mode; PRD 9 task-bank loop |
+| [task-bank-drive-loop/](task-bank-drive-loop/) | Multi-phase plan for the task-bank Drive loop |
 | [ard/](ard/) | Architecture decision records for Driveagent home, graph, recruit, gated learn |
 | [examples/driveagent-pair-partner/](examples/driveagent-pair-partner/) | Example `.driveagent` home + BRIEF + sample graph |
 | [TASK-GRAPH.md](TASK-GRAPH.md) | Phases 0 through 5 with verifiable gates |
@@ -29,7 +33,7 @@ Repo-level continuation brief. [HANDOFF-drivecode.md](../HANDOFF-drivecode.md).
 
 The harness layer beneath this plan is designed in [../drivecode-sdk/](../drivecode-sdk/). It resolves `drivecode-sdk` as the same package as the `@cline/drive` kernel specified in [DRV-KERNEL](features/DRV-KERNEL.md) rather than a second one, and adds a host port, a capability descriptor, and a conformance kit to it.
 
-Two things there amend this folder: the pure room reducer and stage projection move from `@cline/core` to `@cline/drive` so the webview can import them instead of growing a second copy ([01-architecture.md](01-architecture.md) package map), and [DRV-KERNEL](features/DRV-KERNEL.md) gains the port and the kit. Decisions D1 through D7 are unchanged.
+Two things there amend this folder: the pure room reducer and stage projection move from `@cline/core` to `@cline/drive` so the webview can import them instead of growing a second copy ([01-architecture.md](01-architecture.md) package map), and [DRV-KERNEL](features/DRV-KERNEL.md) gains the port and the kit. Decisions D1 through D9 apply; D8/D9 cover topology and the BYOK provider harness.
 
 ## Features
 
@@ -44,15 +48,16 @@ MVP is phases 0 through 3. Future is phases 4 and 5.
 | [DRV-PRIVACY](features/DRV-PRIVACY.md) | Privacy-strict defaults | 0 | MVP |
 | [DRV-PLATFORM-CONFIG](features/DRV-PLATFORM-CONFIG.md) | Facet catalog and durable config store | 0 | MVP |
 | [DRV-ROOM-MVP](features/DRV-ROOM-MVP.md) | Smallest room and joinCall façade | 1 | MVP |
-| [DRV-DRIVE-TAB](features/DRV-DRIVE-TAB.md) | Drive tab sidebar (channels + call rooms) | 1 | MVP |
+| [DRV-DRIVE-TAB](features/DRV-DRIVE-TAB.md) | Drive hub activity (optional room management IA) | 1 | MVP |
 | [DRV-ROSTER](features/DRV-ROSTER.md) | Agent roster as participants | 1 | MVP |
 | [DRV-AGENT-PROFILE](features/DRV-AGENT-PROFILE.md) | Agent display name and two ink channels | 1 | MVP |
 | [DRV-PARTICIPANT-SHEET](features/DRV-PARTICIPANT-SHEET.md) | Roster click: Transcript vs Profile sheet | 1 | MVP |
 | [DRV-DRIVEAGENT-HOME](features/DRV-DRIVEAGENT-HOME.md) | `.driveagent/<slug>/` agent home + compile | 1 | MVP |
-| [DRV-TOGGLE](features/DRV-TOGGLE.md) | Chat Join call shortcut into Drive room | 1 | MVP |
+| [DRV-TOGGLE](features/DRV-TOGGLE.md) | Enter Drive mode from Chat (join / attach) | 1 | MVP |
 | [DRV-PERSONA-CHIP](features/DRV-PERSONA-CHIP.md) | Partner presence chip | 1 | MVP |
 | [DRV-NARRATION](features/DRV-NARRATION.md) | Narration messages in the feed | 1 | MVP |
-| [DRV-MODE-OVERLAY](features/DRV-MODE-OVERLAY.md) | Ask/debug overlays on the mode pill | 1 | MVP |
+| [DRV-MODE-OVERLAY](features/DRV-MODE-OVERLAY.md) | Drive mode + Ask/Agent/Plan/Debug postures | 1 | MVP |
+| [DRV-TASK-BANK](features/DRV-TASK-BANK.md) | Task bank; plans ref tasks; auto Plan↔Agent | 1–2 | MVP |
 | [DRV-LEAVE-END](features/DRV-LEAVE-END.md) | Leave the call, end the session | 1 | MVP |
 | [DRV-PARTNER-MVP](features/DRV-PARTNER-MVP.md) | One pair partner, end to end (phase gate) | 1 | MVP |
 | [DRV-STAGE](features/DRV-STAGE.md) | The Call Stage (agent work projection) | 2 | MVP |
@@ -66,6 +71,7 @@ MVP is phases 0 through 3. Future is phases 4 and 5.
 | [DRV-NOWNEXT](features/DRV-NOWNEXT.md) | Now/next plan cursor strip | 2 | MVP |
 | [DRV-STEER-QUEUE](features/DRV-STEER-QUEUE.md) | Steering while the partner works | 2 | MVP |
 | [DRV-INTERRUPT](features/DRV-INTERRUPT.md) | Raise hand | 2 | MVP |
+| [DRV-PIP](features/DRV-PIP.md) | PiP Partner companion widget | 2 | MVP |
 | [DRV-SKILL-PORT](features/DRV-SKILL-PORT.md) | Port persona and mode skills | 2 | MVP |
 | [DRV-MIC](features/DRV-MIC.md) | Mic input and mute | 3 | MVP |
 | [DRV-TTS](features/DRV-TTS.md) | Partner voice out | 3 | MVP |
@@ -83,9 +89,9 @@ Short version. Lowest phase with a red gate, then a feature whose dependencies a
 
 Each principle below drove a concrete choice you can see in the files.
 
-- **Experience First.** The Drive tab is the product home because call feel and roster IA beat Chat-header-only entry. Chat Join stays as a shortcut. Phase order still ships a complete feel per phase.
-- **Model the Domain.** `DriveTab > Workspace > CallRooms > Room(participants, transcripts, stage, addressSet)` is the typed shape schemas and UI project. Addressing is a send parameter, not an afterthought mention.
-- **Redesign from First Principles.** Drive tab was folded into vision, architecture D3, and phase 1 rather than bolted onto a Chat-toggle-only story.
+- **Experience First.** Drive is a Cline mode like Plan/Act so call features feel built-in; Chat stays the default work surface. Drive hub activity is optional room IA. Phase order still ships a complete feel per phase.
+- **Model the Domain.** `DriveMode → Room(participants, transcripts, stage, addressSet)` is the typed shape schemas and UI project. Addressing is a send parameter, not an afterthought mention.
+- **Redesign from First Principles.** Mode-first integration ([ARD-0007](ard/ARD-0007-drive-as-cline-mode.md)) amends Drive-tab-as-sole-home while keeping the room primitive.
 - **Sequence Work into Verifiable Units.** Every checklist task ends in a named verify command, every phase ends in a gate, and read-and-map tasks precede write tasks so risky assumptions fail first.
 - **Foundational Thinking.** Schemas (DRV-EVENTS) and the kernel (DRV-KERNEL) are phase 0 because every later phase consumes them. The event union is the data shape that makes the stage, the TUI, and remote clients cheap.
 - **Subtract Before You Add.** The plan wires bundled ai-elements instead of writing components, collapses cursor-drive's `:7891` daemon into existing hub ops instead of porting it, and reserves the media track with zero members instead of speculating schema.
@@ -100,7 +106,7 @@ Each principle below drove a concrete choice you can see in the files.
 - No second MCP daemon. Nothing defaults to `:7891`. The hub on `:25463` is the only server.
 - Privacy-strict defaults. No audio or transcript persistence without an explicit, visible debug flag.
 - No timeframes in plans or status docs.
-- Drive tab is primary UX. Chat Join call is a shortcut into the active Drive room.
+- Drive is a Cline mode (Plan/Act-class). Chat is the default work surface; Drive hub activity is optional room IA.
 - **`Team` is Cline's word.** It means the runtime execution group in `sdk/packages/core/src/extensions/tools/team/`. Drive's human-curated seating preset is a **`RosterPack`**, and no Drive identifier contains `Team`. UI copy says *pack*. See [06-platform-config.md](06-platform-config.md#naming-rosterpack-not-teampack-not-team).
 - Drive **overlays** `ConfiguredAgent` (`.cline/agents/*.yaml`); it never forks it. Prompts, tools, and model ids stay in Cline's files and are never copied into Drive config.
 
