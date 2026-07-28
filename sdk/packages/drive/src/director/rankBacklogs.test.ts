@@ -51,6 +51,24 @@ describe("planRoute", () => {
 		});
 	});
 
+	it("falls back to pair partner on low confidence instead of everyone", () => {
+		const plan = planRoute({
+			utterance: "xyzzy unrelated jargon",
+			utteranceId: "u-low",
+			seated: [docsAgent, testAgent, partner],
+			mode: "suggest",
+			threshold: 50,
+		});
+		expect(plan.lowConfidence).toBe(true);
+		expect(plan.slices[0]?.addressSet).toEqual({
+			mode: "agents",
+			agentIds: ["partner-1"],
+		});
+		expect(plan.slices[0]?.reasons).toContain(
+			"low_confidence_fallback_partner",
+		);
+	});
+
 	it("assertRouteLegal rejects unknown agents", () => {
 		const plan = planRoute({
 			utterance: "hello",

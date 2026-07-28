@@ -4,6 +4,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DriveSubMode, DriveUiState } from "./types";
+import {
+	DRIVE_PARTICIPANT_HUMAN,
+	DRIVE_PARTICIPANT_PARTNER,
+} from "./types";
 
 const SUB_MODES: DriveSubMode[] = ["plan", "agent", "ask", "debug"];
 
@@ -97,7 +101,10 @@ export function DriveCallStrip({
 	}
 
 	const spotlightLabel =
-		drive.spotlightParticipantId === "human" ? "you" : drive.partnerName;
+		drive.spotlightParticipantId === DRIVE_PARTICIPANT_HUMAN ||
+		drive.spotlightParticipantId === "human"
+			? "you"
+			: drive.partnerName;
 
 	return (
 		<div className="flex flex-wrap items-center gap-2 border-b border-amber-500/30 bg-amber-500/5 px-4 py-2">

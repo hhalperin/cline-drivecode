@@ -36,14 +36,32 @@ export interface VoiceStack {
 	readonly topology: RuntimeTopology;
 }
 
+const voiceStackCache = new Map<string, VoiceStack>();
+
+function topologyCacheKey(topology: RuntimeTopology): string {
+	return JSON.stringify({
+		profile: topology.profile,
+		stt: topology.stt,
+		tts: topology.tts,
+		egressCeiling: topology.egressCeiling,
+		llm: topology.llm,
+	});
+}
+
 /**
  * Composition root for Drive voice adapters (ARD-0010).
  * Builtins only for now; workspace plugins load in a later phase.
+ * Memoized by topology fingerprint to avoid recreating TTS/STT ports per send.
  */
 export function createVoiceStack(
 	topology: RuntimeTopology,
 	registry: readonly DriveProviderManifest[] = BUILTIN_PROVIDER_MANIFESTS,
 ): VoiceStack {
+	const key = topologyCacheKey(topology);
+	const cached = voiceStackCache.get(key);
+	if (cached) {
+		return cached;
+	}
 	const sttManifest = registry.find(
 		(manifest) =>
 			manifest.slot === "stt" &&
@@ -58,11 +76,13 @@ export function createVoiceStack(
 		throw new Error("No builtin adapter matches the resolved topology");
 	}
 
-	return {
+	const stack: VoiceStack = {
 		topology,
 		stt: createBuiltinSttPort(sttManifest),
 		tts: createBuiltinTtsPort(ttsManifest),
 	};
+	voiceStackCache.set(key, stack);
+	return stack;
 }
 
 function createBuiltinSttPort(manifest: DriveProviderManifest): SttPort {

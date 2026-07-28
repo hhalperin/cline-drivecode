@@ -12,6 +12,8 @@ import {
 	applySubModeIntent,
 	clearPostureOverride,
 	DEFAULT_DRIVE_UI,
+	DRIVE_PARTICIPANT_HUMAN,
+	DRIVE_PARTICIPANT_PARTNER,
 	toNativeMode,
 	type DriveUiState,
 } from "./types";
@@ -238,9 +240,10 @@ export function useDriveSession(
 				setDrive((current) => ({
 					...current,
 					spotlightParticipantId:
+						current.spotlightParticipantId === DRIVE_PARTICIPANT_PARTNER ||
 						current.spotlightParticipantId === "partner"
-							? "human"
-							: "partner",
+							? DRIVE_PARTICIPANT_HUMAN
+							: DRIVE_PARTICIPANT_PARTNER,
 				}));
 			},
 			onSubModeChange: (subMode: DriveUiState["subMode"]) => {

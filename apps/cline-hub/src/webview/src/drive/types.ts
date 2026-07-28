@@ -22,13 +22,21 @@ export type DriveUiState = {
 	muted: boolean;
 	handRaised: boolean;
 	bankSnapshot: BankSnapshot;
-	/** Who has presentation floor for show/say/voice. */
-	spotlightParticipantId: "human" | "partner";
+	/**
+	 * Spotlight owner participant id.
+	 * Use {@link DRIVE_PARTICIPANT_HUMAN} / {@link DRIVE_PARTICIPANT_PARTNER} until
+	 * full roster ids are wired from the hub.
+	 */
+	spotlightParticipantId: string;
 	/** Partner agent cannot speak (TTS/narration). */
 	partnerMuted: boolean;
 	/** Partner agent cannot hear (inbound context). */
 	partnerDeafened: boolean;
 };
+
+/** Stable ids until hub roster provides real participant UUIDs. */
+export const DRIVE_PARTICIPANT_HUMAN = "drive:human";
+export const DRIVE_PARTICIPANT_PARTNER = "drive:partner";
 
 export const EMPTY_BANK_SNAPSHOT: BankSnapshot = {
 	activePlanId: null,
@@ -48,7 +56,7 @@ export const DEFAULT_DRIVE_UI: DriveUiState = {
 	muted: false,
 	handRaised: false,
 	bankSnapshot: EMPTY_BANK_SNAPSHOT,
-	spotlightParticipantId: "partner",
+	spotlightParticipantId: DRIVE_PARTICIPANT_PARTNER,
 	partnerMuted: false,
 	partnerDeafened: false,
 };

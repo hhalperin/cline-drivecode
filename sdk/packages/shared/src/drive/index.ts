@@ -118,6 +118,12 @@ export {
 	type DriveProviderSlot,
 } from "./providers";
 export {
+	createEmptyDriveRoomLiveState,
+	DriveRoomLiveStateSchema,
+	parseDriveRoomLiveState,
+	type DriveRoomLiveState,
+} from "./roomLive";
+export {
 	defaultEgressCeiling,
 	DeploymentProfileSchema,
 	EgressClassSchema,

@@ -42,6 +42,7 @@ import {
 	handleClientUpdate,
 } from "./handlers/client-handlers";
 import { handleConnectorCommand } from "./handlers/connector-handlers";
+import { handleDriveCommand } from "./handlers/drive-handlers";
 import {
 	buildHubEvent,
 	type HubTransportContext,
@@ -412,6 +413,12 @@ export class HubServerTransport implements NativeHubTransport {
 			case "connector.configure":
 			case "connector.delete_config":
 				return await handleConnectorCommand(this.ctx, envelope);
+			case "drive.room.get":
+			case "drive.spotlight.set":
+			case "drive.participant.mute.set":
+			case "drive.participant.deafen.set":
+			case "drive.show.present":
+				return handleDriveCommand(this.ctx, envelope);
 			case "settings.get":
 			case "settings.patch":
 				return {

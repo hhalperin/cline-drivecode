@@ -74,15 +74,20 @@ export function planRoute(input: {
 		.sort((a, b) => b.score - a.score);
 
 	const best = ranked[0];
+	const partner = input.seated.find((agent) => agent.role === "pair_partner");
 	const lowConfidence = !best || best.score < threshold;
-	const addressSet: AddressSet = lowConfidence
-		? { mode: "everyone" }
-		: {
-				mode: "agents",
-				agentIds: [best.agent.participantId],
-			};
 
-	// Fractions deferred: always one slice when allowFractions is false/undefined.
+	// Never silent-widen to everyone when agents are seated: fall back to pair
+	// partner (or best available) and keep lowConfidence so UI can force suggest.
+	const fallbackId =
+		partner?.participantId ?? best?.agent.participantId ?? input.seated[0]!.participantId;
+	const addressSet: AddressSet = {
+		mode: "agents",
+		agentIds: [
+			lowConfidence ? fallbackId : best!.agent.participantId,
+		],
+	};
+
 	void input.allowFractions;
 
 	return {
@@ -97,7 +102,12 @@ export function planRoute(input: {
 				text: input.utterance,
 				addressSet,
 				score: best?.score ?? 0,
-				reasons: best?.reasons ?? ["fallback:everyone"],
+				reasons: lowConfidence
+					? [
+							...(best?.reasons ?? []),
+							"low_confidence_fallback_partner",
+						]
+					: (best?.reasons ?? []),
 			},
 		],
 	};
