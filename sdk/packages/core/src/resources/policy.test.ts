@@ -25,6 +25,28 @@ describe("resolveResourcePolicy", () => {
 				sampleIntervalMs: 5_000,
 				eventLoopResolutionMs: 20,
 			},
+			admission: {
+				pendingPrompts: {
+					maxItems: 100,
+					maxBytes: 1024 * 1024,
+					maxItemBytes: 256 * 1024,
+				},
+				teamRuns: {
+					maxConcurrent: 6,
+					maxQueued: 100,
+					maxMessageBytes: 256 * 1024,
+				},
+			},
+			transport: {
+				websocket: {
+					softWatermarkBytes: 256 * 1024,
+					hardWatermarkBytes: 1024 * 1024,
+					congestionGraceMs: 5_000,
+					closeGraceMs: 1_000,
+					maxInboundPayloadBytes: 1024 * 1024,
+				},
+			},
+			streaming: { flushIntervalMs: 32, maxBatchBytes: 64 * 1024 },
 		});
 		expect(resolved.sources).toEqual({
 			maxParallelism: "hardware",
@@ -34,6 +56,31 @@ describe("resolveResourcePolicy", () => {
 				enabled: "default",
 				sampleIntervalMs: "default",
 				eventLoopResolutionMs: "default",
+			},
+			admission: {
+				pendingPrompts: {
+					maxItems: "default",
+					maxBytes: "default",
+					maxItemBytes: "default",
+				},
+				teamRuns: {
+					maxConcurrent: "default",
+					maxQueued: "default",
+					maxMessageBytes: "default",
+				},
+			},
+			transport: {
+				websocket: {
+					softWatermarkBytes: "default",
+					hardWatermarkBytes: "default",
+					congestionGraceMs: "default",
+					closeGraceMs: "default",
+					maxInboundPayloadBytes: "default",
+				},
+			},
+			streaming: {
+				flushIntervalMs: "default",
+				maxBatchBytes: "default",
 			},
 		});
 	});
@@ -46,10 +93,14 @@ describe("resolveResourcePolicy", () => {
 				[RESOURCE_POLICY_ENV.processMemoryLimitBytes]: "900000000",
 				[RESOURCE_POLICY_ENV.diagnosticsEnabled]: "off",
 				[RESOURCE_POLICY_ENV.diagnosticsSampleIntervalMs]: "2500",
+				[RESOURCE_POLICY_ENV.teamRunMaxQueued]: "25",
+				[RESOURCE_POLICY_ENV.websocketHardWatermarkBytes]: "4096",
 			},
 			overrides: {
 				maxParallelism: 3,
 				diagnostics: { enabled: true },
+				admission: { pendingPrompts: { maxItems: 7 } },
+				transport: { websocket: { softWatermarkBytes: 2048 } },
 			},
 		});
 
@@ -63,6 +114,14 @@ describe("resolveResourcePolicy", () => {
 		expect(resolved.sources.processMemoryLimitBytes).toBe("environment");
 		expect(resolved.sources.diagnostics.enabled).toBe("explicit");
 		expect(resolved.sources.diagnostics.sampleIntervalMs).toBe("environment");
+		expect(resolved.profile.admission.pendingPrompts.maxItems).toBe(7);
+		expect(resolved.profile.admission.teamRuns.maxQueued).toBe(25);
+		expect(resolved.profile.transport.websocket).toMatchObject({
+			softWatermarkBytes: 2048,
+			hardWatermarkBytes: 4096,
+		});
+		expect(resolved.sources.admission.pendingPrompts.maxItems).toBe("explicit");
+		expect(resolved.sources.admission.teamRuns.maxQueued).toBe("environment");
 	});
 
 	it("hard-clamps non-finite and out-of-range values", () => {
@@ -77,6 +136,15 @@ describe("resolveResourcePolicy", () => {
 				diagnostics: {
 					sampleIntervalMs: -50,
 					eventLoopResolutionMs: Number.POSITIVE_INFINITY,
+				},
+				admission: {
+					teamRuns: { maxConcurrent: Number.POSITIVE_INFINITY },
+				},
+				transport: {
+					websocket: {
+						softWatermarkBytes: Number.POSITIVE_INFINITY,
+						hardWatermarkBytes: 2048,
+					},
 				},
 			},
 		});
@@ -96,6 +164,10 @@ describe("resolveResourcePolicy", () => {
 		expect(resolved.profile.diagnostics.eventLoopResolutionMs).toBe(
 			RESOURCE_POLICY_HARD_LIMITS.eventLoopResolutionMs.max,
 		);
+		expect(resolved.profile.admission.teamRuns.maxConcurrent).toBe(
+			RESOURCE_POLICY_HARD_LIMITS.teamRunMaxConcurrent.max,
+		);
+		expect(resolved.profile.transport.websocket.softWatermarkBytes).toBe(2048);
 		const nanOverride = resolveResourcePolicy({
 			hardware,
 			env: { [RESOURCE_POLICY_ENV.maxParallelism]: "7" },

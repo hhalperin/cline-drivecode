@@ -12,6 +12,20 @@ export const RESOURCE_POLICY_ENV = {
 	diagnosticsEnabled: "CLINE_RESOURCE_DIAGNOSTICS_ENABLED",
 	diagnosticsSampleIntervalMs: "CLINE_RESOURCE_DIAGNOSTICS_INTERVAL_MS",
 	eventLoopResolutionMs: "CLINE_RESOURCE_EVENT_LOOP_RESOLUTION_MS",
+	pendingPromptMaxItems: "CLINE_RESOURCE_PENDING_PROMPT_MAX_ITEMS",
+	pendingPromptMaxBytes: "CLINE_RESOURCE_PENDING_PROMPT_MAX_BYTES",
+	pendingPromptMaxItemBytes: "CLINE_RESOURCE_PENDING_PROMPT_MAX_ITEM_BYTES",
+	teamRunMaxConcurrent: "CLINE_RESOURCE_TEAM_RUN_MAX_CONCURRENT",
+	teamRunMaxQueued: "CLINE_RESOURCE_TEAM_RUN_MAX_QUEUED",
+	teamRunMaxMessageBytes: "CLINE_RESOURCE_TEAM_RUN_MAX_MESSAGE_BYTES",
+	websocketSoftWatermarkBytes: "CLINE_RESOURCE_WS_SOFT_WATERMARK_BYTES",
+	websocketHardWatermarkBytes: "CLINE_RESOURCE_WS_HARD_WATERMARK_BYTES",
+	websocketCongestionGraceMs: "CLINE_RESOURCE_WS_CONGESTION_GRACE_MS",
+	websocketCloseGraceMs: "CLINE_RESOURCE_WS_CLOSE_GRACE_MS",
+	websocketMaxInboundPayloadBytes:
+		"CLINE_RESOURCE_WS_MAX_INBOUND_PAYLOAD_BYTES",
+	streamingFlushIntervalMs: "CLINE_RESOURCE_STREAMING_FLUSH_INTERVAL_MS",
+	streamingMaxBatchBytes: "CLINE_RESOURCE_STREAMING_MAX_BATCH_BYTES",
 } as const;
 
 export const RESOURCE_POLICY_HARD_LIMITS = {
@@ -20,6 +34,19 @@ export const RESOURCE_POLICY_HARD_LIMITS = {
 	heapMemoryLimitBytes: { min: 32 * 1024 ** 2, max: 256 * 1024 ** 3 },
 	diagnosticsSampleIntervalMs: { min: 100, max: 300_000 },
 	eventLoopResolutionMs: { min: 1, max: 1_000 },
+	pendingPromptMaxItems: { min: 0, max: 10_000 },
+	pendingPromptMaxBytes: { min: 1024, max: 1024 ** 3 },
+	pendingPromptMaxItemBytes: { min: 1024, max: 256 * 1024 ** 2 },
+	teamRunMaxConcurrent: { min: 1, max: 256 },
+	teamRunMaxQueued: { min: 0, max: 100_000 },
+	teamRunMaxMessageBytes: { min: 1024, max: 256 * 1024 ** 2 },
+	websocketSoftWatermarkBytes: { min: 0, max: 256 * 1024 ** 2 },
+	websocketHardWatermarkBytes: { min: 1024, max: 1024 ** 3 },
+	websocketCongestionGraceMs: { min: 0, max: 300_000 },
+	websocketCloseGraceMs: { min: 0, max: 60_000 },
+	websocketMaxInboundPayloadBytes: { min: 1024, max: 256 * 1024 ** 2 },
+	streamingFlushIntervalMs: { min: 1, max: 1_000 },
+	streamingMaxBatchBytes: { min: 1024, max: 16 * 1024 ** 2 },
 } as const;
 
 export type ResourcePolicyValueSource =
@@ -37,6 +64,30 @@ export interface ResourcePolicySources {
 		sampleIntervalMs: ResourcePolicyValueSource;
 		eventLoopResolutionMs: ResourcePolicyValueSource;
 	};
+	admission: {
+		pendingPrompts: Record<
+			"maxItems" | "maxBytes" | "maxItemBytes",
+			ResourcePolicyValueSource
+		>;
+		teamRuns: Record<
+			"maxConcurrent" | "maxQueued" | "maxMessageBytes",
+			ResourcePolicyValueSource
+		>;
+	};
+	transport: {
+		websocket: Record<
+			| "softWatermarkBytes"
+			| "hardWatermarkBytes"
+			| "congestionGraceMs"
+			| "closeGraceMs"
+			| "maxInboundPayloadBytes",
+			ResourcePolicyValueSource
+		>;
+	};
+	streaming: Record<
+		"flushIntervalMs" | "maxBatchBytes",
+		ResourcePolicyValueSource
+	>;
 }
 
 export interface ResourceHardwareProfile {
@@ -196,6 +247,105 @@ export function resolveResourcePolicy(
 			: environmentEnabled !== undefined
 				? "environment"
 				: "default";
+	const chooseDefault = (
+		explicitValue: number | undefined,
+		environmentName: string,
+		fallback: number,
+		limits: { readonly min: number; readonly max: number },
+	) => {
+		const selected = chooseNumber(
+			explicitValue,
+			parseNumber(env[environmentName]),
+			fallback,
+			limits,
+		);
+		return {
+			...selected,
+			source:
+				selected.source === "hardware" ? ("default" as const) : selected.source,
+		};
+	};
+	const pendingPromptMaxItems = chooseDefault(
+		explicit.admission?.pendingPrompts?.maxItems,
+		RESOURCE_POLICY_ENV.pendingPromptMaxItems,
+		100,
+		RESOURCE_POLICY_HARD_LIMITS.pendingPromptMaxItems,
+	);
+	const pendingPromptMaxBytes = chooseDefault(
+		explicit.admission?.pendingPrompts?.maxBytes,
+		RESOURCE_POLICY_ENV.pendingPromptMaxBytes,
+		1024 * 1024,
+		RESOURCE_POLICY_HARD_LIMITS.pendingPromptMaxBytes,
+	);
+	const pendingPromptMaxItemBytes = chooseDefault(
+		explicit.admission?.pendingPrompts?.maxItemBytes,
+		RESOURCE_POLICY_ENV.pendingPromptMaxItemBytes,
+		256 * 1024,
+		RESOURCE_POLICY_HARD_LIMITS.pendingPromptMaxItemBytes,
+	);
+	const teamRunMaxConcurrent = chooseDefault(
+		explicit.admission?.teamRuns?.maxConcurrent,
+		RESOURCE_POLICY_ENV.teamRunMaxConcurrent,
+		Math.max(1, Math.min(8, Math.floor(hardware.availableParallelism / 2))),
+		RESOURCE_POLICY_HARD_LIMITS.teamRunMaxConcurrent,
+	);
+	const teamRunMaxQueued = chooseDefault(
+		explicit.admission?.teamRuns?.maxQueued,
+		RESOURCE_POLICY_ENV.teamRunMaxQueued,
+		100,
+		RESOURCE_POLICY_HARD_LIMITS.teamRunMaxQueued,
+	);
+	const teamRunMaxMessageBytes = chooseDefault(
+		explicit.admission?.teamRuns?.maxMessageBytes,
+		RESOURCE_POLICY_ENV.teamRunMaxMessageBytes,
+		256 * 1024,
+		RESOURCE_POLICY_HARD_LIMITS.teamRunMaxMessageBytes,
+	);
+	const websocketSoftWatermarkBytes = chooseDefault(
+		explicit.transport?.websocket?.softWatermarkBytes,
+		RESOURCE_POLICY_ENV.websocketSoftWatermarkBytes,
+		256 * 1024,
+		RESOURCE_POLICY_HARD_LIMITS.websocketSoftWatermarkBytes,
+	);
+	const websocketHardWatermarkBytes = chooseDefault(
+		explicit.transport?.websocket?.hardWatermarkBytes,
+		RESOURCE_POLICY_ENV.websocketHardWatermarkBytes,
+		1024 * 1024,
+		RESOURCE_POLICY_HARD_LIMITS.websocketHardWatermarkBytes,
+	);
+	if (websocketSoftWatermarkBytes.value > websocketHardWatermarkBytes.value) {
+		websocketSoftWatermarkBytes.value = websocketHardWatermarkBytes.value;
+	}
+	const websocketCongestionGraceMs = chooseDefault(
+		explicit.transport?.websocket?.congestionGraceMs,
+		RESOURCE_POLICY_ENV.websocketCongestionGraceMs,
+		5_000,
+		RESOURCE_POLICY_HARD_LIMITS.websocketCongestionGraceMs,
+	);
+	const websocketCloseGraceMs = chooseDefault(
+		explicit.transport?.websocket?.closeGraceMs,
+		RESOURCE_POLICY_ENV.websocketCloseGraceMs,
+		1_000,
+		RESOURCE_POLICY_HARD_LIMITS.websocketCloseGraceMs,
+	);
+	const websocketMaxInboundPayloadBytes = chooseDefault(
+		explicit.transport?.websocket?.maxInboundPayloadBytes,
+		RESOURCE_POLICY_ENV.websocketMaxInboundPayloadBytes,
+		1024 * 1024,
+		RESOURCE_POLICY_HARD_LIMITS.websocketMaxInboundPayloadBytes,
+	);
+	const streamingFlushIntervalMs = chooseDefault(
+		explicit.streaming?.flushIntervalMs,
+		RESOURCE_POLICY_ENV.streamingFlushIntervalMs,
+		32,
+		RESOURCE_POLICY_HARD_LIMITS.streamingFlushIntervalMs,
+	);
+	const streamingMaxBatchBytes = chooseDefault(
+		explicit.streaming?.maxBatchBytes,
+		RESOURCE_POLICY_ENV.streamingMaxBatchBytes,
+		64 * 1024,
+		RESOURCE_POLICY_HARD_LIMITS.streamingMaxBatchBytes,
+	);
 
 	return {
 		profile: {
@@ -207,6 +357,31 @@ export function resolveResourcePolicy(
 				enabled,
 				sampleIntervalMs: sampleIntervalMs.value,
 				eventLoopResolutionMs: eventLoopResolutionMs.value,
+			},
+			admission: {
+				pendingPrompts: {
+					maxItems: pendingPromptMaxItems.value,
+					maxBytes: pendingPromptMaxBytes.value,
+					maxItemBytes: pendingPromptMaxItemBytes.value,
+				},
+				teamRuns: {
+					maxConcurrent: teamRunMaxConcurrent.value,
+					maxQueued: teamRunMaxQueued.value,
+					maxMessageBytes: teamRunMaxMessageBytes.value,
+				},
+			},
+			transport: {
+				websocket: {
+					softWatermarkBytes: websocketSoftWatermarkBytes.value,
+					hardWatermarkBytes: websocketHardWatermarkBytes.value,
+					congestionGraceMs: websocketCongestionGraceMs.value,
+					closeGraceMs: websocketCloseGraceMs.value,
+					maxInboundPayloadBytes: websocketMaxInboundPayloadBytes.value,
+				},
+			},
+			streaming: {
+				flushIntervalMs: streamingFlushIntervalMs.value,
+				maxBatchBytes: streamingMaxBatchBytes.value,
 			},
 		},
 		sources: {
@@ -223,6 +398,31 @@ export function resolveResourcePolicy(
 					eventLoopResolutionMs.source === "hardware"
 						? "default"
 						: eventLoopResolutionMs.source,
+			},
+			admission: {
+				pendingPrompts: {
+					maxItems: pendingPromptMaxItems.source,
+					maxBytes: pendingPromptMaxBytes.source,
+					maxItemBytes: pendingPromptMaxItemBytes.source,
+				},
+				teamRuns: {
+					maxConcurrent: teamRunMaxConcurrent.source,
+					maxQueued: teamRunMaxQueued.source,
+					maxMessageBytes: teamRunMaxMessageBytes.source,
+				},
+			},
+			transport: {
+				websocket: {
+					softWatermarkBytes: websocketSoftWatermarkBytes.source,
+					hardWatermarkBytes: websocketHardWatermarkBytes.source,
+					congestionGraceMs: websocketCongestionGraceMs.source,
+					closeGraceMs: websocketCloseGraceMs.source,
+					maxInboundPayloadBytes: websocketMaxInboundPayloadBytes.source,
+				},
+			},
+			streaming: {
+				flushIntervalMs: streamingFlushIntervalMs.source,
+				maxBatchBytes: streamingMaxBatchBytes.source,
 			},
 		},
 		hardware,
