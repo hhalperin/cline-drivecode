@@ -204,6 +204,12 @@ export function useDriveSession(
 	>([]);
 	/** True between call_join and the first successful room_snapshot. */
 	const pendingJoinRef = useRef(false);
+	/**
+	 * Local intent to be on the Drive call (joining or seated).
+	 * Cleared synchronously on leave/cancel so late hub snapshots cannot rejoin
+	 * or sync chat mode after the user opted out.
+	 */
+	const driveIntentRef = useRef(drive.active);
 	/** Mirrors drive.active synchronously for leave/snapshot races. */
 	const driveActiveRef = useRef(false);
 	const sessionIdRef = useRef(args.sessionId);
@@ -243,6 +249,10 @@ export function useDriveSession(
 		const tasks = snapshot.activePlanId
 			? await listPlanTasks(bankSessionRef.current, snapshot.activePlanId)
 			: [];
+		// Leave/cancel clears intent synchronously; skip chrome if join is stale.
+		if (!driveIntentRef.current) {
+			return;
+		}
 		setPlanEditorTasks(tasks);
 		setDrive((current) => {
 			// Only seed bank chrome after a real hub join (demo must stay false).
@@ -251,6 +261,9 @@ export function useDriveSession(
 			}
 			return applyBankSnapshot(current, snapshot);
 		});
+		if (!driveIntentRef.current) {
+			return;
+		}
 		setDriveJoinNote(
 			`On the call. I am ${partnerName}. Share what you want to work on and I will drive.`,
 		);
@@ -301,6 +314,9 @@ export function useDriveSession(
 			}
 			if (message.type === "call_error") {
 				const wasJoining = pendingJoinRef.current;
+				if (wasJoining) {
+					driveIntentRef.current = false;
+				}
 				pendingJoinRef.current = false;
 				const command = message.command;
 				if (wasJoining || command === "call_join") {
@@ -367,26 +383,35 @@ export function useDriveSession(
 						participant.id === DRIVE_PARTICIPANT_HUMAN,
 				);
 				const wasPendingJoin = pendingJoinRef.current;
-				const wasActive = driveActiveRef.current;
-				// Leave/cancel: ignore late snapshots until a new join is requested.
-				if (!wasPendingJoin && !wasActive) {
+				const seatedOnCall = Boolean(snapshot.driveActive && humanSeated);
+				// Ignore broadcasts when this client is not joining/on the call
+				// (covers never-joined peers, cancelled joins, and optimistic leave).
+				if (!driveIntentRef.current) {
 					return;
 				}
-				if (wasPendingJoin && snapshot.driveActive && humanSeated) {
+				// Join not reflected yet — keep waiting; do not apply or clear intent.
+				// Clearing pendingJoin here would leave the "Joining…" banner stuck
+				// with no in-flight join for toggleDrive to cancel.
+				if (wasPendingJoin && !seatedOnCall) {
+					return;
+				}
+				if (wasPendingJoin) {
 					pendingJoinRef.current = false;
 					driveActiveRef.current = true;
-				} else if (wasPendingJoin && !humanSeated) {
-					pendingJoinRef.current = false;
-					return;
+				}
+				if (!seatedOnCall) {
+					driveIntentRef.current = false;
+					driveActiveRef.current = false;
+					setDriveJoinNote(null);
 				}
 				setDrive((current) => applyRoomSnapshot(current, snapshot));
-				// Hub broadcasts to all peers — only sync chat mode when seated.
-				if (humanSeated) {
+				// Only sync chat mode while locally seated — not after leave/unseat.
+				if (seatedOnCall) {
 					onModeChangeRef.current(
 						toNativeMode(fromSharedDriveSubMode(snapshot.subMode)),
 					);
 				}
-				if (wasPendingJoin && snapshot.driveActive && humanSeated) {
+				if (wasPendingJoin && seatedOnCall) {
 					const partner =
 						snapshot.participants.find((p) => p.kind === "agent")
 							?.displayName ?? "partner";
@@ -508,6 +533,7 @@ export function useDriveSession(
 		// Leave (or cancel an in-flight join) — do not treat pending join as off→on.
 		if (current.active || pendingJoinRef.current) {
 			pendingJoinRef.current = false;
+			driveIntentRef.current = false;
 			driveActiveRef.current = false;
 			const leaveRoomId = current.roomId ?? DRIVE_DEFAULT_ROOM_ID;
 			postToHost({
@@ -526,6 +552,7 @@ export function useDriveSession(
 			return;
 		}
 		pendingJoinRef.current = true;
+		driveIntentRef.current = true;
 		setDriveJoinNote("Joining Drive call…");
 		const joinPayload: {
 			type: "call_join";
@@ -650,25 +677,30 @@ export function useDriveSession(
 				});
 			},
 			onMuteToggle: () => {
-				if (drive.roomId) {
+				setDrive((current) => {
+					const muted = !current.muted;
+					if (current.roomId) {
+						postToHost({
+							type: "call_mute",
+							roomId: current.roomId,
+							participantId: DRIVE_PARTICIPANT_HUMAN,
+							muted,
+						});
+						// Prefer hub snapshot for muted (applyRoomSnapshot); optimistic
+						// flip so rapid toggles see fresh state.
+						return { ...current, muted };
+					}
+					// Demo / pre-join: legacy mute path.
 					postToHost({
-						type: "call_mute",
-						roomId: drive.roomId,
-						participantId: DRIVE_PARTICIPANT_HUMAN,
-						muted: !drive.muted,
+						type: "driveCommand",
+						command: "drive.participant.mute.set",
+						payload: {
+							roomId: current.roomId ?? DRIVE_DEFAULT_ROOM_ID,
+							participantId: DRIVE_PARTICIPANT_HUMAN,
+							muted,
+						},
 					});
-					// Prefer hub snapshot for muted (applyRoomSnapshot).
-					return;
-				}
-				// Demo / pre-join: legacy mute path.
-				postToHost({
-					type: "driveCommand",
-					command: "drive.participant.mute.set",
-					payload: {
-						roomId: drive.roomId ?? DRIVE_DEFAULT_ROOM_ID,
-						participantId: DRIVE_PARTICIPANT_HUMAN,
-						muted: !drive.muted,
-					},
+					return { ...current, muted };
 				});
 			},
 			onOpenSettings: () => {
@@ -726,12 +758,17 @@ export function useDriveSession(
 			onSubModeChange: (subMode: DriveUiState["subMode"]) => {
 				setDrive((current) => {
 					const next = applySubModeIntent(current, subMode);
+					// Skip hub/chat updates when intent is blocked (inactive or
+					// Ask/Debug override ignoring plan/agent).
+					if (next === current) {
+						return current;
+					}
 					args.onModeChange(toNativeMode(next.subMode));
 					if (current.roomId) {
 						postToHost({
 							type: "call_set_mode",
 							roomId: current.roomId,
-							subMode: toSharedDriveSubMode(subMode),
+							subMode: toSharedDriveSubMode(next.subMode),
 							driveActive: true,
 						});
 					}
