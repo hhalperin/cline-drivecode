@@ -53,9 +53,21 @@ jobs:
               if: github.event_name == 'workflow_call' && inputs.force
               run: echo "run_all=true" >> "$GITHUB_OUTPUT"
 
+            # Label may lag checkbox sync on the same opened/synchronize event
+            # (repo-label-prs-ci runs in parallel). Prefer body checkbox + label.
             - id: force_label
-              if: contains(github.event.pull_request.labels.*.name, 'ci/drive')
-              run: echo "run_all=true" >> "$GITHUB_OUTPUT"
+              if: github.event.pull_request != null
+              env:
+                  PR_BODY: ${{ github.event.pull_request.body }}
+                  HAS_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'ci/drive') }}
+              run: |
+                  if [ "$HAS_LABEL" = "true" ]; then
+                    echo "run_all=true" >> "$GITHUB_OUTPUT"
+                    exit 0
+                  fi
+                  if printf '%s\n' "$PR_BODY" | grep -qiE -- '-[[:space:]]+\[x\].*`ci/drive`'; then
+                    echo "run_all=true" >> "$GITHUB_OUTPUT"
+                  fi
 
             - id: force
               run: |
