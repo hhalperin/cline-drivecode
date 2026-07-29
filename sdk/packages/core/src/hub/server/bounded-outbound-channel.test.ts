@@ -67,6 +67,45 @@ describe("BoundedOutboundChannel", () => {
 		expect(socket.writes.map(({ data }) => data)).toEqual(["block", "new"]);
 	});
 
+	it("keeps a slow client's queue bounded during a long snapshot stream", async () => {
+		const socket = createSocket();
+		const hardWatermarkBytes = 1024;
+		const channel = new BoundedOutboundChannel(socket, {
+			softWatermarkBytes: 1,
+			hardWatermarkBytes,
+		});
+		channel.send("blocked");
+
+		const updateCount = 25_000;
+		for (let sequence = 0; sequence < updateCount; sequence++) {
+			expect(
+				channel.send(JSON.stringify({ sequence, status: "running" }), {
+					priority: "low",
+					replaceableKey: "session:snapshot",
+				}),
+			).toBe(true);
+		}
+
+		expect(channel.getCounters()).toMatchObject({
+			queuedMessages: 2,
+			coalescedMessages: updateCount - 1,
+			droppedMessages: 0,
+		});
+		expect(channel.getCounters().queuedBytes).toBeLessThanOrEqual(
+			hardWatermarkBytes,
+		);
+		expect(channel.getCounters().peakQueuedBytes).toBeLessThanOrEqual(
+			hardWatermarkBytes,
+		);
+
+		socket.writes[0]?.complete();
+		await flush();
+		expect(JSON.parse(socket.writes[1]?.data ?? "{}")).toMatchObject({
+			sequence: updateCount - 1,
+		});
+		channel.dispose();
+	});
+
 	it("sends high-priority work before queued low-priority work", async () => {
 		const socket = createSocket();
 		const channel = new BoundedOutboundChannel(socket);
