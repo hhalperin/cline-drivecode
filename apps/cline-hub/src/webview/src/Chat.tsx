@@ -40,7 +40,6 @@ import {
 	ChatForkAuditPanel,
 	isChatForkSession,
 } from "./drive/ChatForkAuditPanel";
-import { isDriveHumanId } from "./drive/participantIds";
 import { Spotlight } from "./drive/Spotlight";
 import { StickyStagePane } from "./drive/StickyStagePane";
 import {
