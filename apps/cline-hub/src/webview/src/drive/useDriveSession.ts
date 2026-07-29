@@ -1,13 +1,25 @@
+import type { ChatForkRecord, RoomSnapshot } from "@cline/shared";
 import {
+	type Dispatch,
+	type SetStateAction,
 	useCallback,
 	useEffect,
 	useMemo,
 	useRef,
 	useState,
-	type Dispatch,
-	type SetStateAction,
 } from "react";
-import type { ChatForkRecord, RoomSnapshot } from "@cline/shared";
+import { getVsCodeApi, postToHost } from "../vscode";
+import {
+	createDriveBankSession,
+	type DriveBankSession,
+	listPlanTasks,
+	seedBankForJoin,
+} from "./bankSession";
+import {
+	isDriveHumanId,
+	isDrivePartnerId,
+	toggleDriveSpotlightId,
+} from "./participantIds";
 import {
 	applyBankSnapshot,
 	applyRoomSnapshot,
@@ -17,35 +29,23 @@ import {
 	DRIVE_DEFAULT_ROOM_ID,
 	DRIVE_PARTICIPANT_HUMAN,
 	DRIVE_PARTICIPANT_PARTNER,
+	type DriveUiState,
 	fromSharedDriveSubMode,
 	toNativeMode,
 	toSharedDriveSubMode,
-	type DriveUiState,
 } from "./types";
-import {
-	isDriveHumanId,
-	isDrivePartnerId,
-	toggleDriveSpotlightId,
-} from "./participantIds";
-import {
-	createDriveBankSession,
-	listPlanTasks,
-	seedBankForJoin,
-	type DriveBankSession,
-} from "./bankSession";
+import { createVoiceStack } from "./voice/createVoiceStack";
+import { normalizeDriveHardwarePrefs } from "./voice/driveHardwarePrefs";
 import {
 	applyHardwarePrefsPatch,
 	applyVoiceFacetPatch,
 	applyVoiceProfile,
 	createDefaultDriveVoiceUi,
+	type DriveVoiceUi,
 	resolveDriveVoiceTopology,
 	shouldSpeakDriveTts,
-	type DriveVoiceUi,
 } from "./voice/driveVoiceUi";
 import { buildDrivePersistPayload } from "./voice/voiceCaptionState";
-import { createVoiceStack } from "./voice/createVoiceStack";
-import { normalizeDriveHardwarePrefs } from "./voice/driveHardwarePrefs";
-import { getVsCodeApi, postToHost } from "../vscode";
 
 function readPersistedDriveUi(): DriveUiState {
 	try {
@@ -209,10 +209,12 @@ export function useDriveSession(
 	const sessionIdRef = useRef(args.sessionId);
 	const workspaceRootRef = useRef(args.workspaceRoot);
 	const onModeChangeRef = useRef(args.onModeChange);
+	const driveRef = useRef(drive);
 	sessionIdRef.current = args.sessionId;
 	workspaceRootRef.current = args.workspaceRoot;
 	onModeChangeRef.current = args.onModeChange;
 	driveActiveRef.current = drive.active;
+	driveRef.current = drive;
 
 	useEffect(() => {
 		try {
@@ -259,6 +261,7 @@ export function useDriveSession(
 			const message = event.data as {
 				type?: string;
 				text?: string;
+				command?: string;
 				showItemId?: string;
 				caption?: string;
 				uri?: string;
@@ -297,23 +300,51 @@ export function useDriveSession(
 				return;
 			}
 			if (message.type === "call_error") {
+				const wasJoining = pendingJoinRef.current;
 				pendingJoinRef.current = false;
-				setDriveJoinNote(
-					message.text?.trim()
-						? `Could not join Drive: ${message.text}`
-						: "Could not join Drive.",
-				);
-				setDrive((current) => {
-					if (current.roomId != null && current.active) {
-						return current;
-					}
-					return {
+				const command = message.command;
+				if (wasJoining || command === "call_join") {
+					setDriveJoinNote(
+						message.text?.trim()
+							? `Could not join Drive: ${message.text}`
+							: "Could not join Drive.",
+					);
+					setDrive((current) => ({
 						...current,
 						active: false,
 						roomId: null,
 						demo: true,
+					}));
+					return;
+				}
+				if (command === "call_rename_participant") {
+					setDriveJoinNote(
+						message.text?.trim()
+							? `Could not rename participant: ${message.text}`
+							: "Could not rename participant.",
+					);
+				} else {
+					setDriveJoinNote(
+						message.text?.trim() || "Drive call command failed.",
+					);
+				}
+				// Refresh authoritative room state (rolls back optimistic rename, etc.).
+				const roomId = driveRef.current.roomId;
+				if (roomId) {
+					const payload: {
+						type: "call_get_room";
+						roomId: string;
+						sessionId?: string;
+					} = {
+						type: "call_get_room",
+						roomId,
 					};
-				});
+					const sessionId = sessionIdRef.current;
+					if (sessionId) {
+						payload.sessionId = sessionId;
+					}
+					postToHost(payload);
+				}
 				return;
 			}
 			if (message.type === "drive_fork_audit") {
@@ -686,9 +717,7 @@ export function useDriveSession(
 					command: "drive.spotlight.set",
 					payload: {
 						roomId: drive.roomId ?? DRIVE_DEFAULT_ROOM_ID,
-						participantId: toggleDriveSpotlightId(
-							drive.spotlightParticipantId,
-						),
+						participantId: toggleDriveSpotlightId(drive.spotlightParticipantId),
 						reason: "human",
 					},
 				});

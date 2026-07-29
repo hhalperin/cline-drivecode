@@ -40,6 +40,7 @@ import {
 	ChatForkAuditPanel,
 	isChatForkSession,
 } from "./drive/ChatForkAuditPanel";
+import { isDriveHumanId } from "./drive/participantIds";
 import { Spotlight } from "./drive/Spotlight";
 import { StickyStagePane } from "./drive/StickyStagePane";
 import {
@@ -267,6 +268,25 @@ export default function Chat({
 					setHydratingSessionId(undefined);
 					hydratingSessionIdRef.current = undefined;
 					activeAssistantIdRef.current = undefined;
+					if (message.code === "mic_muted") {
+						// Voice gate rejected after optimistic user+assistant append.
+						setMessages((current) => {
+							if (current.length < 2) {
+								return current;
+							}
+							const last = current.at(-1);
+							const prev = current.at(-2);
+							if (
+								last?.role === "assistant" &&
+								!(last.text ?? "").trim() &&
+								prev?.role === "user"
+							) {
+								return current.slice(0, -2);
+							}
+							return current;
+						});
+						return;
+					}
 					setMessages((current) => {
 						if (current.length === 0) {
 							return current;

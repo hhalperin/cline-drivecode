@@ -291,6 +291,7 @@ export function canMutateWorkspace(state: DriveUiState): boolean {
 /**
  * Optimistic partner rename in Drive chrome (Overview Save).
  * Hub `call_rename_participant` remains the room authority when roomId is set.
+ * Top-level `partnerName` updates only for the primary (first) agent.
  */
 export function applyPartnerDisplayName(
 	state: DriveUiState,
@@ -301,9 +302,14 @@ export function applyPartnerDisplayName(
 	if (!name) {
 		return state;
 	}
+	const primaryAgentId =
+		state.participants.find((participant) => participant.kind === "agent")
+			?.id ?? DRIVE_PARTICIPANT_PARTNER;
+	const updatePartnerChrome =
+		!participantId || participantId === primaryAgentId;
 	return {
 		...state,
-		partnerName: name,
+		...(updatePartnerChrome ? { partnerName: name } : {}),
 		participants: state.participants.map((participant) => {
 			if (participant.kind !== "agent") {
 				return participant;
