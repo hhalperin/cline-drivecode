@@ -11,6 +11,7 @@ import {
 } from "@cline/shared";
 import { WebSocketServer } from "ws";
 import corePackage from "../../../package.json";
+import { resolveResourcePolicy } from "../../resources/policy";
 import { rememberRecoverableLocalHubUrl, verifyHubConnection } from "../client";
 import {
 	clearHubDiscovery,
@@ -233,6 +234,29 @@ export function resolveHubMaxInboundPayloadBytes(
 	);
 }
 
+/** @internal Resolves one immutable policy view for transport and runtime ownership. */
+export function resolveHubResourceOptions(
+	options: HubWebSocketServerOptions,
+): HubWebSocketServerOptions {
+	const resourcePolicy = resolveResourcePolicy({
+		overrides: options.resourcePolicy,
+	});
+	const websocketPolicy = resourcePolicy.profile.transport.websocket;
+	return {
+		...options,
+		resourcePolicy: resourcePolicy.profile,
+		maxInboundPayloadBytes:
+			options.maxInboundPayloadBytes ?? websocketPolicy.maxInboundPayloadBytes,
+		websocketDelivery: {
+			softWatermarkBytes: websocketPolicy.softWatermarkBytes,
+			hardWatermarkBytes: websocketPolicy.hardWatermarkBytes,
+			congestionGraceMs: websocketPolicy.congestionGraceMs,
+			closeGraceMs: websocketPolicy.closeGraceMs,
+			...options.websocketDelivery,
+		},
+	};
+}
+
 export function readBearerToken(
 	value: string | string[] | undefined,
 ): string | null {
@@ -298,6 +322,7 @@ export function isLocalHubOrigin(
 export async function startHubWebSocketServer(
 	options: HubWebSocketServerOptions,
 ): Promise<HubWebSocketServer> {
+	const resolvedOptions = resolveHubResourceOptions(options);
 	const owner = options.owner ?? resolveHubOwnerContext();
 	const host = options.host ?? "127.0.0.1";
 	const pathname = options.pathname ?? "/hub";
@@ -308,12 +333,12 @@ export async function startHubWebSocketServer(
 	let url = createHubServerUrl(host, requestedPort, pathname);
 	const buildId = resolveHubBuildId();
 	const authToken = createHubAuthToken();
-	const transport = new HubServerTransport(options);
+	const transport = new HubServerTransport(resolvedOptions);
 	await transport.start();
 	const adapter = new BrowserWebSocketHubAdapter(
 		new NativeHubTransportAdapter(transport),
 		options.telemetry,
-		options.websocketDelivery,
+		resolvedOptions.websocketDelivery,
 	);
 	const cleanup = new Set<() => void>();
 	const startedAt = new Date().toISOString();
@@ -448,7 +473,7 @@ export async function startHubWebSocketServer(
 	});
 	const wss = new WebSocketServer({
 		noServer: true,
-		maxPayload: resolveHubMaxInboundPayloadBytes(options),
+		maxPayload: resolveHubMaxInboundPayloadBytes(resolvedOptions),
 	});
 	heartbeatTimer = setInterval(() => {
 		for (const websocket of sockets) {

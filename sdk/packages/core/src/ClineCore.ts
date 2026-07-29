@@ -215,12 +215,17 @@ export class ClineCore {
 	static async create(options: ClineCoreOptions = {}): Promise<ClineCore> {
 		const distinctId = resolveCoreDistinctId(options.distinctId);
 		const capabilities = normalizeRuntimeCapabilities(options.capabilities);
-		const normalizedOptions = { ...options, capabilities, distinctId };
-		const host = await createRuntimeHost(normalizedOptions);
-		const automationOptions = normalizeAutomationOptions(options.automation);
 		const resourcePolicy = resolveResourcePolicy({
 			overrides: options.resourcePolicy,
 		});
+		const normalizedOptions = {
+			...options,
+			capabilities,
+			distinctId,
+			resourcePolicy: resourcePolicy.profile,
+		};
+		const host = await createRuntimeHost(normalizedOptions, resourcePolicy);
+		const automationOptions = normalizeAutomationOptions(options.automation);
 		const featureFlags =
 			options.featureFlags ||
 			new FeatureFlagsService({

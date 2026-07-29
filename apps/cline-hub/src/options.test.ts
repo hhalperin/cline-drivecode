@@ -8,6 +8,8 @@ describe("websocket server options", () => {
 		expect(options.websocketDelivery).toEqual({
 			softWatermarkBytes: 256 * 1024,
 			hardWatermarkBytes: 1024 * 1024,
+			congestionGraceMs: 5_000,
+			closeGraceMs: 1_000,
 		});
 	});
 
@@ -21,7 +23,22 @@ describe("websocket server options", () => {
 		expect(options.websocketDelivery).toEqual({
 			softWatermarkBytes: 1024,
 			hardWatermarkBytes: 4096,
+			congestionGraceMs: 5_000,
+			closeGraceMs: 1_000,
 		});
+	});
+
+	it("uses central resource-policy environment defaults", () => {
+		const options = resolveClineHubServerOptions({
+			CLINE_RESOURCE_WS_SOFT_WATERMARK_BYTES: "3000",
+			CLINE_RESOURCE_WS_HARD_WATERMARK_BYTES: "6000",
+			CLINE_RESOURCE_WS_MAX_INBOUND_PAYLOAD_BYTES: "9000",
+		});
+		expect(options.websocketDelivery).toMatchObject({
+			softWatermarkBytes: 3000,
+			hardWatermarkBytes: 6000,
+		});
+		expect(options.maxInboundPayloadBytes).toBe(9000);
 	});
 
 	it("rejects invalid or inverted limits", () => {

@@ -64,4 +64,35 @@ describe("ClineCore resource diagnostics", () => {
 		expect(vi.getTimerCount()).toBe(0);
 		expect(host.dispose).toHaveBeenCalledTimes(1);
 	});
+
+	it("passes the resolved policy to runtime-host construction", async () => {
+		const host = createHost();
+		createRuntimeHostMock.mockResolvedValue(host);
+		const core = await ClineCore.create({
+			resourcePolicy: {
+				admission: {
+					pendingPrompts: { maxItems: 3 },
+					teamRuns: { maxConcurrent: 4 },
+				},
+			},
+		});
+
+		expect(createRuntimeHostMock).toHaveBeenCalledWith(
+			expect.objectContaining({
+				resourcePolicy: expect.objectContaining({ version: 1 }),
+			}),
+			expect.objectContaining({
+				profile: expect.objectContaining({
+					admission: expect.objectContaining({
+						pendingPrompts: expect.objectContaining({ maxItems: 3 }),
+						teamRuns: expect.objectContaining({ maxConcurrent: 4 }),
+					}),
+				}),
+			}),
+		);
+		expect(
+			core.diagnostics.policy.profile.admission.pendingPrompts.maxItems,
+		).toBe(3);
+		await core.dispose();
+	});
 });

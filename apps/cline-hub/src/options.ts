@@ -1,6 +1,9 @@
 import { isIP } from "node:net";
 
-import type { BoundedOutboundChannelOptions } from "@cline/core";
+import {
+	type BoundedOutboundChannelOptions,
+	resolveResourcePolicy,
+} from "@cline/core";
 
 export interface ClineHubServerOptions {
 	host: string;
@@ -101,6 +104,8 @@ export function resolveClineHubServerOptions(
 	const publicUrlExplicit = Boolean(env.PUBLIC_URL?.trim());
 	const publicUrl = normalizePublicUrl(env.PUBLIC_URL, host, port);
 	const roomSecret = normalizeRoomSecret(env.ROOM_SECRET);
+	const resourcePolicy = resolveResourcePolicy({ env });
+	const websocketPolicy = resourcePolicy.profile.transport.websocket;
 	if (isNonLocalBindHost(host) && !roomSecret) {
 		throw new Error(
 			`ROOM_SECRET is required when HOST=${host}. Use HOST=127.0.0.1 for local-only development or set ROOM_SECRET before exposing this example on a LAN/tunnel.`,
@@ -108,12 +113,12 @@ export function resolveClineHubServerOptions(
 	}
 	const hardWatermarkBytes = parsePositiveBytes(
 		env.CLINE_HUB_WS_HARD_WATERMARK_BYTES,
-		1024 * 1024,
+		websocketPolicy.hardWatermarkBytes,
 		"CLINE_HUB_WS_HARD_WATERMARK_BYTES",
 	);
 	const softWatermarkBytes = parsePositiveBytes(
 		env.CLINE_HUB_WS_SOFT_WATERMARK_BYTES,
-		256 * 1024,
+		websocketPolicy.softWatermarkBytes,
 		"CLINE_HUB_WS_SOFT_WATERMARK_BYTES",
 	);
 	if (softWatermarkBytes > hardWatermarkBytes) {
@@ -129,12 +134,15 @@ export function resolveClineHubServerOptions(
 		workspaceRoot: env.WORKSPACE_ROOT?.trim() || process.cwd(),
 		maxInboundPayloadBytes: parsePositiveBytes(
 			env.CLINE_HUB_WS_MAX_INBOUND_PAYLOAD_BYTES,
-			DEFAULT_MAX_INBOUND_PAYLOAD_BYTES,
+			websocketPolicy.maxInboundPayloadBytes ??
+				DEFAULT_MAX_INBOUND_PAYLOAD_BYTES,
 			"CLINE_HUB_WS_MAX_INBOUND_PAYLOAD_BYTES",
 		),
 		websocketDelivery: {
 			softWatermarkBytes,
 			hardWatermarkBytes,
+			congestionGraceMs: websocketPolicy.congestionGraceMs,
+			closeGraceMs: websocketPolicy.closeGraceMs,
 		},
 	};
 }

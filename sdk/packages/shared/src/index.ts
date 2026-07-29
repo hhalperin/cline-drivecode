@@ -343,6 +343,8 @@ export {
 	isResourcePolicyProfile,
 	parseResourcePolicyProfile,
 	RESOURCE_POLICY_VERSION,
+	type ResourceAdmissionPolicy,
+	ResourceAdmissionPolicySchema,
 	type ResourceDiagnosticsPolicy,
 	ResourceDiagnosticsPolicySchema,
 	type ResourcePolicyOverrides,
@@ -350,6 +352,10 @@ export {
 	ResourcePolicyProfileSchema,
 	type ResourcePolicyProfileV1,
 	ResourcePolicyProfileV1Schema,
+	type ResourceStreamingPolicy,
+	ResourceStreamingPolicySchema,
+	type ResourceTransportPolicy,
+	ResourceTransportPolicySchema,
 } from "./resource-policy";
 export {
 	CLINE_DEFAULT_RPC_ADDRESS,

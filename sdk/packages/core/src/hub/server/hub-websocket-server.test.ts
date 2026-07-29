@@ -4,6 +4,7 @@ import {
 	isLocalHubOrigin,
 	readBearerToken,
 	resolveHubMaxInboundPayloadBytes,
+	resolveHubResourceOptions,
 } from "./hub-websocket-server";
 
 describe("websocket payload limit", () => {
@@ -12,6 +13,29 @@ describe("websocket payload limit", () => {
 		expect(
 			resolveHubMaxInboundPayloadBytes({ maxInboundPayloadBytes: 42 }),
 		).toBe(42);
+	});
+
+	it("resolves central policy defaults with explicit transport precedence", () => {
+		const options = resolveHubResourceOptions({
+			runtimeHandlers: {} as never,
+			resourcePolicy: {
+				transport: {
+					websocket: {
+						softWatermarkBytes: 2000,
+						hardWatermarkBytes: 4000,
+						maxInboundPayloadBytes: 8000,
+					},
+				},
+			},
+			websocketDelivery: { softWatermarkBytes: 3000 },
+		});
+
+		expect(options.maxInboundPayloadBytes).toBe(8000);
+		expect(options.websocketDelivery).toMatchObject({
+			softWatermarkBytes: 3000,
+			hardWatermarkBytes: 4000,
+		});
+		expect(options.resourcePolicy).toMatchObject({ version: 1 });
 	});
 });
 

@@ -1,4 +1,9 @@
-import type { BasicLogger, ITelemetryService } from "@cline/shared";
+import type {
+	BasicLogger,
+	ITelemetryService,
+	ResourcePolicyOverrides,
+	ResourcePolicyProfile,
+} from "@cline/shared";
 import type { CronServiceOptions } from "../../cron/service/cron-service";
 import type {
 	HubScheduleRuntimeHandlers,
@@ -19,6 +24,7 @@ export interface HubWebSocketServerOptions {
 	owner?: HubOwnerContext;
 	maxInboundPayloadBytes?: number;
 	websocketDelivery?: BoundedOutboundChannelOptions;
+	resourcePolicy?: ResourcePolicyOverrides | ResourcePolicyProfile;
 	sessionHost?: RuntimeHost & Partial<PendingPromptsRuntimeService>;
 	settingsService?: CoreSettingsService;
 	runtimeHandlers: HubScheduleRuntimeHandlers;

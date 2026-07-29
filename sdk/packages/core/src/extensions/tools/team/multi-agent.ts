@@ -622,6 +622,18 @@ export class AgentTeamsRuntime {
 		return this.teamName;
 	}
 
+	getRunLimits(): Readonly<{
+		maxConcurrentRuns: number;
+		maxQueuedRuns: number;
+		maxRunMessageBytes: number;
+	}> {
+		return {
+			maxConcurrentRuns: this.maxConcurrentRuns,
+			maxQueuedRuns: this.maxQueuedRuns,
+			maxRunMessageBytes: this.maxRunMessageBytes,
+		};
+	}
+
 	getMemberRole(agentId: string): "lead" | "teammate" | undefined {
 		return this.members.get(agentId)?.role;
 	}

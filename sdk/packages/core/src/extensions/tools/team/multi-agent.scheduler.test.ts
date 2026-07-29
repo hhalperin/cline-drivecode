@@ -83,7 +83,10 @@ describe("AgentTeamsRuntime scheduler", () => {
 				.mockImplementationOnce(() => first.promise)
 				.mockImplementationOnce(() => second.promise),
 		);
-		createSessionRuntimeMock.mockImplementationOnce(() => agent);
+		// biome-ignore lint/complexity/useArrowFunction: production constructs SessionRuntime with `new`.
+		createSessionRuntimeMock.mockImplementationOnce(function () {
+			return agent;
+		});
 		const runtime = new AgentTeamsRuntime({
 			teamName: "team",
 			maxConcurrentRuns: 2,
@@ -110,8 +113,14 @@ describe("AgentTeamsRuntime scheduler", () => {
 		const alice = runtimeMock(() => aliceRun.promise);
 		const bob = runtimeMock(() => bobRun.promise);
 		createSessionRuntimeMock
-			.mockImplementationOnce(() => alice)
-			.mockImplementationOnce(() => bob);
+			// biome-ignore lint/complexity/useArrowFunction: production constructs SessionRuntime with `new`.
+			.mockImplementationOnce(function () {
+				return alice;
+			})
+			// biome-ignore lint/complexity/useArrowFunction: production constructs SessionRuntime with `new`.
+			.mockImplementationOnce(function () {
+				return bob;
+			});
 		const runtime = new AgentTeamsRuntime({
 			teamName: "team",
 			maxConcurrentRuns: 2,
@@ -130,7 +139,10 @@ describe("AgentTeamsRuntime scheduler", () => {
 	it("enforces queued-count and message-byte admission", () => {
 		const active = deferred<AgentResult>();
 		const agent = runtimeMock(() => active.promise);
-		createSessionRuntimeMock.mockImplementationOnce(() => agent);
+		// biome-ignore lint/complexity/useArrowFunction: production constructs SessionRuntime with `new`.
+		createSessionRuntimeMock.mockImplementationOnce(function () {
+			return agent;
+		});
 		const runtime = new AgentTeamsRuntime({
 			teamName: "team",
 			maxConcurrentRuns: 1,
@@ -161,8 +173,14 @@ describe("AgentTeamsRuntime scheduler", () => {
 			const alice = runtimeMock(() => physical.promise);
 			const bob = runtimeMock(() => next.promise);
 			createSessionRuntimeMock
-				.mockImplementationOnce(() => alice)
-				.mockImplementationOnce(() => bob);
+				// biome-ignore lint/complexity/useArrowFunction: production constructs SessionRuntime with `new`.
+				.mockImplementationOnce(function () {
+					return alice;
+				})
+				// biome-ignore lint/complexity/useArrowFunction: production constructs SessionRuntime with `new`.
+				.mockImplementationOnce(function () {
+					return bob;
+				});
 			const runtime = new AgentTeamsRuntime({
 				teamName: "team",
 				maxConcurrentRuns: 1,

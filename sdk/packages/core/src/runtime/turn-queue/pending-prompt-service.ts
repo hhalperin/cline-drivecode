@@ -106,6 +106,10 @@ export class PendingPromptService {
 		};
 	}
 
+	getLimits(): Readonly<Required<PendingPromptServiceOptions>> {
+		return { ...this.limits };
+	}
+
 	list(state: PendingPromptQueueState | undefined): SessionPendingPrompt[] {
 		return state ? snapshotPrompts(state) : [];
 	}
@@ -305,6 +309,10 @@ export class PendingPromptsController {
 		options: PendingPromptServiceOptions = {},
 	) {
 		this.service = new PendingPromptService(options);
+	}
+
+	getLimits(): Readonly<Required<PendingPromptServiceOptions>> {
+		return this.service.getLimits();
 	}
 
 	list(sessionId: string): SessionPendingPrompt[] {
