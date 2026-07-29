@@ -50,6 +50,7 @@ import {
 	type PendingApproval,
 	type PendingCapabilityRequest,
 } from "./handlers/context";
+import { handleDriveBankCommand } from "./handlers/drive-bank-handlers";
 import { handleDriveConfigCommand } from "./handlers/drive-config-handlers";
 import { handleDriveCommand } from "./handlers/drive-handlers";
 import { handleDriveRoomCommand } from "./handlers/drive-room-handlers";
@@ -439,6 +440,9 @@ export class HubServerTransport implements NativeHubTransport {
 			case "drive_config_get":
 			case "drive_config_put":
 				return handleDriveConfigCommand(this.ctx, envelope);
+			case "drive_bank_get":
+			case "drive_bank_seed":
+				return await handleDriveBankCommand(this.ctx, envelope);
 			case "call_join":
 			case "call_leave":
 			case "call_mute":

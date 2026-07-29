@@ -12,6 +12,14 @@ export type DriveBankSession = {
 	refresh: () => Promise<BankSnapshot>;
 };
 
+/**
+ * Browser projection only — Chat Drive still uses in-memory seed tasks.
+ *
+ * Durable Node FS landed in `@cline/core` (`createNodeBankFs` /
+ * `openWorkspaceBankStore`) with hub ops `drive_bank_get` /
+ * `drive_bank_seed`. Do not fake disk in the browser; switch this session
+ * to hub fetch once the webview host bridges those commands (TODO).
+ */
 export function createDriveBankSession(): DriveBankSession {
 	const fs = createMemoryBankFs();
 	const store = createBankStore(fs, WORKSPACE);

@@ -24,6 +24,7 @@ export {
 export {
 	classifyInterrupt,
 	decideReviseOrRestart,
+	expectsPauseAfterTool,
 	type InterruptAction,
 	type InterruptClassification,
 	type InterruptInput,

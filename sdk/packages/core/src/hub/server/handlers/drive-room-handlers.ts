@@ -340,6 +340,12 @@ export function handleDriveRoomCommand(
 					envelope.payload ?? {},
 				);
 				const committed = store.raiseHand(payload);
+				// TODO(DRV-INTERRUPT): when raised=true and a session is linked
+				// to this room, set a pause-after-tool flag the AgentRuntime
+				// consults via hooks.shouldPauseAfterTool (see @cline/agents
+				// PAUSE_AFTER_TOOL_REASON / @cline/drive expectsPauseAfterTool).
+				// Room snapshot already tracks raisedHandByParticipantId; the
+				// missing piece is routing that flag into the in-flight turn.
 				publishRoomEvent(
 					ctx,
 					payload.roomId,

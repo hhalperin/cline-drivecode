@@ -462,6 +462,8 @@ export type HubCommandName =
 	| "drive.show.present"
 	| "drive_config_get"
 	| "drive_config_put"
+	| "drive_bank_get"
+	| "drive_bank_seed"
 	| "call_join"
 	| "call_leave"
 	| "call_mute"

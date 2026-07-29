@@ -2,6 +2,11 @@ export {
 	appendBankLogEvent,
 	readBankLogSince,
 } from "./bankEventLog";
+export { createNodeBankFs } from "./nodeBankFs";
+export {
+	openWorkspaceBankStore,
+	type OpenWorkspaceBankStoreOptions,
+} from "./workspaceBankStore";
 export {
 	JsonlRoomEventLog,
 	MemoryRoomEventLog,
