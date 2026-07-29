@@ -204,12 +204,15 @@ export function useDriveSession(
 	>([]);
 	/** True between call_join and the first successful room_snapshot. */
 	const pendingJoinRef = useRef(false);
+	/** Mirrors drive.active synchronously for leave/snapshot races. */
+	const driveActiveRef = useRef(false);
 	const sessionIdRef = useRef(args.sessionId);
 	const workspaceRootRef = useRef(args.workspaceRoot);
 	const onModeChangeRef = useRef(args.onModeChange);
 	sessionIdRef.current = args.sessionId;
 	workspaceRootRef.current = args.workspaceRoot;
 	onModeChangeRef.current = args.onModeChange;
+	driveActiveRef.current = drive.active;
 
 	useEffect(() => {
 		try {
@@ -333,15 +336,25 @@ export function useDriveSession(
 						participant.id === DRIVE_PARTICIPANT_HUMAN,
 				);
 				const wasPendingJoin = pendingJoinRef.current;
+				const wasActive = driveActiveRef.current;
+				// Leave/cancel: ignore late snapshots until a new join is requested.
+				if (!wasPendingJoin && !wasActive) {
+					return;
+				}
 				if (wasPendingJoin && snapshot.driveActive && humanSeated) {
 					pendingJoinRef.current = false;
+					driveActiveRef.current = true;
 				} else if (wasPendingJoin && !humanSeated) {
 					pendingJoinRef.current = false;
+					return;
 				}
 				setDrive((current) => applyRoomSnapshot(current, snapshot));
-				onModeChangeRef.current(
-					toNativeMode(fromSharedDriveSubMode(snapshot.subMode)),
-				);
+				// Hub broadcasts to all peers — only sync chat mode when seated.
+				if (humanSeated) {
+					onModeChangeRef.current(
+						toNativeMode(fromSharedDriveSubMode(snapshot.subMode)),
+					);
+				}
 				if (wasPendingJoin && snapshot.driveActive && humanSeated) {
 					const partner =
 						snapshot.participants.find((p) => p.kind === "agent")
@@ -464,6 +477,7 @@ export function useDriveSession(
 		// Leave (or cancel an in-flight join) — do not treat pending join as off→on.
 		if (current.active || pendingJoinRef.current) {
 			pendingJoinRef.current = false;
+			driveActiveRef.current = false;
 			const leaveRoomId = current.roomId ?? DRIVE_DEFAULT_ROOM_ID;
 			postToHost({
 				type: "call_leave",

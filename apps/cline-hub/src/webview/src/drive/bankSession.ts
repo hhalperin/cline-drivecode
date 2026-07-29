@@ -173,11 +173,47 @@ export function requestHubBankOp(
 		}
 
 		window.addEventListener("message", onMessage);
-		postToHost({
-			type,
-			requestId,
-			...payload,
-		});
+		switch (type) {
+			case "drive_bank_get":
+				postToHost({
+					type: "drive_bank_get",
+					requestId,
+					workspaceRoot: payload.workspaceRoot,
+				});
+				break;
+			case "drive_bank_seed":
+				postToHost({
+					type: "drive_bank_seed",
+					requestId,
+					workspaceRoot: payload.workspaceRoot,
+				});
+				break;
+			case "drive_bank_create_task":
+				postToHost({
+					type: "drive_bank_create_task",
+					requestId,
+					workspaceRoot: payload.workspaceRoot,
+					id: payload.id ?? "",
+					title: payload.title ?? "",
+					body: payload.body,
+					planId: payload.planId,
+				});
+				break;
+			case "drive_bank_edit_plan_tasks":
+				postToHost({
+					type: "drive_bank_edit_plan_tasks",
+					requestId,
+					workspaceRoot: payload.workspaceRoot,
+					planId: payload.planId ?? "",
+					taskIds: payload.taskIds ?? [],
+				});
+				break;
+			default: {
+				const _exhaustive: never = type;
+				reject(new Error(`Unknown hub bank op: ${_exhaustive}`));
+				return;
+			}
+		}
 	});
 }
 
