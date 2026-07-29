@@ -16,7 +16,10 @@ Enterprise-shaped continuous integration for Drive / drivecode surfaces in this 
 | Workflow | Role |
 |---|---|
 | `drive-ci.yml` | Discovery + hub / drive / demo / CLI jobs + **`drive-ci` gate** |
-| `ci-label-overrides.yml` | Pathless companion: `labeled` → reusable suites |
+| `ci-label-overrides.yml` | Pathless companion: `ci/*` from **PR body checkboxes** (and human `labeled`) → reusable suites |
+
+**Note:** Labels added with the default `GITHUB_TOKEN` do **not** emit `pull_request` `labeled` events, so checkbox sync alone cannot wake overrides via `labeled`. The companion also listens to `opened` / `edited` / `synchronize` and reads the PR body. `drive-ci` treats a checked `` `ci/drive` `` box as force so it does not race a lagged label.
+
 | `repo-label-prs-area.yml` | Auto `area/*` from `.github/labeler.yml` |
 | `repo-label-prs-ci.yml` | PR checkbox ↔ `ci/*` label sync |
 | `sdk-test.yml` / `ext-vscode-*` / `docs-link-check.yml` | Existing product suites (path-filtered or gated) |
