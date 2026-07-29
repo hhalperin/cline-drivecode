@@ -377,10 +377,9 @@ export function useDriveSession(
 				message.snapshot
 			) {
 				const snapshot = message.snapshot;
+				// Any human seat counts — hub join paths may use legacy ids (`you`, `human`).
 				const humanSeated = snapshot.participants.some(
-					(participant) =>
-						participant.kind === "human" &&
-						participant.id === DRIVE_PARTICIPANT_HUMAN,
+					(participant) => participant.kind === "human",
 				);
 				const wasPendingJoin = pendingJoinRef.current;
 				const seatedOnCall = Boolean(snapshot.driveActive && humanSeated);
@@ -507,10 +506,13 @@ export function useDriveSession(
 			return;
 		}
 		spokenJoinNoteRef.current = driveJoinNote;
-		void createVoiceStack(driveVoiceResolved.topology).tts.speak(driveJoinNote, {
-			volume: driveVoice.hardware.outputVolume,
-			sinkId: driveVoice.hardware.speakerDeviceId,
-		});
+		void createVoiceStack(driveVoiceResolved.topology).tts.speak(
+			driveJoinNote,
+			{
+				volume: driveVoice.hardware.outputVolume,
+				sinkId: driveVoice.hardware.speakerDeviceId,
+			},
+		);
 	}, [
 		drive.active,
 		drive.muted,

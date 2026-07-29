@@ -247,6 +247,34 @@ describe("applyRoomSnapshot", () => {
 		expect(next.partnerName).toBe("Ada");
 		expect(next.demo).toBe(false);
 	});
+
+	it("treats legacy human ids as seated", () => {
+		const next = applyRoomSnapshot(
+			{ ...DEFAULT_DRIVE_UI, active: false, roomId: null },
+			sampleRoomSnapshot({
+				driveActive: true,
+				participants: [
+					{
+						id: "you",
+						kind: "human",
+						displayName: "You",
+						role: "host",
+						status: "idle",
+					},
+					{
+						id: DRIVE_PARTICIPANT_PARTNER,
+						kind: "agent",
+						displayName: "Ada",
+						role: "partner",
+						status: "idle",
+						seatSources: [],
+					},
+				],
+			}),
+		);
+		expect(next.active).toBe(true);
+		expect(next.roomId).toBe("default");
+	});
 });
 
 describe("drivePersonaSystemHint", () => {

@@ -207,11 +207,8 @@ export function applyRoomSnapshot(
 	const agent = snapshot.participants.find(
 		(participant) => participant.kind === "agent",
 	);
-	const humanSeated = snapshot.participants.some(
-		(participant) =>
-			participant.kind === "human" &&
-			participant.id === DRIVE_PARTICIPANT_HUMAN,
-	);
+	// Any human seat counts — hub join paths may use legacy ids (`you`, `human`).
+	const humanSeated = human != null;
 	const sharer = snapshot.stage.sharer;
 	// Hub stage.sharer is authoritative — null clears local "you"/spotlight.
 	const stageSharer: DriveStageSharerLocal =
