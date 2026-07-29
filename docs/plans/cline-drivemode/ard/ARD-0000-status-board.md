@@ -16,7 +16,7 @@
 
 ## Acceptance record
 
-**2026-07-29.** Human instruction: `accept all` for **ARD-0000…0013** and the leadership DEC bundle (`DEC-agent-source-of-truth`, `DEC-package-location`, `DEC-open-product-forks`). **ARD-0014 does not exist** — accepted set ends at ARD-0013.
+**2026-07-29.** Human instruction: `accept all` for **ARD-0000…0013** and the leadership DEC bundle (`DEC-agent-source-of-truth`, `DEC-package-location`, `DEC-open-product-forks`). **ARD-0014** (Chat-fork lifecycle) landed on `main` the same day as **Accepted** and is included on this board.
 
 ## Architecture decision records
 
@@ -35,6 +35,7 @@
 | [ARD-0011](ARD-0011-demo-share-track.md) | Demo share track | **Accepted** | |
 | [ARD-0012](ARD-0012-agent-router.md) | Agent router for multi-agent rooms | **Accepted** | |
 | [ARD-0013](ARD-0013-state-partition.md) | Three-lane state partition | **Accepted** | Durable log + single live store; remote/org/audit are adapters |
+| [ARD-0014](ARD-0014-chat-fork-lifecycle.md) | Chat-fork lifecycle (invisible auditable workers) | **Accepted** | Hub `drive.fork.*` + PromotePacket; reject CLI/checkpoint fork as worker substrate |
 
 ## Leadership decisions (this wave)
 
@@ -71,7 +72,7 @@ SDK amendments (reducer/projection in `@cline/drive`; host port + conformance ki
 
 ## Explicitly not open anymore (closed by this wave’s defaults)
 
-- Formal ARD accept (ARD-0000…0013 + DEC bundle) → **Accepted** (2026-07-29 `accept all`). ARD-0014 does not exist.
+- Formal ARD accept (ARD-0000…0013 + DEC bundle) → **Accepted** (2026-07-29 `accept all`). ARD-0014 (Chat-fork lifecycle) Accepted on `main` and indexed above.
 - Separate `drivecode-sdk` repository for phase 1 → **Rejected** ([DEC-package-location](../decisions/DEC-package-location.md)).
 - Pixel user-share in MVP → **Rejected** ([DEC-open-product-forks](../decisions/DEC-open-product-forks.md)).
 - Dual prompt stores (facets + homes) → **Rejected** ([DEC-agent-source-of-truth](../decisions/DEC-agent-source-of-truth.md)).

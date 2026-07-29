@@ -3,7 +3,7 @@
 **ARD** = Architecture Decision Record (same artifact family as ADR in cursor-drive and harrison-site).
 
 **Status board.** [ARD-0000-status-board.md](ARD-0000-status-board.md) — Accepted / Recommended / Proposed / Open in one place.  
-**Acceptance.** 2026-07-29 human `accept all`: ARD-0000…0013 + DEC bundle. ARD-0014 does not exist.
+**Acceptance.** 2026-07-29 human `accept all`: ARD-0000…0013 + DEC bundle. ARD-0014 (Chat-fork lifecycle) landed Accepted on `main` the same day and is indexed here.
 
 | ID | Title | Status | Features |
 |---|---|---|---|
@@ -21,6 +21,7 @@
 | [ARD-0011](ARD-0011-demo-share-track.md) | Demo share track (Cursor-like proof on stage) | Accepted | [DRV-DEMO-SHARE](../features/DRV-DEMO-SHARE.md), [DRV-SHARE](../features/DRV-SHARE.md), [DRV-STAGE](../features/DRV-STAGE.md) |
 | [ARD-0012](ARD-0012-agent-router.md) | Agent router for multi-agent rooms | Accepted | [DRV-AGENT-ROUTER](../features/DRV-AGENT-ROUTER.md), [DRV-ADDRESS](../features/DRV-ADDRESS.md) |
 | [ARD-0013](ARD-0013-state-partition.md) | Three-lane state partition (event log / live room / facets) | Accepted | [DRV-KERNEL](../features/DRV-KERNEL.md) |
+| [ARD-0014](ARD-0014-chat-fork-lifecycle.md) | Chat-fork lifecycle (invisible auditable workers) | Accepted | [DRV-CHAT-FORK](../features/DRV-CHAT-FORK.md), [DRV-TRANSCRIPT](../features/DRV-TRANSCRIPT.md), [DRV-PARALLEL-WAVES](../features/DRV-PARALLEL-WAVES.md) |
 
 Product requirements: [../prd/prd-driveagent-portfolio.md](../prd/prd-driveagent-portfolio.md), [../prd/prd-pip-partner.md](../prd/prd-pip-partner.md), [../prd/prd-drive-as-cline-mode.md](../prd/prd-drive-as-cline-mode.md), [../prd/prd-task-bank-drive-loop.md](../prd/prd-task-bank-drive-loop.md).  
 Success metrics: [../prd/prd-success-metrics.md](../prd/prd-success-metrics.md).

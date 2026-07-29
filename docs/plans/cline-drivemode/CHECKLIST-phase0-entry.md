@@ -6,7 +6,7 @@
 
 ## Must be true
 
-- [x] Harrison reply recorded: `accept all` (2026-07-29) for ARD-0000…0013 + DEC bundle. Accept recorded on [ARD-0000](ard/ARD-0000-status-board.md). ARD-0014 does not exist.
+- [x] Harrison reply recorded: `accept all` (2026-07-29) for ARD-0000…0013 + DEC bundle. Accept recorded on [ARD-0000](ard/ARD-0000-status-board.md). ARD-0014 (Chat-fork lifecycle) later landed Accepted on `main` and is indexed on the board.
 - [x] Leadership defaults adopted for schema drafts; formal accept flipped to **Accepted** on the status board and each ARD/DEC header.
 - [x] [DEC-agent-source-of-truth](decisions/DEC-agent-source-of-truth.md) applied: vision non-goal amended; `AgentRef` union locked. **Accepted.**
 - [x] [DEC-package-location](decisions/DEC-package-location.md) applied: HANDOFF open package question closed. **Accepted.**

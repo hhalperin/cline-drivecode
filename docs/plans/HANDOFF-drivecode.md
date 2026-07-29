@@ -112,6 +112,6 @@ The implementation must also keep `AgentProfile` separate from agent behavior. P
 
 **Package location — Accepted.** See [cline-drivemode/decisions/DEC-package-location.md](cline-drivemode/decisions/DEC-package-location.md).
 
-**ARD-0000…0013 + DEC bundle — Accepted** via human `accept all` (2026-07-29). ARD-0014 does not exist.
+**ARD-0000…0013 + DEC bundle — Accepted** via human `accept all` (2026-07-29). ARD-0014 (Chat-fork lifecycle) later Accepted on main.
 
 Board: [cline-drivemode/ard/ARD-0000-status-board.md](cline-drivemode/ard/ARD-0000-status-board.md).

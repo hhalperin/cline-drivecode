@@ -37,7 +37,7 @@ Out of scope for the next “continue implementation” slice unless Harrison sa
 | [`05-workflows.md`](05-workflows.md) | 39 workflows (incl. W-37 sheet, W-38 recruit, W-39 gated learn) |
 | [`TASK-GRAPH.md`](TASK-GRAPH.md) | Phases 0–5 gates |
 | [`prd/prd-driveagent-portfolio.md`](prd/prd-driveagent-portfolio.md) | **PRD 6** portfolio / graph / recruit |
-| [`ard/`](ard/) | **ARD-0000…0013** (all Status: Accepted; ARD-0014 does not exist) |
+| [`ard/`](ard/) | **ARD-0000…0013** (all Status: Accepted; ARD-0014 (Chat-fork lifecycle) later Accepted on main) |
 | [`features/DRV-*.md`](features/) | Feature specs including `DRV-PARTICIPANT-SHEET`, `DRV-DRIVEAGENT-HOME`, `DRV-AGENT-GRAPH`, `DRV-RECRUIT` |
 | [`examples/driveagent-pair-partner/`](examples/driveagent-pair-partner/) | Example home + BRIEF.md + sample graph |
 | [`docs/plans/drivecode-sdk/`](../drivecode-sdk/) | Meta-harness discovery vs Omnigent (sibling plan set) |
@@ -81,7 +81,7 @@ Roster click = **Transcript | Profile** (W-37). Address-follows-focus only on Tr
 
 ## Decision (Accepted 2026-07-29)
 
-**Accepted.** Human `accept all` for ARD-0000…0013 and the leadership DEC bundle. ARD-0014 does not exist.
+**Accepted.** Human `accept all` for ARD-0000…0013 and the leadership DEC bundle. ARD-0014 (Chat-fork lifecycle) later Accepted on main.
 
 Board: [ard/ARD-0000-status-board.md](ard/ARD-0000-status-board.md), [CHECKLIST-phase0-entry.md](CHECKLIST-phase0-entry.md).
 

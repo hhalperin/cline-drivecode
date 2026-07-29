@@ -5,12 +5,11 @@ import {
 } from "./DriveCallChrome";
 import { DriveMicBar } from "./voice/DriveMicBar";
 import { DriveSettingsPanel } from "./voice/DriveSettingsPanel";
-import {
-	clearVoiceCaptionDraft,
-} from "./voice/voiceCaptionState";
+import { clearVoiceCaptionDraft } from "./voice/voiceCaptionState";
 import { Roster } from "./Roster";
 import { applyTranscriptFocus } from "./rosterHelpers";
 import {
+	applyHardwarePrefsPatch,
 	applyVoiceFacetPatch,
 	applyVoiceProfile,
 	type UseDriveSessionResult,
@@ -34,6 +33,8 @@ export function DriveRoomChrome({
 		setDriveVoice,
 		driveJoinNote,
 		stripHandlers,
+		chatForks,
+		workersPanelOpen,
 	} = session;
 
 	return (
@@ -41,6 +42,8 @@ export function DriveRoomChrome({
 			<DriveCallStrip
 				disabled={disabled}
 				drive={drive}
+				workerCount={chatForks.length}
+				workersOpen={workersPanelOpen}
 				{...stripHandlers}
 			/>
 			{drive.active ? (
@@ -63,6 +66,11 @@ export function DriveRoomChrome({
 							settingsOpen: false,
 						}))
 					}
+					onHardwareChange={(patch) => {
+						setDriveVoice((current) =>
+							applyHardwarePrefsPatch(current, patch),
+						);
+					}}
 					onProfileChange={(profile) => {
 						setDriveVoice((current) =>
 							applyVoiceProfile(current, profile),
@@ -150,6 +158,7 @@ export function DriveVoiceBar({
 				caption={voiceCaption}
 				disabled={disabled || sending}
 				forceMode={driveVoiceResolved.forceMode}
+				micDeviceId={driveVoice.hardware.micDeviceId}
 				muted={drive.muted}
 				onCaptionChange={setVoiceCaption}
 				onSttError={onSttError}
