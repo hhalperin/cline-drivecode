@@ -300,6 +300,12 @@ export type WebviewInboundMessage =
 			muted: boolean;
 	  }
 	| {
+			type: "call_raise_hand";
+			roomId: string;
+			participantId: string;
+			raised: boolean;
+	  }
+	| {
 			type: "call_set_stage";
 			roomId: string;
 			sharer: {

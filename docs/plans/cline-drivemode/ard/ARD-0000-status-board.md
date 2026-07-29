@@ -57,7 +57,7 @@ SDK amendments (reducer/projection in `@cline/drive`; host port + conformance ki
 | Topic | Blocking artifact | Default if silent |
 |---|---|---|
 | Formal ARD accept | This board | Recommended → treat as Accepted for schema drafts only; mark Accepted after human reply |
-| Approval UI owner detail | [DRV-GATES](../features/DRV-GATES.md) | Feed card over existing approval plumbing |
+| Approval UI owner detail | [DRV-GATES](../features/DRV-GATES.md) | Feed card over existing approval plumbing. **Taxonomy enums landed** in `sdk/packages/shared/src/drive/gates.ts` (UI / expiry / hub projection still open) |
 | Catch-up orientation copy owner | DRV-LEAVE-END | One factual “since you left” line from stage reducer |
 | One-shot fork vs specialist | Later; not Phase 0 | Out of Phase 0; track under W-33 |
 

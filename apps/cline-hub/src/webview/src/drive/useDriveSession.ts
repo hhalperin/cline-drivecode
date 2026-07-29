@@ -419,17 +419,37 @@ export function useDriveSession(
 				});
 			},
 			onHandToggle: () => {
-				setDrive((current) => {
-					const handRaised = !current.handRaised;
-					if (handRaised && args.sending) {
-						args.onAbort();
-						args.onStatus("Drive hand-raise: abort requested...");
-					}
-					return { ...current, handRaised };
-				});
+				const raised = !drive.handRaised;
+				// First raise = signal only (pause-after-tool comes later).
+				// Second toggle while already raised + sending = hard-cancel escape.
+				if (drive.handRaised && args.sending) {
+					args.onAbort();
+					args.onStatus("Drive hand-raise: abort requested...");
+				}
+				if (drive.roomId) {
+					postToHost({
+						type: "call_raise_hand",
+						roomId: drive.roomId,
+						participantId: DRIVE_PARTICIPANT_HUMAN,
+						raised,
+					});
+					// Prefer hub snapshot for handRaised (applyRoomSnapshot).
+					return;
+				}
+				setDrive((current) => ({ ...current, handRaised: raised }));
 			},
 			onMuteToggle: () => {
-				// Hub is authoritative; wait for drive_room_changed.
+				if (drive.roomId) {
+					postToHost({
+						type: "call_mute",
+						roomId: drive.roomId,
+						participantId: DRIVE_PARTICIPANT_HUMAN,
+						muted: !drive.muted,
+					});
+					// Prefer hub snapshot for muted (applyRoomSnapshot).
+					return;
+				}
+				// Demo / pre-join: legacy mute path.
 				postToHost({
 					type: "driveCommand",
 					command: "drive.participant.mute.set",
@@ -459,7 +479,16 @@ export function useDriveSession(
 				});
 			},
 			onTogglePartnerMute: () => {
-				// Hub is authoritative; wait for drive_room_changed.
+				// call_mute accepts any participantId (human or agent).
+				if (drive.roomId) {
+					postToHost({
+						type: "call_mute",
+						roomId: drive.roomId,
+						participantId: DRIVE_PARTICIPANT_PARTNER,
+						muted: !drive.partnerMuted,
+					});
+					return;
+				}
 				postToHost({
 					type: "driveCommand",
 					command: "drive.participant.mute.set",

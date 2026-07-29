@@ -28,6 +28,14 @@ describe("DriveRoomStore", () => {
 		});
 		expect(store.getOrThrow("room_1").muteByParticipantId.you).toBe(true);
 
+		store.raiseHand({
+			roomId: "room_1",
+			participantId: "you",
+			raised: true,
+			at: "2026-07-25T20:00:02.500Z",
+		});
+		expect(store.getOrThrow("room_1").raisedHandByParticipantId.you).toBe(true);
+
 		store.setStage({
 			roomId: "room_1",
 			sharer: { kind: "human", participantId: "you" },

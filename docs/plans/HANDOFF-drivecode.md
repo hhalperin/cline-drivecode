@@ -85,7 +85,7 @@ This code does not yet implement hub-owned Drive rooms, reconnect convergence, a
 
 ### Top gaps
 
-- `DRV-GATES` still needs an action taxonomy, expiry rules, and an owner for the approval UI.
+- `DRV-GATES` v1 action taxonomy enums landed (`sdk/packages/shared/src/drive/gates.ts`); still needs expiry rules and an owner for the approval UI.
 - Hub reconnect needs acceptance criteria and degraded-state UX under `DRV-ROOM-MVP`.
 - Revise-not-restart needs a kernel acceptance criterion that preserves useful work after an interruption.
 - Multi-room focus needs a product rule for whether an unfocused room is only a view or remains an active runtime.

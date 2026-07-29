@@ -75,6 +75,89 @@ describe("handleDriveRoomCommand", () => {
 		expect(reply.error?.code).toBe("room_not_found");
 	});
 
+	it("call_mute and call_raise_hand update snapshot maps and broadcast", () => {
+		resetDriveRoomStoreForTests();
+		const ctx = makeCtx();
+		handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_join",
+			requestId: "j_mute",
+			payload: {
+				roomId: "room_mute",
+				human: { id: "you", displayName: "You" },
+				agent: { id: "adam", displayName: "Adam" },
+			},
+		});
+		ctx.published.length = 0;
+
+		const muted = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_mute",
+			requestId: "m1",
+			payload: {
+				roomId: "room_mute",
+				participantId: "you",
+				muted: true,
+			},
+		});
+		expect(muted.ok).toBe(true);
+		const muteSnap = muted.payload?.snapshot as {
+			muteByParticipantId: Record<string, boolean>;
+		};
+		expect(muteSnap.muteByParticipantId.you).toBe(true);
+
+		const partnerMuted = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_mute",
+			requestId: "m2",
+			payload: {
+				roomId: "room_mute",
+				participantId: "adam",
+				muted: true,
+			},
+		});
+		expect(partnerMuted.ok).toBe(true);
+		const partnerSnap = partnerMuted.payload?.snapshot as {
+			muteByParticipantId: Record<string, boolean>;
+		};
+		expect(partnerSnap.muteByParticipantId.adam).toBe(true);
+
+		const hand = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_raise_hand",
+			requestId: "h1",
+			payload: {
+				roomId: "room_mute",
+				participantId: "you",
+				raised: true,
+			},
+		});
+		expect(hand.ok).toBe(true);
+		const handSnap = hand.payload?.snapshot as {
+			raisedHandByParticipantId: Record<string, boolean>;
+		};
+		expect(handSnap.raisedHandByParticipantId.you).toBe(true);
+		expect(
+			ctx.published.some((e) => (e as { event: string }).event === "room.event"),
+		).toBe(true);
+
+		const lowered = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_raise_hand",
+			requestId: "h2",
+			payload: {
+				roomId: "room_mute",
+				participantId: "you",
+				raised: false,
+			},
+		});
+		expect(lowered.ok).toBe(true);
+		const loweredSnap = lowered.payload?.snapshot as {
+			raisedHandByParticipantId: Record<string, boolean>;
+		};
+		expect(loweredSnap.raisedHandByParticipantId.you).toBe(false);
+	});
+
 	it("call_record_work from tool-shaped input fills stage.cards and broadcasts", () => {
 		resetDriveRoomStoreForTests();
 		const ctx = makeCtx();

@@ -465,6 +465,7 @@ export type HubCommandName =
 	| "call_join"
 	| "call_leave"
 	| "call_mute"
+	| "call_raise_hand"
 	| "call_set_stage"
 	| "call_set_mode"
 	| "call_record_work"

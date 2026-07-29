@@ -442,6 +442,7 @@ export class HubServerTransport implements NativeHubTransport {
 			case "call_join":
 			case "call_leave":
 			case "call_mute":
+			case "call_raise_hand":
 			case "call_set_stage":
 			case "call_set_mode":
 			case "call_record_work":

@@ -66,6 +66,11 @@ const CallMutePayloadSchema = RoomIdSchema.extend({
 	muted: z.boolean(),
 }).strict();
 
+const CallRaiseHandPayloadSchema = RoomIdSchema.extend({
+	participantId: z.string().min(1),
+	raised: z.boolean(),
+}).strict();
+
 const CallSetStagePayloadSchema = RoomIdSchema.extend({
 	sharer: StageSharerSchema.nullable(),
 	pin: z
@@ -318,6 +323,23 @@ export function handleDriveRoomCommand(
 			case "call_mute": {
 				const payload = CallMutePayloadSchema.parse(envelope.payload ?? {});
 				const committed = store.mute(payload);
+				publishRoomEvent(
+					ctx,
+					payload.roomId,
+					committed.snapshot,
+					committed.event,
+					committed.seq,
+				);
+				return okReply(
+					envelope,
+					snapshotPayload(committed.snapshot, committed.seq),
+				);
+			}
+			case "call_raise_hand": {
+				const payload = CallRaiseHandPayloadSchema.parse(
+					envelope.payload ?? {},
+				);
+				const committed = store.raiseHand(payload);
 				publishRoomEvent(
 					ctx,
 					payload.roomId,
