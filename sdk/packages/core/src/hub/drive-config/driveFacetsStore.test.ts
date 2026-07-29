@@ -51,5 +51,14 @@ describe("driveFacetsStore", () => {
 			"utf8",
 		);
 		expect(raw).not.toMatch(/apiKey|token/i);
+		const parsed = JSON.parse(raw) as {
+			schemaVersion: number;
+			entries: Record<string, unknown>;
+		};
+		expect(parsed.schemaVersion).toBe(1);
+		expect(parsed.entries["providers.sttId"]).toMatchObject({
+			kind: "value",
+			value: BUILTIN_WEB_SPEECH_STT_ID,
+		});
 	});
 });

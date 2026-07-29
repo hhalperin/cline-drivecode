@@ -32,6 +32,11 @@ export * from "./discovery";
 export * from "./discovery/defaults";
 export * from "./discovery/workspace";
 export * from "./drive-config/driveFacetsStore";
+export * from "./collaboration";
+export {
+	createClineDriveHost,
+	type ClineDriveHostOptions,
+} from "./clineDriveHost";
 export * from "./drive-producers/produceMermaid";
 export * from "./drive-providers/loadDriveProviderRegistry";
 export * from "./server";

@@ -1,4 +1,9 @@
-import type { BankSnapshot, DrivePlan, DriveTask } from "@cline/shared";
+import type {
+	BankDriveEvent,
+	BankSnapshot,
+	DrivePlan,
+	DriveTask,
+} from "@cline/shared";
 import type { BankFs } from "./bankFs.js";
 import {
 	archivedPlanPath,
@@ -13,6 +18,11 @@ import {
 	serializeDriveTask,
 } from "./bankSerialize.js";
 import { deriveBankSnapshot } from "./bankSnapshot.js";
+import {
+	createDrivePlanActivatedEvent,
+	createDriveTaskCompletedEvent,
+	createDriveTaskOpenedEvent,
+} from "./driveEvents.js";
 
 export interface BankStore {
 	createTask(input: {
@@ -41,8 +51,14 @@ export interface BankStore {
 export function createBankStore(
 	fs: BankFs,
 	workspaceRoot: string,
+	options?: {
+		roomId?: string;
+		onBankEvent?: (event: BankDriveEvent) => void;
+	},
 ): BankStore {
 	const root = workspaceRoot.replace(/[\\/]+$/, "");
+	const roomId = options?.roomId ?? "bank";
+	const emit = options?.onBankEvent;
 
 	async function readTask(taskId: string): Promise<DriveTask | null> {
 		const active = await fs.read(taskPath(root, taskId));
@@ -119,6 +135,9 @@ export function createBankStore(
 				status: "open",
 			};
 			await writeTask(task);
+			emit?.(
+				createDriveTaskOpenedEvent({ roomId, taskId: id, title }),
+			);
 			return task;
 		},
 
@@ -158,6 +177,13 @@ export function createBankStore(
 			}
 			const next = { ...plan, status: "active" as const };
 			await writePlan(next);
+			emit?.(
+				createDrivePlanActivatedEvent({
+					roomId,
+					planId,
+					title: next.title,
+				}),
+			);
 			return next;
 		},
 
@@ -209,6 +235,7 @@ export function createBankStore(
 			const done: DriveTask = { ...task, status: "done" };
 			await fs.write(activePath, serializeDriveTask(done));
 			await fs.move(activePath, archivePath);
+			emit?.(createDriveTaskCompletedEvent({ roomId, taskId }));
 
 			const plan = await findActivePlan();
 			if (plan) {

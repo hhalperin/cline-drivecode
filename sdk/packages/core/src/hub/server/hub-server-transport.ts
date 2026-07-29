@@ -51,6 +51,7 @@ import {
 	type PendingCapabilityRequest,
 } from "./handlers/context";
 import { handleDriveCommand } from "./handlers/drive-handlers";
+import { handleDriveConfigCommand } from "./handlers/drive-config-handlers";
 import { handleDriveRoomCommand } from "./handlers/drive-room-handlers";
 import {
 	handleRunAbort,
@@ -435,6 +436,9 @@ export class HubServerTransport implements NativeHubTransport {
 			case "drive.participant.deafen.set":
 			case "drive.show.present":
 				return handleDriveCommand(this.ctx, envelope);
+			case "drive_config_get":
+			case "drive_config_put":
+				return handleDriveConfigCommand(this.ctx, envelope);
 			case "call_join":
 			case "call_leave":
 			case "call_mute":

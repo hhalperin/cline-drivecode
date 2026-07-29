@@ -67,6 +67,10 @@ export {
 	type StageState,
 } from "./room";
 export * from "./facets";
+export {
+	DRIVE_FACET_SCHEMA_VERSION,
+	parseDriveFacetDiskFile,
+} from "./facets";
 export type {
 	AgentAppearance,
 	DriveDefaultsSubMode,
@@ -159,11 +163,18 @@ export {
 	DRIVE_PROVIDER_MANIFEST_FILE_NAME,
 	DRIVE_PROVIDERS_DIRECTORY_NAME,
 	DRIVE_REGISTRY_FILE_NAME,
+	DRIVE_ROOM_EVENTS_FILE_NAME,
+	DRIVE_ROOM_META_FILE_NAME,
+	DRIVE_ROOMS_DIRECTORY_NAME,
 	resolveDriveConfigDir,
 	resolveDriveDir,
 	resolveDriveFacetsPath,
 	resolveDriveProviderManifestPath,
 	resolveDriveProvidersDir,
+	resolveDriveRoomDir,
+	resolveDriveRoomEventsPath,
+	resolveDriveRoomMetaPath,
+	resolveDriveRoomsDir,
 } from "./paths";
 export {
 	assertNoSecretProviderConfigKeys,
@@ -185,6 +196,13 @@ export {
 	DriveRoomLiveStateSchema,
 	parseDriveRoomLiveState,
 } from "./roomLive";
+export {
+	type DriveLogEnvelope,
+	DriveLogEnvelopeSchema,
+	type DriveLogFamily,
+	DriveLogFamilySchema,
+	parseDriveLogEnvelope,
+} from "./logEnvelope";
 export {
 	parseRoutePlan,
 	type RoutePlan,
