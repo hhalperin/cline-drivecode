@@ -3,7 +3,17 @@ import {
 	isLocalHubHostName,
 	isLocalHubOrigin,
 	readBearerToken,
+	resolveHubMaxInboundPayloadBytes,
 } from "./hub-websocket-server";
+
+describe("websocket payload limit", () => {
+	it("defaults to one MiB and accepts a configured maximum", () => {
+		expect(resolveHubMaxInboundPayloadBytes({})).toBe(1024 * 1024);
+		expect(
+			resolveHubMaxInboundPayloadBytes({ maxInboundPayloadBytes: 42 }),
+		).toBe(42);
+	});
+});
 
 describe("readBearerToken", () => {
 	it("reads a bearer token with case-insensitive scheme", () => {

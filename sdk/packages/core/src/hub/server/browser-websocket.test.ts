@@ -7,9 +7,12 @@ function createSocket() {
 	const closeListeners = new Set<() => void>();
 	return {
 		sent: [] as string[],
-		send(data: string) {
+		send(data: string, callback?: (error?: unknown) => void) {
 			this.sent.push(data);
+			callback?.();
 		},
+		close() {},
+		terminate() {},
 		addEventListener(
 			type: "message" | "close",
 			listener: ((event: { data: string }) => void) | (() => void),
