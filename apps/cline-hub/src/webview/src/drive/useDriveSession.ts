@@ -597,24 +597,26 @@ export function useDriveSession(
 				});
 			},
 			onHandToggle: () => {
-				const raised = !drive.handRaised;
-				// First raise = signal only (pause-after-tool comes later).
-				// Second toggle while already raised + sending = hard-cancel escape.
-				if (drive.handRaised && args.sending) {
-					args.onAbort();
-					args.onStatus("Drive hand-raise: abort requested...");
-				}
-				if (drive.roomId) {
-					postToHost({
-						type: "call_raise_hand",
-						roomId: drive.roomId,
-						participantId: DRIVE_PARTICIPANT_HUMAN,
-						raised,
-					});
-					// Prefer hub snapshot for handRaised (applyRoomSnapshot).
-					return;
-				}
-				setDrive((current) => ({ ...current, handRaised: raised }));
+				setDrive((current) => {
+					const raised = !current.handRaised;
+					// First raise = signal only (pause-after-tool comes later).
+					// Second toggle while already raised + sending = hard-cancel escape.
+					if (current.handRaised && args.sending) {
+						args.onAbort();
+						args.onStatus("Drive hand-raise: abort requested...");
+					}
+					if (current.roomId) {
+						postToHost({
+							type: "call_raise_hand",
+							roomId: current.roomId,
+							participantId: DRIVE_PARTICIPANT_HUMAN,
+							raised,
+						});
+					}
+					// Optimistic flip so rapid toggles see fresh state; room_snapshot
+					// remains authoritative via applyRoomSnapshot.
+					return { ...current, handRaised: raised };
+				});
 			},
 			onMuteToggle: () => {
 				if (drive.roomId) {
