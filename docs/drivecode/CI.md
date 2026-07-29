@@ -48,9 +48,20 @@ Force all jobs: `workflow_dispatch`, `workflow_call` with `force: true`, or labe
 
 JetBrains stays `/test-jetbrains` (trusted authors). No skip labels in the template.
 
-Create the `area/*` and `ci/*` labels once in the GitHub UI (or let the first
-successful `actions/labeler` / `issues.addLabels` run create them if your token
-allows). The cloud `gh` token here cannot create labels (403).
+Create the `area/*` and `ci/*` labels once:
+
+1. Merge this CI stack to `main`, then **Actions → `repo-bootstrap-ci-labels` → Run workflow**, or
+2. Create them in the GitHub UI.
+
+Cloud `gh` tokens often cannot create labels (403). Actions `GITHUB_TOKEN` with `issues: write` can.
+
+### Branch ruleset (manual)
+
+In **Settings → Rules → Rulesets** (or classic branch protection) for `main`:
+
+1. Require status check **`drive-ci`** (the gate job name, not Hub/Drive/CLI individually).
+2. Do **not** require the package jobs by name — skipped jobs + a green gate is the intended merge path for docs-only PRs.
+3. Optional: keep existing vscode/sdk required checks only if those suites should block every merge; prefer path-filtered rulesets where the product supports them.
 
 ## Local parity
 

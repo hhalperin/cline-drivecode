@@ -1,10 +1,13 @@
 # Sync CI override checkboxes in the PR body to ci/* labels.
-# Body-only parsing under pull_request_target — never checks out fork code.
+# Body-only parsing — never executes PR code.
+#
+# pull_request so this PR's workflow runs before merge (same-repo). Upstream
+# fork support: add pull_request_target later (body-only remains safe).
 name: repo-label-prs-ci
 
 on:
-    pull_request_target:
-        types: [opened, edited, reopened, synchronize]
+    pull_request:
+        types: [opened, edited, reopened, synchronize, ready_for_review]
 
 concurrency:
     group: label-prs-ci-${{ github.event.pull_request.number }}
@@ -40,7 +43,8 @@ jobs:
                       const wanted = new Set()
                       for (const name of overrides) {
                         const checked = new RegExp(
-                          String.raw`- \[x\][^\n]*\`${name.replace("/", "\\/")}\``,
+                          // Template uses "-   [ ]" (spaces after the dash).
+                          String.raw`-\s+\[x\][^\n]*\`${name.replace("/", "\\/")}\``,
                           "i",
                         ).test(body)
                         if (checked) wanted.add(name)
