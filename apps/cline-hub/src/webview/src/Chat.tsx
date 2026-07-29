@@ -30,14 +30,16 @@ import {
 } from "./components/PendingApprovalsPanel";
 import { PlanEditor, removeTask } from "./components/PlanEditor";
 import { listPlanTasks } from "./drive/bankSession";
-import { DriveHeaderControls, DriveStagePanel } from "./drive/DriveCallChrome";
+import { DriveHeaderControls } from "./drive/DriveCallChrome";
 import { DriveRoomChrome, DriveVoiceBar } from "./drive/DriveRoomChrome";
+import { Spotlight } from "./drive/Spotlight";
 import { StickyStagePane } from "./drive/StickyStagePane";
 import {
 	applyBankSnapshot,
 	drivePersonaSystemHint,
 	toNativeMode,
 } from "./drive/types";
+import { isDriveHumanId } from "./drive/participantIds";
 import { useDriveSession } from "./drive/useDriveSession";
 import { createVoiceStack } from "./drive/voice/createVoiceStack";
 import { getVsCodeApi, postToHost } from "./vscode";
@@ -548,17 +550,6 @@ export default function Chat({
 		});
 	};
 
-	const latestToolLabel = useMemo(() => {
-		for (let i = messages.length - 1; i >= 0; i -= 1) {
-			const events = messages[i]?.toolEvents;
-			if (events && events.length > 0) {
-				const last = events[events.length - 1];
-				return `${last.name} · ${last.state}`;
-			}
-		}
-		return drive.active ? "waiting for partner activity" : "idle";
-	}, [messages, drive.active]);
-
 	const sendDrivePrompt = useCallback(
 		(prompt: string) => {
 			const trimmed = prompt.trim();
@@ -876,7 +867,25 @@ export default function Chat({
 						/>
 					</div>
 					{drive.active && drive.stageLayout ? (
-						<DriveStagePanel
+						<Spotlight
+							cards={drive.stageCards}
+							className="min-h-0 flex-1"
+							demo={drive.demo}
+							emptyHint={
+								drive.demo
+									? "Demo mode — join Drive to project live hub stage cards."
+									: "Waiting for partner tool activity on this session."
+							}
+							humanPin={
+								drive.stageSharer === "you" && drive.stagePin
+									? {
+											kind: drive.stagePin.kind,
+											label: drive.stagePin.label,
+											ref: drive.stagePin.ref,
+										}
+									: null
+							}
+							humanSharing={drive.stageSharer === "you"}
 							nextLabel={
 								drive.bankSnapshot.nextTitle ??
 								drive.bankSnapshot.nextTaskId ??
@@ -887,7 +896,12 @@ export default function Chat({
 								drive.bankSnapshot.nowTaskId ??
 								(sending ? "partner working" : "idle")
 							}
-							sharingLabel={latestToolLabel}
+							sharerLabel={
+								drive.stageSharer === "you" ||
+								isDriveHumanId(drive.spotlightParticipantId)
+									? "You"
+									: drive.partnerName
+							}
 						>
 							<StickyStagePane
 								caption={presentedShow?.caption}
@@ -975,11 +989,8 @@ export default function Chat({
 										})();
 									}}
 								/>
-								<pre className="overflow-auto rounded-md border bg-background p-2 font-mono text-[11px]">
-									{latestToolLabel}
-								</pre>
 							</div>
-						</DriveStagePanel>
+						</Spotlight>
 					) : null}
 				</div>
 			</div>

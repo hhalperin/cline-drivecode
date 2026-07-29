@@ -100,6 +100,70 @@ describe("applyRoomSnapshot", () => {
 		expect(next.partnerMuted).toBe(true);
 		expect(next.handRaised).toBe(true);
 		expect(next.demo).toBe(false);
+		expect(next.stageCards).toEqual([]);
+		expect(next.stagePin).toBeNull();
+	});
+
+	it("copies stage cards and pin from snapshot", () => {
+		const cards = [
+			{
+				id: "card_edit_1",
+				category: "edit" as const,
+				title: "Chat.tsx",
+				summary: "export {}",
+				updatedAt: "2026-07-29T12:01:00.000Z",
+			},
+		];
+		const pin = {
+			kind: "file" as const,
+			label: "Chat.tsx",
+			ref: "apps/cline-hub/src/webview/src/Chat.tsx",
+		};
+		const next = applyRoomSnapshot(
+			DEFAULT_DRIVE_UI,
+			sampleRoomSnapshot({
+				stage: {
+					sharer: {
+						kind: "human",
+						participantId: DRIVE_PARTICIPANT_HUMAN,
+					},
+					pin,
+					cards,
+				},
+			}),
+		);
+		expect(next.stageSharer).toBe("you");
+		expect(next.stageCards).toEqual(cards);
+		expect(next.stagePin).toEqual(pin);
+		// Projection is a copy — mutating snapshot later must not leak.
+		expect(next.stageCards).not.toBe(cards);
+	});
+
+	it("clears stage projection when snapshot has empty stage", () => {
+		const next = applyRoomSnapshot(
+			{
+				...DEFAULT_DRIVE_UI,
+				stageCards: [
+					{
+						id: "stale",
+						category: "command",
+						title: "ls",
+						updatedAt: "2026-07-29T11:00:00.000Z",
+					},
+				],
+				stagePin: { kind: "terminal", label: "shell" },
+			},
+			sampleRoomSnapshot({
+				stage: { sharer: null, pin: null, cards: [] },
+			}),
+		);
+		expect(next.stageCards).toEqual([]);
+		expect(next.stagePin).toBeNull();
+	});
+
+	it("DEFAULT_DRIVE_UI starts with empty stage projection", () => {
+		expect(DEFAULT_DRIVE_UI.stageCards).toEqual([]);
+		expect(DEFAULT_DRIVE_UI.stagePin).toBeNull();
 	});
 
 	it("maps human stage sharer to you", () => {

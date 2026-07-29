@@ -104,6 +104,19 @@ export {
 	WorkPlanStepEventSchema,
 	WorkTestResultEventSchema,
 } from "./events";
+export {
+	assertNeverGateActionClass,
+	DEFAULT_UNKNOWN_GATE_CLASS,
+	defaultDispositionForGateClass,
+	DRIVE_GATE_TAXONOMY_SCHEMA_VERSION,
+	GATE_ACTION_CLASSES,
+	GATE_CLASS_DEFAULT_DISPOSITION,
+	type GateActionClass,
+	GateActionClassSchema,
+	type GateDisposition,
+	GateDispositionSchema,
+	parseGateActionClass,
+} from "./gates";
 export type {
 	AgentAppearance,
 	AgentProfile,

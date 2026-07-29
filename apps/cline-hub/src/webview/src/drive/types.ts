@@ -1,6 +1,11 @@
 /** Drive Layer UI state for hub Chat (wireframe A → B staging). */
 
-import type { BankSnapshot, RoomSnapshot } from "@cline/shared";
+import type {
+	BankSnapshot,
+	RoomSnapshot,
+	StageCard,
+	StagePin,
+} from "@cline/shared";
 import {
 	allowWorkspaceMutation,
 	resolveDriveLoop,
@@ -44,6 +49,10 @@ export type DriveUiState = {
 	 * Authority is hub call_set_stage — not this field alone.
 	 */
 	stageSharer: DriveStageSharerLocal;
+	/** Hub stage.cards projected for Spotlight (last-event-wins work deck). */
+	stageCards: StageCard[];
+	/** Hub stage.pin projected for human share Spotlight. */
+	stagePin: StagePin | null;
 	/** Hub room id when Join has attached a call. */
 	roomId: string | null;
 };
@@ -78,6 +87,8 @@ export const DEFAULT_DRIVE_UI: DriveUiState = {
 	partnerDeafened: false,
 	demo: true,
 	stageSharer: "agent",
+	stageCards: [],
+	stagePin: null,
 	roomId: null,
 };
 
@@ -208,6 +219,8 @@ export function applyRoomSnapshot(
 		stageSharer,
 		spotlightParticipantId:
 			sharer?.participantId ?? drive.spotlightParticipantId,
+		stageCards: [...snapshot.stage.cards],
+		stagePin: snapshot.stage.pin,
 		muted,
 		partnerMuted,
 		handRaised,

@@ -61,6 +61,11 @@ function readPersistedDriveUi(): DriveUiState {
 					state.driveUi.partnerMuted ?? DEFAULT_DRIVE_UI.partnerMuted,
 				partnerDeafened:
 					state.driveUi.partnerDeafened ?? DEFAULT_DRIVE_UI.partnerDeafened,
+				stageCards: state.driveUi.stageCards ?? DEFAULT_DRIVE_UI.stageCards,
+				stagePin:
+					state.driveUi.stagePin === undefined
+						? DEFAULT_DRIVE_UI.stagePin
+						: state.driveUi.stagePin,
 			};
 		}
 	} catch {
@@ -254,7 +259,10 @@ export function useDriveSession(
 				});
 				return;
 			}
-			if (message.type === "room_snapshot" && message.snapshot) {
+			if (
+				(message.type === "room_snapshot" || message.type === "drive_event") &&
+				message.snapshot
+			) {
 				const snapshot = message.snapshot;
 				const humanSeated = snapshot.participants.some(
 					(participant) =>
@@ -377,10 +385,28 @@ export function useDriveSession(
 	}, [args, drive]);
 
 	const toggleStage = useCallback(() => {
-		setDrive((current) => ({
-			...current,
-			stageLayout: !current.stageLayout,
-		}));
+		setDrive((current) => {
+			const stageLayout = !current.stageLayout;
+			if (stageLayout && current.roomId) {
+				const payload: {
+					type: "call_get_room";
+					roomId: string;
+					sessionId?: string;
+				} = {
+					type: "call_get_room",
+					roomId: current.roomId,
+				};
+				const sessionId = sessionIdRef.current;
+				if (sessionId) {
+					payload.sessionId = sessionId;
+				}
+				postToHost(payload);
+			}
+			return {
+				...current,
+				stageLayout,
+			};
+		});
 	}, []);
 
 	const stripHandlers = useMemo(
