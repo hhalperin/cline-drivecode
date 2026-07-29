@@ -986,16 +986,23 @@ export default function Chat({
 											if (!planId) {
 												return;
 											}
-											const { snapshot } = await mutateBankCreateTask(
-												bankSessionRef.current,
-												defaults.workspaceRoot,
-												{
-													id: task.id,
-													title: task.title,
-													body: "",
-													planId,
-												},
-											);
+											const { snapshot, fromHub } =
+												await mutateBankCreateTask(
+													bankSessionRef.current,
+													defaults.workspaceRoot,
+													{
+														id: task.id,
+														title: task.title,
+														body: "",
+														planId,
+													},
+												);
+											if (defaults.workspaceRoot?.trim() && !fromHub) {
+												setStatus(
+													"Plan change not saved — workspace bank was not updated.",
+												);
+												return;
+											}
 											setPlanEditorTasks(
 												await listPlanTasks(bankSessionRef.current, planId),
 											);
@@ -1014,11 +1021,18 @@ export default function Chat({
 												planEditorTasks.map((item) => item.id),
 												taskId,
 											);
-											const { snapshot } = await mutateBankEditPlanTasks(
-												bankSessionRef.current,
-												defaults.workspaceRoot,
-												{ planId, taskIds: ids },
-											);
+											const { snapshot, fromHub } =
+												await mutateBankEditPlanTasks(
+													bankSessionRef.current,
+													defaults.workspaceRoot,
+													{ planId, taskIds: ids },
+												);
+											if (defaults.workspaceRoot?.trim() && !fromHub) {
+												setStatus(
+													"Plan change not saved — workspace bank was not updated.",
+												);
+												return;
+											}
 											setPlanEditorTasks(
 												await listPlanTasks(bankSessionRef.current, planId),
 											);
@@ -1033,11 +1047,18 @@ export default function Chat({
 											if (!planId) {
 												return;
 											}
-											const { snapshot } = await mutateBankEditPlanTasks(
-												bankSessionRef.current,
-												defaults.workspaceRoot,
-												{ planId, taskIds },
-											);
+											const { snapshot, fromHub } =
+												await mutateBankEditPlanTasks(
+													bankSessionRef.current,
+													defaults.workspaceRoot,
+													{ planId, taskIds },
+												);
+											if (defaults.workspaceRoot?.trim() && !fromHub) {
+												setStatus(
+													"Plan change not saved — workspace bank was not updated.",
+												);
+												return;
+											}
 											setPlanEditorTasks(
 												await listPlanTasks(bankSessionRef.current, planId),
 											);
