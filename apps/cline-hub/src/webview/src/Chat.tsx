@@ -47,7 +47,6 @@ import {
 	drivePersonaSystemHint,
 	toNativeMode,
 } from "./drive/types";
-import { isDriveHumanId } from "./drive/participantIds";
 import { useDriveSession } from "./drive/useDriveSession";
 import { createVoiceStack } from "./drive/voice/createVoiceStack";
 import { shouldSpeakDriveTts } from "./drive/voice/driveVoiceUi";
@@ -952,10 +951,7 @@ export default function Chat({
 								(sending ? "partner working" : "idle")
 							}
 							sharerLabel={
-								drive.stageSharer === "you" ||
-								isDriveHumanId(drive.spotlightParticipantId)
-									? "You"
-									: drive.partnerName
+								drive.stageSharer === "you" ? "You" : drive.partnerName
 							}
 						>
 							<StickyStagePane
