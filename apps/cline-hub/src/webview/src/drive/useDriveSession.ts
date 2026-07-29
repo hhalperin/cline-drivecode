@@ -7,6 +7,7 @@ import {
 	type Dispatch,
 	type SetStateAction,
 } from "react";
+import type { ChatForkRecord } from "@cline/shared";
 import {
 	applyBankSnapshot,
 	applySubModeIntent,
@@ -125,6 +126,14 @@ export type UseDriveSessionResult = {
 		uri?: string;
 		ownerParticipantId?: string;
 	} | null;
+	chatForks: ChatForkRecord[];
+	workersPanelOpen: boolean;
+	focusedAuditHandle: string | null;
+	auditMessages: unknown[];
+	auditSummaryOnly: boolean;
+	toggleWorkersPanel: () => void;
+	openForkAudit: (auditHandle: string) => void;
+	setForkRetain: (workerSessionId: string, retain: boolean) => void;
 	stripHandlers: {
 		onClearOverride: () => void;
 		onHandToggle: () => void;
@@ -133,6 +142,7 @@ export type UseDriveSessionResult = {
 		onTogglePartnerDeafen: () => void;
 		onTogglePartnerMute: () => void;
 		onToggleSpotlight: () => void;
+		onToggleWorkers?: () => void;
 		onSubModeChange: (mode: DriveUiState["subMode"]) => void;
 	};
 };
@@ -153,6 +163,13 @@ export function useDriveSession(
 		uri?: string;
 		ownerParticipantId?: string;
 	} | null>(null);
+	const [chatForks, setChatForks] = useState<ChatForkRecord[]>([]);
+	const [workersPanelOpen, setWorkersPanelOpen] = useState(false);
+	const [focusedAuditHandle, setFocusedAuditHandle] = useState<string | null>(
+		null,
+	);
+	const [auditMessages, setAuditMessages] = useState<unknown[]>([]);
+	const [auditSummaryOnly, setAuditSummaryOnly] = useState(false);
 	const bankSessionRef = useRef<DriveBankSession>(createDriveBankSession());
 	const [planEditorTasks, setPlanEditorTasks] = useState<
 		Array<{ id: string; title: string }>
@@ -179,6 +196,9 @@ export function useDriveSession(
 				caption?: string;
 				uri?: string;
 				ownerParticipantId?: string;
+				auditHandle?: string;
+				messages?: unknown[];
+				summaryOnly?: boolean;
 				room?: {
 					spotlightParticipantId?: string | null;
 					participantAudio?: Array<{
@@ -196,6 +216,7 @@ export function useDriveSession(
 							ownerParticipantId: string;
 						}>;
 					};
+					chatForks?: ChatForkRecord[];
 				};
 			};
 			if (message.type === "drive_show_presented" && message.showItemId) {
@@ -207,10 +228,22 @@ export function useDriveSession(
 				});
 				return;
 			}
+			if (message.type === "drive_fork_audit") {
+				setFocusedAuditHandle(message.auditHandle ?? null);
+				setAuditMessages(
+					Array.isArray(message.messages) ? message.messages : [],
+				);
+				setAuditSummaryOnly(message.summaryOnly === true);
+				setWorkersPanelOpen(true);
+				return;
+			}
 			if (message.type !== "drive_room_changed" || !message.room) {
 				return;
 			}
 			const room = message.room;
+			if (Array.isArray(room.chatForks)) {
+				setChatForks(room.chatForks);
+			}
 			setDrive((current) => {
 				const humanFlags = room.participantAudio?.find((flag) =>
 					isDriveHumanId(flag.participantId),
@@ -296,6 +329,45 @@ export function useDriveSession(
 		}));
 	}, []);
 
+	const toggleWorkersPanel = useCallback(() => {
+		setWorkersPanelOpen((open) => {
+			const next = !open;
+			if (next) {
+				postToHost({
+					type: "driveCommand",
+					command: "drive.fork.list",
+					payload: { roomId: "default" },
+				});
+			}
+			return next;
+		});
+	}, []);
+
+	const openForkAudit = useCallback((auditHandle: string) => {
+		setFocusedAuditHandle(auditHandle);
+		setWorkersPanelOpen(true);
+		postToHost({
+			type: "driveCommand",
+			command: "drive.fork.audit.get",
+			payload: { roomId: "default", auditHandle },
+		});
+	}, []);
+
+	const setForkRetain = useCallback(
+		(workerSessionId: string, retain: boolean) => {
+			postToHost({
+				type: "driveCommand",
+				command: "drive.fork.retain.set",
+				payload: {
+					roomId: "default",
+					workerSessionId,
+					retainForAudit: retain,
+				},
+			});
+		},
+		[],
+	);
+
 	const stripHandlers = useMemo(
 		() => ({
 			onClearOverride: () => {
@@ -371,6 +443,7 @@ export function useDriveSession(
 					},
 				});
 			},
+			onToggleWorkers: toggleWorkersPanel,
 			onSubModeChange: (subMode: DriveUiState["subMode"]) => {
 				setDrive((current) => {
 					const next = applySubModeIntent(current, subMode);
@@ -379,7 +452,7 @@ export function useDriveSession(
 				});
 			},
 		}),
-		[args, drive],
+		[args, drive, toggleWorkersPanel],
 	);
 
 	return {
@@ -394,12 +467,20 @@ export function useDriveSession(
 		planEditorTasks,
 		setPlanEditorTasks,
 		bankSessionRef,
-	driveVoiceResolved,
-	toggleDrive,
-	toggleStage,
-	stripHandlers,
-	presentedShow,
-};
+		driveVoiceResolved,
+		toggleDrive,
+		toggleStage,
+		stripHandlers,
+		presentedShow,
+		chatForks,
+		workersPanelOpen,
+		focusedAuditHandle,
+		auditMessages,
+		auditSummaryOnly,
+		toggleWorkersPanel,
+		openForkAudit,
+		setForkRetain,
+	};
 }
 
 // Re-export for settings panel wiring without Chat knowing voice helpers.
