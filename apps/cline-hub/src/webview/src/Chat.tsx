@@ -589,7 +589,13 @@ export default function Chat({
 					utterance: trimmed,
 				});
 				setDriveJoinNote(ack.text);
-				void createVoiceStack(driveVoiceResolved.topology).tts.speak(ack.text);
+				void createVoiceStack(driveVoiceResolved.topology).tts.speak(
+					ack.text,
+					{
+						volume: driveVoice.hardware.outputVolume,
+						sinkId: driveVoice.hardware.speakerDeviceId,
+					},
+				);
 			}
 
 			const assistantMessage = createMessage("assistant", "");
@@ -629,6 +635,8 @@ export default function Chat({
 		[
 			autoApproveTools,
 			drive,
+			driveVoice.hardware.outputVolume,
+			driveVoice.hardware.speakerDeviceId,
 			driveVoice.profile,
 			driveVoiceResolved,
 			effectiveReasonLevel,

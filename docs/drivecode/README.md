@@ -3,6 +3,24 @@
 Deeper detail behind the drivecode section of the [root README](../../README.md).
 Everything here is cited to code in this repo.
 
+All Drive / drivecode docs live under this folder:
+
+- [AGENTS.md](AGENTS.md) — how to maintain, add, and edit this nest
+- [HANDOFF.md](HANDOFF.md) — repo continuation brief
+- [plans/](plans/) — product plan (`cline-drivemode`) and portable harness plan (`drivecode-sdk`)
+- [design/](design/drive-wireframes/) — wireframes and canvases
+- [assets/](assets/) — product screenshots and logos
+- [reviews/](reviews/) — PR review notes
+- [writing/](writing/) — essays
+
+## Maintaining this directory
+
+- **Single nest.** Put new Drive docs here. Do not recreate `docs/plans/`, `docs/design/`, `docs/reviews/`, `docs/writing/`, or `docs/assets/drivecode/`.
+- **Where to add.** Product plans → `plans/cline-drivemode/`; harness plan → `plans/drivecode-sdk/`; wireframes → `design/drive-wireframes/`; screenshots → `assets/`; PR notes → `reviews/`; essays → `writing/`; implemented reference → root files in this folder.
+- **Editing.** Cite live code in reference pages. Prefer relative links inside the nest; use `docs/drivecode/...` absolute paths in handoffs and cross-repo callouts. After a rename/move, grep for the old path and fix links.
+- **Indexes.** Link new material from the nearest README (this file, `plans/*/README.md`, or `HANDOFF.md` when it changes the front door).
+- **Agent rules.** Full checklist: [AGENTS.md](AGENTS.md).
+
 - [Status Hub](#status-hub)
 - [Drive Mode and Spotlight](#drive-mode-and-spotlight)
 - [Architecture diagrams](architecture.md)
@@ -12,7 +30,7 @@ Everything here is cited to code in this repo.
 
 ## Status Hub
 
-Design: [ARD-0005](../plans/cline-drivemode/ard/ARD-0005-status-hub.md) (Accepted — implemented).
+Design: [ARD-0005](./plans/cline-drivemode/ard/ARD-0005-status-hub.md) (Accepted — implemented).
 
 ### Storage
 
@@ -219,7 +237,7 @@ For docs and demos, compose a demo **teams adapter** at the hub App edge
 (`@cline/drivecode-demo` → `DrivePlansDemoTeamsSource`, activated by
 `readDrivecodeDemoHubBootstrap()` when `?demoPlans=1`). The Status view only
 depends on the `StatusTeamsSource` port — it does not import fixtures. The
-fixture content mirrors `docs/plans/cline-drivemode` with TASK-GRAPH edges and
+fixture content mirrors `docs/drivecode/plans/cline-drivemode` with TASK-GRAPH edges and
 does not write team runtime state. The interactive CLI composes the same idea
 via `StatusSnapshotSource` + `DrivePlansDemoStatusSnapshotSource` when
 `CLINE_DEMO_STATUS_PLANS=1`.
@@ -257,9 +275,9 @@ from taking on persistence or task-mutation responsibilities.
 
 ## Drive Mode and Spotlight
 
-Vision and naming: [00-vision.md](../plans/cline-drivemode/00-vision.md).
-Architecture: [01-architecture.md](../plans/cline-drivemode/01-architecture.md).
-Runbook: [DEMO.md](../design/drive-wireframes/DEMO.md).
+Vision and naming: [00-vision.md](./plans/cline-drivemode/00-vision.md).
+Architecture: [01-architecture.md](./plans/cline-drivemode/01-architecture.md).
+Runbook: [DEMO.md](./design/drive-wireframes/DEMO.md).
 
 ### The hub is the single writer
 
@@ -333,7 +351,7 @@ Stated plainly so nobody plans around it:
 - **Discord-like Drive channels IA.** The shipped **Drive** sidebar tab
   (`drive-view.tsx`) is the product home (status tiles, Start a Drive call,
   links into Spotlight / Status Hub). The channels-and-rooms wireframe
-  ([drive-tab-discord-slack.html](../design/drive-wireframes/drive-tab-discord-slack.html))
+  ([drive-tab-discord-slack.html](./design/drive-wireframes/drive-tab-discord-slack.html))
   is still a prototype, not a hub route.
 - **Recruit ranking and RosterPack runtime.** Planned, not built.
 - **Multi-human rooms.** The room primitive carries `participants[]` so it does
