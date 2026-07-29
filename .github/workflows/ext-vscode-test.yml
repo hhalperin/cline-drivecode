@@ -60,10 +60,11 @@ on:
             - ".github/workflows/ext-vscode-test.yml"
     workflow_call:
 
-# Cancel superseded PR pushes. Matches e2e policy — without this, busy branches
-# stack full ubuntu+windows unit matrices with 0% cancel (fork sample: 6–11 reruns).
+# Cancel superseded PR pushes. Use run_id for non-PR (push / workflow_dispatch /
+# workflow_call) so main CI and publish reusable calls do not share a group and
+# cancel each other — unlike e2e, this workflow is called from publish pipelines.
 concurrency:
-    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
     cancel-in-progress: true
 
 # Set default permissions for all jobs
