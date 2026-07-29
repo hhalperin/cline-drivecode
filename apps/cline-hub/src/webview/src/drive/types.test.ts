@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
+import type { RoomSnapshot } from "@cline/shared";
 import {
 	applyBankSnapshot,
+	applyRoomSnapshot,
 	applySubModeIntent,
 	canMutateWorkspace,
 	clearPostureOverride,
 	DEFAULT_DRIVE_UI,
+	DRIVE_PARTICIPANT_HUMAN,
+	DRIVE_PARTICIPANT_PARTNER,
 	drivePersonaSystemHint,
 	fromSharedDriveSubMode,
 	syncDrivePostureFromBank,
@@ -12,6 +16,48 @@ import {
 	toSharedDriveSubMode,
 	type DriveUiState,
 } from "./types";
+
+function sampleRoomSnapshot(
+	overrides: Partial<RoomSnapshot> = {},
+): RoomSnapshot {
+	return {
+		schemaVersion: 1,
+		roomId: "default",
+		createdAt: "2026-07-29T12:00:00.000Z",
+		driveActive: true,
+		subMode: "act",
+		participants: [
+			{
+				id: DRIVE_PARTICIPANT_HUMAN,
+				kind: "human",
+				displayName: "You",
+				role: "host",
+				status: "idle",
+			},
+			{
+				id: DRIVE_PARTICIPANT_PARTNER,
+				kind: "agent",
+				displayName: "Ada",
+				role: "partner",
+				status: "idle",
+				seatSources: [],
+			},
+		],
+		stage: {
+			sharer: {
+				kind: "agent",
+				participantId: DRIVE_PARTICIPANT_PARTNER,
+			},
+			pin: null,
+			cards: [],
+		},
+		addressSet: { mode: "everyone" },
+		muteByParticipantId: {},
+		raisedHandByParticipantId: {},
+		appliedEventIds: [],
+		...overrides,
+	};
+}
 
 describe("toNativeMode", () => {
 	it("maps Drive sub-modes onto plan|act", () => {
@@ -26,6 +72,91 @@ describe("toSharedDriveSubMode", () => {
 	it("maps agent UI mode to shared act", () => {
 		expect(toSharedDriveSubMode("agent")).toBe("act");
 		expect(fromSharedDriveSubMode("act")).toBe("agent");
+	});
+});
+
+describe("applyRoomSnapshot", () => {
+	it("projects hub room fields and clears demo authority", () => {
+		const next = applyRoomSnapshot(
+			{ ...DEFAULT_DRIVE_UI, demo: true, roomId: null },
+			sampleRoomSnapshot({
+				subMode: "ask",
+				muteByParticipantId: {
+					[DRIVE_PARTICIPANT_HUMAN]: true,
+					[DRIVE_PARTICIPANT_PARTNER]: true,
+				},
+				raisedHandByParticipantId: {
+					[DRIVE_PARTICIPANT_HUMAN]: true,
+				},
+			}),
+		);
+		expect(next.active).toBe(true);
+		expect(next.roomId).toBe("default");
+		expect(next.partnerName).toBe("Ada");
+		expect(next.stageSharer).toBe("agent");
+		expect(next.spotlightParticipantId).toBe(DRIVE_PARTICIPANT_PARTNER);
+		expect(next.subMode).toBe("ask");
+		expect(next.muted).toBe(true);
+		expect(next.partnerMuted).toBe(true);
+		expect(next.handRaised).toBe(true);
+		expect(next.demo).toBe(false);
+	});
+
+	it("maps human stage sharer to you", () => {
+		const next = applyRoomSnapshot(
+			DEFAULT_DRIVE_UI,
+			sampleRoomSnapshot({
+				stage: {
+					sharer: {
+						kind: "human",
+						participantId: DRIVE_PARTICIPANT_HUMAN,
+					},
+					pin: null,
+					cards: [],
+				},
+			}),
+		);
+		expect(next.stageSharer).toBe("you");
+		expect(next.spotlightParticipantId).toBe(DRIVE_PARTICIPANT_HUMAN);
+	});
+
+	it("preserves mute/hand when snapshot omits those ids", () => {
+		const next = applyRoomSnapshot(
+			{
+				...DEFAULT_DRIVE_UI,
+				muted: true,
+				partnerMuted: true,
+				handRaised: true,
+			},
+			sampleRoomSnapshot({ driveActive: false }),
+		);
+		expect(next.active).toBe(false);
+		expect(next.muted).toBe(true);
+		expect(next.partnerMuted).toBe(true);
+		expect(next.handRaised).toBe(true);
+	});
+
+	it("clears active when local human has left even if driveActive persists", () => {
+		const next = applyRoomSnapshot(
+			{ ...DEFAULT_DRIVE_UI, active: true, roomId: "default" },
+			sampleRoomSnapshot({
+				driveActive: true,
+				participants: [
+					{
+						id: DRIVE_PARTICIPANT_PARTNER,
+						kind: "agent",
+						displayName: "Ada",
+						role: "partner",
+						status: "idle",
+						seatSources: [],
+					},
+				],
+			}),
+		);
+		expect(next.active).toBe(false);
+		expect(next.roomId).toBeNull();
+		expect(next.partnerName).toBe("Ada");
+		expect(next.demo).toBe(false);
 	});
 });
 

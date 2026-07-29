@@ -160,6 +160,7 @@ export default function Chat({
 			postToHost({ type: "abort" });
 		},
 		onStatus: setStatus,
+		sessionId: sessionId ?? null,
 	});
 	const {
 		drive,

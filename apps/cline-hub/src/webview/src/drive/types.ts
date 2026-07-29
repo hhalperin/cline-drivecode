@@ -1,6 +1,6 @@
 /** Drive Layer UI state for hub Chat (wireframe A → B staging). */
 
-import type { BankSnapshot } from "@cline/shared";
+import type { BankSnapshot, RoomSnapshot } from "@cline/shared";
 import {
 	allowWorkspaceMutation,
 	resolveDriveLoop,
@@ -51,6 +51,9 @@ export type DriveUiState = {
 /** Stable ids until hub roster provides real participant UUIDs. */
 export const DRIVE_PARTICIPANT_HUMAN = "drive:human";
 export const DRIVE_PARTICIPANT_PARTNER = "drive:partner";
+
+/** Stable Chat Drive room id (matches legacy driveCommand roomId default). */
+export const DRIVE_DEFAULT_ROOM_ID = "default";
 
 export const EMPTY_BANK_SNAPSHOT: BankSnapshot = {
 	activePlanId: null,
@@ -150,6 +153,67 @@ export function applyBankSnapshot(
 	snapshot: BankSnapshot,
 ): DriveUiState {
 	return syncDrivePostureFromBank({ ...state, bankSnapshot: snapshot });
+}
+
+/**
+ * Project a hub-owned RoomSnapshot into Drive chrome state.
+ * Hub is the single writer — callers must not invent room authority locally.
+ * Chat Drive `active` means the local human is seated; leave removes the seat
+ * while the room (and driveActive) may persist for drop-in rejoin.
+ */
+export function applyRoomSnapshot(
+	drive: DriveUiState,
+	snapshot: RoomSnapshot,
+): DriveUiState {
+	const human = snapshot.participants.find(
+		(participant) => participant.kind === "human",
+	);
+	const agent = snapshot.participants.find(
+		(participant) => participant.kind === "agent",
+	);
+	const humanSeated = snapshot.participants.some(
+		(participant) =>
+			participant.kind === "human" &&
+			participant.id === DRIVE_PARTICIPANT_HUMAN,
+	);
+	const sharer = snapshot.stage.sharer;
+	let stageSharer = drive.stageSharer;
+	if (sharer?.kind === "human") {
+		stageSharer = "you";
+	} else if (sharer?.kind === "agent") {
+		stageSharer = "agent";
+	}
+
+	const muteMap = snapshot.muteByParticipantId;
+	const humanId = human?.id ?? DRIVE_PARTICIPANT_HUMAN;
+	const agentId = agent?.id ?? DRIVE_PARTICIPANT_PARTNER;
+	const muted =
+		typeof muteMap[humanId] === "boolean" ? muteMap[humanId] : drive.muted;
+	const partnerMuted =
+		typeof muteMap[agentId] === "boolean"
+			? muteMap[agentId]
+			: drive.partnerMuted;
+
+	const raisedMap = snapshot.raisedHandByParticipantId;
+	const handRaised =
+		typeof raisedMap[humanId] === "boolean"
+			? raisedMap[humanId]
+			: drive.handRaised;
+
+	return {
+		...drive,
+		active: Boolean(snapshot.driveActive && humanSeated),
+		roomId: humanSeated ? snapshot.roomId : null,
+		partnerName: agent?.displayName ?? drive.partnerName,
+		stageSharer,
+		spotlightParticipantId:
+			sharer?.participantId ?? drive.spotlightParticipantId,
+		muted,
+		partnerMuted,
+		handRaised,
+		subMode: fromSharedDriveSubMode(snapshot.subMode),
+		demo: false,
+	};
 }
 
 export function applySubModeIntent(

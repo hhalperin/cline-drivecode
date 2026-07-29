@@ -192,3 +192,9 @@ export {
 	setSpotlight,
 	type SpotlightReject,
 } from "./room/participantControls.js";
+export {
+	compileDriveagentHome,
+	DriveagentHomeCompileError,
+	type CompiledDriveagentView,
+	type DriveagentHomeCompileErrorCode,
+} from "./home/index.js";

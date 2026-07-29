@@ -11,6 +11,14 @@ export {
 	parseAddressSet,
 } from "./address";
 export {
+	assertNeverAgentRef,
+	type AgentRef,
+	AgentRefSchema,
+	type DriveagentSlug,
+	DriveagentSlugSchema,
+	parseAgentRef,
+} from "./agentRef";
+export {
 	type BankSnapshot,
 	BankSnapshotSchema,
 	DRIVE_BANK_ROOT,
@@ -98,6 +106,7 @@ export {
 } from "./events";
 export type {
 	AgentAppearance,
+	AgentProfile,
 	ConflictRule,
 	DriveDefaultsSubMode,
 	DriveFacetDiskFile,
@@ -115,6 +124,7 @@ export type {
 } from "./facets";
 export * from "./facets";
 export {
+	AgentProfileSchema,
 	DRIVE_FACET_SCHEMA_VERSION,
 	parseDriveFacetDiskFile,
 } from "./facets";
@@ -128,6 +138,7 @@ export {
 	ProviderConfigSchema,
 	parseDriveFacetValues,
 } from "./facetValues";
+export * from "./home";
 export {
 	type DriveLogEnvelope,
 	DriveLogEnvelopeSchema,
