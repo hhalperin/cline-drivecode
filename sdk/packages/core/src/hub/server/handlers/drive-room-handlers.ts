@@ -80,6 +80,11 @@ const CallRaiseHandPayloadSchema = RoomIdSchema.extend({
 	raised: z.boolean(),
 }).strict();
 
+const CallRenameParticipantPayloadSchema = RoomIdSchema.extend({
+	participantId: z.string().min(1),
+	displayName: z.string().min(1),
+}).strict();
+
 const CallSetStagePayloadSchema = RoomIdSchema.extend({
 	sharer: StageSharerSchema.nullable(),
 	pin: z
@@ -360,6 +365,23 @@ export function handleDriveRoomCommand(
 					committed.snapshot,
 					linkedSessionIds(store, payload.roomId),
 				);
+				publishRoomEvent(
+					ctx,
+					payload.roomId,
+					committed.snapshot,
+					committed.event,
+					committed.seq,
+				);
+				return okReply(
+					envelope,
+					snapshotPayload(committed.snapshot, committed.seq),
+				);
+			}
+			case "call_rename_participant": {
+				const payload = CallRenameParticipantPayloadSchema.parse(
+					envelope.payload ?? {},
+				);
+				const committed = store.renameParticipant(payload);
 				publishRoomEvent(
 					ctx,
 					payload.roomId,

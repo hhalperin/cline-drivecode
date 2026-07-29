@@ -36,6 +36,33 @@ export function resolveRosterParticipants(
 	];
 }
 
+/**
+ * Resolve `.driveagent/<slug>/` for an agent participant.
+ * Builtin pair_partner / default partner maps to the example fixture slug.
+ * seatSources may carry a driveagent slug when packs seat a home.
+ */
+export function resolveAgentHomeSlug(
+	participant: Participant,
+): string | null {
+	if (participant.kind !== "agent") {
+		return null;
+	}
+	for (const source of participant.seatSources) {
+		const trimmed = source.trim();
+		if (/^[a-z0-9-]+$/.test(trimmed)) {
+			return trimmed;
+		}
+	}
+	if (
+		participant.role === "partner" ||
+		participant.id === DRIVE_PARTICIPANT_PARTNER ||
+		participant.id === "adam"
+	) {
+		return "pair-partner";
+	}
+	return null;
+}
+
 /** Mute badge from Drive chrome flags (MVP: human mic + partner mute). */
 export function isRosterParticipantMuted(
 	drive: DriveUiState,

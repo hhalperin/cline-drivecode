@@ -16,22 +16,31 @@ import {
 	resolveRosterParticipants,
 } from "./rosterHelpers";
 import type { DriveUiState } from "./types";
+import { nameInkPaletteColor } from "./types";
 
 export function Roster({
 	drive,
+	workspaceRoot,
 	onTranscriptFocus,
+	onDriveChange,
 }: {
 	drive: DriveUiState;
+	workspaceRoot?: string;
 	/** Transcript intent — Profile must not call this. */
 	onTranscriptFocus: (participantId: string) => void;
+	onDriveChange: (next: DriveUiState) => void;
 }) {
 	const participants = resolveRosterParticipants(drive);
 	const [sheetOpen, setSheetOpen] = useState(false);
 	const [sheetMode, setSheetMode] = useState<ParticipantSheetMode>("chooser");
-	const [selected, setSelected] = useState<Participant | null>(null);
+	const [selectedId, setSelectedId] = useState<string | null>(null);
+	const selected =
+		selectedId === null
+			? null
+			: (participants.find((entry) => entry.id === selectedId) ?? null);
 
 	const openChooser = (participant: Participant) => {
-		setSelected(participant);
+		setSelectedId(participant.id);
 		setSheetMode("chooser");
 		setSheetOpen(true);
 	};
@@ -53,6 +62,11 @@ export function Roster({
 					);
 					const focused = drive.focusedParticipantId === participant.id;
 					const speaking = participant.status === "speaking";
+					const inkColor =
+						participant.kind === "agent" &&
+						drive.partnerNameInk !== null
+							? nameInkPaletteColor(drive.partnerNameInk)
+							: undefined;
 
 					return (
 						<button
@@ -77,7 +91,10 @@ export function Roster({
 									speaking && "animate-pulse",
 								)}
 							/>
-							<span className="max-w-[8rem] truncate font-medium">
+							<span
+								className="max-w-[8rem] truncate font-medium"
+								style={inkColor ? { color: inkColor } : undefined}
+							>
 								{participant.displayName}
 							</span>
 							<span className="text-[10px] text-muted-foreground capitalize">
@@ -116,15 +133,17 @@ export function Roster({
 					}
 					setSheetOpen(false);
 				}}
+				onDriveChange={onDriveChange}
 				onOpenChange={(open) => {
 					setSheetOpen(open);
 					if (!open) {
 						setSheetMode("chooser");
-						setSelected(null);
+						setSelectedId(null);
 					}
 				}}
 				open={sheetOpen}
 				participant={selected}
+				workspaceRoot={workspaceRoot}
 			/>
 		</>
 	);

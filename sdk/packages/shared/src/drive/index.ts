@@ -85,6 +85,7 @@ export {
 	ControlModeEventSchema,
 	ControlMuteEventSchema,
 	ControlRaiseHandEventSchema,
+	ControlRenameEventSchema,
 	ControlStageEventSchema,
 	ConversationMessageEventSchema,
 	ConversationNarrationEventSchema,

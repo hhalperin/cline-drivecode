@@ -13,6 +13,7 @@ export function DriveSettingsPanel({
 	onProfileChange,
 	onSttChange,
 	onTtsChange,
+	onTtsEnabledChange,
 }: {
 	providerId: string;
 	voice: DriveVoiceUi;
@@ -20,6 +21,7 @@ export function DriveSettingsPanel({
 	onProfileChange: (profile: DeploymentProfile) => void;
 	onSttChange: (sttId: string) => void;
 	onTtsChange: (ttsId: string) => void;
+	onTtsEnabledChange: (enabled: boolean) => void;
 }) {
 	const llm = resolveLlmEgressForUi({
 		profile: voice.profile,
@@ -102,6 +104,15 @@ export function DriveSettingsPanel({
 						</option>
 					))}
 				</select>
+			</label>
+
+			<label className="flex items-center gap-2 text-sm">
+				<input
+					checked={voice.facets["tts.enabled"] === true}
+					onChange={(event) => onTtsEnabledChange(event.target.checked)}
+					type="checkbox"
+				/>
+				<span>Speak partner narration (off by default)</span>
 			</label>
 
 			<p className="text-xs text-muted-foreground">

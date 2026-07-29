@@ -5,6 +5,7 @@ import {
 	isRosterParticipantHandRaised,
 	isRosterParticipantMuted,
 	participantStatusLabel,
+	resolveAgentHomeSlug,
 	resolveRosterParticipants,
 } from "./rosterHelpers";
 import {
@@ -107,6 +108,39 @@ describe("applyTranscriptFocus", () => {
 		);
 		expect(next.focusedParticipantId).toBe(DRIVE_PARTICIPANT_HUMAN);
 		expect(next.addressFollowsFocusParticipantId).toBeNull();
+	});
+});
+
+describe("resolveAgentHomeSlug", () => {
+	it("maps default partner / adam to pair-partner", () => {
+		expect(resolveAgentHomeSlug(partner)).toBe("pair-partner");
+		expect(
+			resolveAgentHomeSlug({
+				...partner,
+				id: "adam",
+			}),
+		).toBe("pair-partner");
+	});
+
+	it("prefers seatSources slug when present", () => {
+		expect(
+			resolveAgentHomeSlug({
+				...partner,
+				seatSources: ["custom-agent"],
+			}),
+		).toBe("custom-agent");
+	});
+
+	it("returns null for humans", () => {
+		expect(
+			resolveAgentHomeSlug({
+				id: "you",
+				kind: "human",
+				displayName: "You",
+				role: "host",
+				status: "idle",
+			}),
+		).toBeNull();
 	});
 });
 

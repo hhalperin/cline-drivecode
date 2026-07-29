@@ -161,6 +161,55 @@ describe("handleDriveRoomCommand", () => {
 		expect(loweredSnap.raisedHandByParticipantId.you).toBe(false);
 	});
 
+	it("call_rename_participant updates displayName and broadcasts", () => {
+		resetDriveRoomStoreForTests();
+		const ctx = makeCtx();
+		handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_join",
+			requestId: "j_rename",
+			payload: {
+				roomId: "room_rename",
+				human: { id: "you", displayName: "You" },
+				agent: { id: "adam", displayName: "Adam" },
+			},
+		});
+		ctx.published.length = 0;
+
+		const renamed = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_rename_participant",
+			requestId: "rn1",
+			payload: {
+				roomId: "room_rename",
+				participantId: "adam",
+				displayName: "Nova",
+			},
+		});
+		expect(renamed.ok).toBe(true);
+		const snap = renamed.payload?.snapshot as {
+			participants: Array<{ id: string; displayName: string }>;
+		};
+		expect(
+			snap.participants.find((p) => p.id === "adam")?.displayName,
+		).toBe("Nova");
+		expect(
+			ctx.published.some((e) => (e as { event: string }).event === "room.event"),
+		).toBe(true);
+
+		const missing = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_rename_participant",
+			requestId: "rn2",
+			payload: {
+				roomId: "room_rename",
+				participantId: "ghost",
+				displayName: "Nope",
+			},
+		});
+		expect(missing.ok).toBe(false);
+	});
+
 	it("call_raise_hand with linked session sets and clears pause-after-tool", () => {
 		resetDriveRoomStoreForTests();
 		const ctx = makeCtx();

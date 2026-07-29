@@ -38,8 +38,11 @@ import {
 	applyVoiceProfile,
 	createDefaultDriveVoiceUi,
 	resolveDriveVoiceTopology,
+	shouldSpeakDriveTts,
 	type DriveVoiceUi,
 } from "./voice/driveVoiceUi";
+import { buildDrivePersistPayload } from "./voice/voiceCaptionState";
+import { createVoiceStack } from "./voice/createVoiceStack";
 import { getVsCodeApi, postToHost } from "../vscode";
 
 function readPersistedDriveUi(): DriveUiState {
@@ -74,6 +77,8 @@ function readPersistedDriveUi(): DriveUiState {
 				addressFollowsFocusParticipantId:
 					state.driveUi.addressFollowsFocusParticipantId ??
 					DEFAULT_DRIVE_UI.addressFollowsFocusParticipantId,
+				partnerNameInk:
+					state.driveUi.partnerNameInk ?? DEFAULT_DRIVE_UI.partnerNameInk,
 			};
 		}
 	} catch {
@@ -132,6 +137,8 @@ export type UseDriveSessionResult = {
 	>;
 	bankSessionRef: React.RefObject<DriveBankSession>;
 	driveVoiceResolved: ReturnType<typeof resolveDriveVoiceTopology>;
+	/** Workspace root for durable bank / agent-home hub ops. */
+	workspaceRoot?: string;
 	toggleDrive: () => void;
 	toggleStage: () => void;
 	presentedShow: {
@@ -189,7 +196,13 @@ export function useDriveSession(
 				return;
 			}
 			const state = (api.getState() as Record<string, unknown>) ?? {};
-			api.setState({ ...state, driveUi: drive, driveVoice });
+			api.setState(
+				buildDrivePersistPayload({
+					existing: state,
+					driveUi: drive,
+					driveVoice,
+				}),
+			);
 		} catch {
 			// ignore
 		}
@@ -350,6 +363,59 @@ export function useDriveSession(
 		[driveVoice, args.providerId],
 	);
 
+	/** Mute (human or partner) immediately cancels in-flight TTS (DRV-TTS). */
+	useEffect(() => {
+		if (!drive.muted && !drive.partnerMuted) {
+			return;
+		}
+		if (!driveVoiceResolved.ok) {
+			return;
+		}
+		createVoiceStack(driveVoiceResolved.topology).tts.cancel();
+	}, [drive.muted, drive.partnerMuted, driveVoiceResolved]);
+
+	/** Speak partner join note once when TTS is enabled and unmuted. */
+	const spokenJoinNoteRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!driveJoinNote || !drive.active) {
+			return;
+		}
+		// Only the post-join greeting — ack / error banners stay display-only here.
+		if (!driveJoinNote.startsWith("On the call.")) {
+			return;
+		}
+		if (spokenJoinNoteRef.current === driveJoinNote) {
+			return;
+		}
+		if (!driveVoiceResolved.ok) {
+			return;
+		}
+		if (
+			!shouldSpeakDriveTts({
+				facets: driveVoice.facets,
+				muted: drive.muted,
+				partnerMuted: drive.partnerMuted,
+			})
+		) {
+			return;
+		}
+		spokenJoinNoteRef.current = driveJoinNote;
+		void createVoiceStack(driveVoiceResolved.topology).tts.speak(driveJoinNote);
+	}, [
+		drive.active,
+		drive.muted,
+		drive.partnerMuted,
+		driveJoinNote,
+		driveVoice.facets,
+		driveVoiceResolved,
+	]);
+
+	useEffect(() => {
+		if (!drive.active) {
+			spokenJoinNoteRef.current = null;
+		}
+	}, [drive.active]);
+
 	const toggleDrive = useCallback(() => {
 		const current = drive;
 		// Leave (or cancel an in-flight join) — do not treat pending join as off→on.
@@ -366,6 +432,7 @@ export function useDriveSession(
 			setDrive({
 				...DEFAULT_DRIVE_UI,
 				partnerName: current.partnerName,
+				partnerNameInk: current.partnerNameInk,
 			});
 			args.onModeChange("act");
 			return;
@@ -560,6 +627,7 @@ export function useDriveSession(
 		setPlanEditorTasks,
 		bankSessionRef,
 		driveVoiceResolved,
+		workspaceRoot: args.workspaceRoot,
 		toggleDrive,
 		toggleStage,
 		stripHandlers,

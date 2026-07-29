@@ -241,6 +241,8 @@ export type WebviewInboundMessage =
 			prompt: string;
 			config?: WebviewConfig;
 			attachments?: WebviewChatAttachments;
+			/** Voice/caption confirm path — mute-gated hub-side (DRV-MIC). */
+			source?: "voice" | "text";
 	  }
 	| { type: "abort" }
 	| { type: "reset" }
@@ -306,6 +308,12 @@ export type WebviewInboundMessage =
 			raised: boolean;
 	  }
 	| {
+			type: "call_rename_participant";
+			roomId: string;
+			participantId: string;
+			displayName: string;
+	  }
+	| {
 			type: "call_set_stage";
 			roomId: string;
 			sharer: {
@@ -356,6 +364,12 @@ export type WebviewInboundMessage =
 			taskIds: string[];
 	  }
 	| {
+			type: "drive_agent_home_get";
+			workspaceRoot: string;
+			slug: string;
+			requestId?: string;
+	  }
+	| {
 			/** Paged changelog across every agent. */
 			type: "status_query";
 			requestId: string;
@@ -390,7 +404,7 @@ export type WebviewInboundMessage =
 
 export type WebviewOutboundMessage =
 	| { type: "status"; text: string }
-	| { type: "error"; text: string }
+	| { type: "error"; text: string; code?: string }
 	| {
 			type: "desktopCommandResult";
 			id: string;
@@ -517,6 +531,39 @@ export type WebviewOutboundMessage =
 	  }
 	| {
 			type: "drive_bank_error";
+			text: string;
+			code?: string;
+			requestId?: string;
+	  }
+	| {
+			type: "drive_agent_home";
+			requestId?: string;
+			/** Sanitized home projection — no systemPrompt / promptPath. */
+			home: {
+				slug: string;
+				agent: {
+					name: string;
+					description: string;
+					tools?: string[];
+					skills?: string[];
+					editable?: boolean;
+				};
+				permissions: {
+					presetIntent: "readonly" | "standard" | "full";
+					approvalHooks: string[];
+					notes?: string;
+				};
+			};
+			compiled: {
+				name: string;
+				slug: string;
+				description: string;
+				tools?: string[];
+				skills?: string[];
+			};
+	  }
+	| {
+			type: "drive_agent_home_error";
 			text: string;
 			code?: string;
 			requestId?: string;

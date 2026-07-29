@@ -46,6 +46,8 @@ import {
 import { isDriveHumanId } from "./drive/participantIds";
 import { useDriveSession } from "./drive/useDriveSession";
 import { createVoiceStack } from "./drive/voice/createVoiceStack";
+import { shouldSpeakDriveTts } from "./drive/voice/driveVoiceUi";
+import { clearVoiceCaptionAfterSend } from "./drive/voice/voiceCaptionState";
 import { getVsCodeApi, postToHost } from "./vscode";
 
 type ProviderOption = Extract<
@@ -562,14 +564,35 @@ export default function Chat({
 				return;
 			}
 
-			if (driveVoice.profile === "local" && driveVoiceResolved.ok) {
+			if (drive.muted) {
+				setStatus(
+					"Mic is muted. Unmute on the call strip before sending spoken input.",
+				);
+				return;
+			}
+
+			if (
+				driveVoiceResolved.ok &&
+				shouldSpeakDriveTts({
+					facets: driveVoice.facets,
+					muted: drive.muted,
+					partnerMuted: drive.partnerMuted,
+				})
+			) {
+				const ack = buildVoiceAckNarration({
+					profile: driveVoice.profile === "local" ? "local" : "cloud",
+					partnerName: drive.partnerName,
+					utterance: trimmed,
+				});
+				setDriveJoinNote(ack.text);
+				void createVoiceStack(driveVoiceResolved.topology).tts.speak(ack.text);
+			} else if (driveVoice.profile === "local") {
 				const ack = buildVoiceAckNarration({
 					profile: "local",
 					partnerName: drive.partnerName,
 					utterance: trimmed,
 				});
 				setDriveJoinNote(ack.text);
-				void createVoiceStack(driveVoiceResolved.topology).tts.speak(ack.text);
 			}
 
 			const assistantMessage = createMessage("assistant", "");
@@ -584,6 +607,7 @@ export default function Chat({
 			postToHost({
 				type: "send",
 				prompt: trimmed,
+				source: "voice",
 				config: {
 					autoApproveTools,
 					enableSpawn,
@@ -604,11 +628,12 @@ export default function Chat({
 					})(),
 				},
 			});
-			setVoiceCaption("");
+			setVoiceCaption(clearVoiceCaptionAfterSend());
 		},
 		[
 			autoApproveTools,
 			drive,
+			driveVoice.facets,
 			driveVoice.profile,
 			driveVoiceResolved,
 			effectiveReasonLevel,
@@ -617,8 +642,8 @@ export default function Chat({
 			enableTools,
 			isHydrating,
 			maxIterations,
-			mode,
 			model,
+			mode,
 			provider,
 			setDriveJoinNote,
 			setVoiceCaption,
