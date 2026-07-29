@@ -30,7 +30,7 @@ import {
 import {
 	createDriveBankSession,
 	listPlanTasks,
-	seedDemoBank,
+	seedBankForJoin,
 	type DriveBankSession,
 } from "./bankSession";
 import {
@@ -66,6 +66,14 @@ function readPersistedDriveUi(): DriveUiState {
 					state.driveUi.stagePin === undefined
 						? DEFAULT_DRIVE_UI.stagePin
 						: state.driveUi.stagePin,
+				participants:
+					state.driveUi.participants ?? DEFAULT_DRIVE_UI.participants,
+				focusedParticipantId:
+					state.driveUi.focusedParticipantId ??
+					DEFAULT_DRIVE_UI.focusedParticipantId,
+				addressFollowsFocusParticipantId:
+					state.driveUi.addressFollowsFocusParticipantId ??
+					DEFAULT_DRIVE_UI.addressFollowsFocusParticipantId,
 			};
 		}
 	} catch {
@@ -105,6 +113,8 @@ export type UseDriveSessionArgs = {
 	onStatus: (text: string) => void;
 	/** Link call_join to the active chat session when available. */
 	sessionId?: string | null;
+	/** Workspace root for hub durable bank seed (drive_bank_seed). */
+	workspaceRoot?: string;
 };
 
 export type UseDriveSessionResult = {
@@ -166,8 +176,10 @@ export function useDriveSession(
 	/** True between call_join and the first successful room_snapshot. */
 	const pendingJoinRef = useRef(false);
 	const sessionIdRef = useRef(args.sessionId);
+	const workspaceRootRef = useRef(args.workspaceRoot);
 	const onModeChangeRef = useRef(args.onModeChange);
 	sessionIdRef.current = args.sessionId;
+	workspaceRootRef.current = args.workspaceRoot;
 	onModeChangeRef.current = args.onModeChange;
 
 	useEffect(() => {
@@ -184,7 +196,10 @@ export function useDriveSession(
 	}, [drive, driveVoice]);
 
 	const seedBankAfterJoin = useCallback(async (partnerName: string) => {
-		const snapshot = await seedDemoBank(bankSessionRef.current);
+		const { snapshot } = await seedBankForJoin(
+			bankSessionRef.current,
+			workspaceRootRef.current,
+		);
 		const tasks = snapshot.activePlanId
 			? await listPlanTasks(bankSessionRef.current, snapshot.activePlanId)
 			: [];

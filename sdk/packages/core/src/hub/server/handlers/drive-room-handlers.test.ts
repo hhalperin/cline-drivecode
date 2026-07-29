@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resetDriveRoomStoreForTests } from "../../collaboration";
+import {
+	resetDriveRoomStoreForTests,
+	shouldDrivePauseAfterTool,
+} from "../../collaboration";
 import { buildHubEvent, type HubTransportContext, okReply } from "./context";
 import { handleDriveRoomCommand } from "./drive-room-handlers";
 
@@ -156,6 +159,85 @@ describe("handleDriveRoomCommand", () => {
 			raisedHandByParticipantId: Record<string, boolean>;
 		};
 		expect(loweredSnap.raisedHandByParticipantId.you).toBe(false);
+	});
+
+	it("call_raise_hand with linked session sets and clears pause-after-tool", () => {
+		resetDriveRoomStoreForTests();
+		const ctx = makeCtx();
+		handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_join",
+			requestId: "j_pause",
+			payload: {
+				roomId: "room_pause",
+				sessionId: "sess_pause",
+				human: { id: "you", displayName: "You" },
+				agent: { id: "adam", displayName: "Adam" },
+			},
+		});
+		expect(shouldDrivePauseAfterTool("sess_pause")).toBe(false);
+
+		const raised = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_raise_hand",
+			requestId: "h_raise",
+			payload: {
+				roomId: "room_pause",
+				participantId: "you",
+				raised: true,
+			},
+		});
+		expect(raised.ok).toBe(true);
+		expect(shouldDrivePauseAfterTool("sess_pause")).toBe(true);
+
+		const lowered = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_raise_hand",
+			requestId: "h_lower",
+			payload: {
+				roomId: "room_pause",
+				participantId: "you",
+				raised: false,
+			},
+		});
+		expect(lowered.ok).toBe(true);
+		expect(shouldDrivePauseAfterTool("sess_pause")).toBe(false);
+	});
+
+	it("call_leave clears pause-after-tool for linked sessions", () => {
+		resetDriveRoomStoreForTests();
+		const ctx = makeCtx();
+		handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_join",
+			requestId: "j_leave_pause",
+			payload: {
+				roomId: "room_leave_pause",
+				sessionId: "sess_leave_pause",
+				human: { id: "you", displayName: "You" },
+				agent: { id: "adam", displayName: "Adam" },
+			},
+		});
+		handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_raise_hand",
+			requestId: "h_leave",
+			payload: {
+				roomId: "room_leave_pause",
+				participantId: "you",
+				raised: true,
+			},
+		});
+		expect(shouldDrivePauseAfterTool("sess_leave_pause")).toBe(true);
+
+		const leave = handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_leave",
+			requestId: "l_pause",
+			payload: { roomId: "room_leave_pause", participantId: "you" },
+		});
+		expect(leave.ok).toBe(true);
+		expect(shouldDrivePauseAfterTool("sess_leave_pause")).toBe(false);
 	});
 
 	it("call_record_work from tool-shaped input fills stage.cards and broadcasts", () => {

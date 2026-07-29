@@ -18,6 +18,7 @@ import type {
 	StageSharer,
 } from "@cline/shared";
 import { createEmptyDriveRoomLiveState } from "@cline/shared";
+import { resetDrivePauseAfterToolForTests } from "./drivePauseAfterTool";
 import type { RoomEventLog } from "./eventLog";
 import type { WorkRecordPayload } from "./work-from-tool";
 
@@ -466,4 +467,5 @@ export function getDriveRoomStore(): DriveRoomStore {
 
 export function resetDriveRoomStoreForTests(): void {
 	globalStore = new DriveRoomStore();
+	resetDrivePauseAfterToolForTests();
 }

@@ -163,6 +163,7 @@ export default function Chat({
 		},
 		onStatus: setStatus,
 		sessionId: sessionId ?? null,
+		workspaceRoot: defaults.workspaceRoot,
 	});
 	const {
 		drive,

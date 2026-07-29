@@ -330,6 +330,16 @@ export type WebviewInboundMessage =
 			sessionId?: string;
 	  }
 	| {
+			type: "drive_bank_get";
+			workspaceRoot: string;
+			requestId?: string;
+	  }
+	| {
+			type: "drive_bank_seed";
+			workspaceRoot: string;
+			requestId?: string;
+	  }
+	| {
 			/** Paged changelog across every agent. */
 			type: "status_query";
 			requestId: string;
@@ -484,6 +494,17 @@ export type WebviewOutboundMessage =
 			snapshot: import("@cline/shared").RoomSnapshot;
 	  }
 	| { type: "call_error"; text: string; code?: string }
+	| {
+			type: "drive_bank_snapshot";
+			snapshot: import("@cline/shared").BankSnapshot;
+			requestId?: string;
+	  }
+	| {
+			type: "drive_bank_error";
+			text: string;
+			code?: string;
+			requestId?: string;
+	  }
 	| {
 			type: "status_page";
 			requestId: string;

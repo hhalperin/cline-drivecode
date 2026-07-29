@@ -22,6 +22,7 @@ import {
 	webviewDistDir,
 } from "./server/deps";
 import { handleDesktopCommand } from "./server/desktop-commands";
+import { handleDriveBankWebviewCommand } from "./server/drive-bank";
 import { handleCallCommand } from "./server/drive-calls";
 import { handleDriveWebviewCommand } from "./server/drive-commands";
 import {
@@ -317,6 +318,11 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 						frame.type === "call_get_room"
 					) {
 						await handleCallCommand(ctx, peer, frame);
+					} else if (
+						frame.type === "drive_bank_get" ||
+						frame.type === "drive_bank_seed"
+					) {
+						await handleDriveBankWebviewCommand(ctx, peer, frame);
 					} else if (
 						frame.type === "status_query" ||
 						frame.type === "status_board" ||

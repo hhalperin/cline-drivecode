@@ -2,6 +2,7 @@
 
 import type {
 	BankSnapshot,
+	Participant,
 	RoomSnapshot,
 	StageCard,
 	StagePin,
@@ -55,6 +56,21 @@ export type DriveUiState = {
 	stagePin: StagePin | null;
 	/** Hub room id when Join has attached a call. */
 	roomId: string | null;
+	/**
+	 * Hub roster projection (DRV-ROSTER). Read-only copy from room_snapshot.
+	 * Empty until a snapshot arrives — UI may synthesize human+partner.
+	 */
+	participants: Participant[];
+	/**
+	 * Participant whose transcript stream is focused (DRV-PARTICIPANT-SHEET /
+	 * DRV-TRANSCRIPT). Null = room / everyone thread.
+	 */
+	focusedParticipantId: string | null;
+	/**
+	 * Stub for DRV-ADDRESS: set when Transcript is chosen on an agent;
+	 * cleared (everyone) when focusing self. Profile does not touch this.
+	 */
+	addressFollowsFocusParticipantId: string | null;
 };
 
 /** Stable ids until hub roster provides real participant UUIDs. */
@@ -90,6 +106,9 @@ export const DEFAULT_DRIVE_UI: DriveUiState = {
 	stageCards: [],
 	stagePin: null,
 	roomId: null,
+	participants: [],
+	focusedParticipantId: null,
+	addressFollowsFocusParticipantId: null,
 };
 
 /** Map Drive sub-mode onto native Cline plan|act for send config. */
@@ -226,6 +245,7 @@ export function applyRoomSnapshot(
 		handRaised,
 		subMode: fromSharedDriveSubMode(snapshot.subMode),
 		demo: false,
+		participants: [...snapshot.participants],
 	};
 }
 

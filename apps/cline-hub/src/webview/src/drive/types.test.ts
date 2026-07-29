@@ -102,6 +102,25 @@ describe("applyRoomSnapshot", () => {
 		expect(next.demo).toBe(false);
 		expect(next.stageCards).toEqual([]);
 		expect(next.stagePin).toBeNull();
+		expect(next.participants).toHaveLength(2);
+		expect(next.participants[0]?.kind).toBe("human");
+		expect(next.participants[1]).toMatchObject({
+			kind: "agent",
+			displayName: "Ada",
+		});
+	});
+
+	it("copies participants array without sharing the snapshot reference", () => {
+		const snapshot = sampleRoomSnapshot();
+		const next = applyRoomSnapshot(DEFAULT_DRIVE_UI, snapshot);
+		expect(next.participants).toEqual(snapshot.participants);
+		expect(next.participants).not.toBe(snapshot.participants);
+	});
+
+	it("DEFAULT_DRIVE_UI starts with empty participants and no focus", () => {
+		expect(DEFAULT_DRIVE_UI.participants).toEqual([]);
+		expect(DEFAULT_DRIVE_UI.focusedParticipantId).toBeNull();
+		expect(DEFAULT_DRIVE_UI.addressFollowsFocusParticipantId).toBeNull();
 	});
 
 	it("copies stage cards and pin from snapshot", () => {
@@ -164,6 +183,7 @@ describe("applyRoomSnapshot", () => {
 	it("DEFAULT_DRIVE_UI starts with empty stage projection", () => {
 		expect(DEFAULT_DRIVE_UI.stageCards).toEqual([]);
 		expect(DEFAULT_DRIVE_UI.stagePin).toBeNull();
+		expect(DEFAULT_DRIVE_UI.participants).toEqual([]);
 	});
 
 	it("maps human stage sharer to you", () => {

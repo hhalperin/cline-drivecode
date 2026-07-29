@@ -5,6 +5,8 @@ import {
 } from "./DriveCallChrome";
 import { DriveMicBar } from "./voice/DriveMicBar";
 import { DriveSettingsPanel } from "./voice/DriveSettingsPanel";
+import { Roster } from "./Roster";
+import { applyTranscriptFocus } from "./rosterHelpers";
 import {
 	applyVoiceFacetPatch,
 	applyVoiceProfile,
@@ -22,8 +24,14 @@ export function DriveRoomChrome({
 	disabled: boolean;
 	providerId: string;
 }) {
-	const { drive, driveVoice, setDriveVoice, driveJoinNote, stripHandlers } =
-		session;
+	const {
+		drive,
+		setDrive,
+		driveVoice,
+		setDriveVoice,
+		driveJoinNote,
+		stripHandlers,
+	} = session;
 
 	return (
 		<>
@@ -32,6 +40,16 @@ export function DriveRoomChrome({
 				drive={drive}
 				{...stripHandlers}
 			/>
+			{drive.active ? (
+				<Roster
+					drive={drive}
+					onTranscriptFocus={(participantId) => {
+						setDrive((current) =>
+							applyTranscriptFocus(current, participantId),
+						);
+					}}
+				/>
+			) : null}
 			{drive.active && driveVoice.settingsOpen ? (
 				<DriveSettingsPanel
 					onClose={() =>

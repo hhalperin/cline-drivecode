@@ -15,6 +15,13 @@ export {
 } from "./eventLog";
 export { type JoinCallInput, type JoinCallResult, joinCall } from "./join-call";
 export {
+	clearDrivePauseAfterTool,
+	clearDrivePauseAfterToolForSessions,
+	resetDrivePauseAfterToolForTests,
+	setDrivePauseAfterTool,
+	shouldDrivePauseAfterTool,
+} from "./drivePauseAfterTool";
+export {
 	DriveRoomStore,
 	getDriveRoomStore,
 	type RoomCommitResult,

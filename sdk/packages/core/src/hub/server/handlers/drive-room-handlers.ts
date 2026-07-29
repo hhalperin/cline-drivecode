@@ -16,14 +16,33 @@ import {
 } from "@cline/shared";
 import { z } from "zod";
 import {
+	clearDrivePauseAfterToolForSessions,
 	getDriveRoomStore,
 	type JoinCallResult,
 	JsonlRoomEventLog,
 	joinCall,
+	setDrivePauseAfterTool,
 	type WorkRecordPayload,
 	workRecordFromToolEvent,
 } from "../../collaboration";
 import { errorReply, type HubTransportContext, okReply } from "./context";
+
+function linkedSessionIds(
+	store: ReturnType<typeof getDriveRoomStore>,
+	roomId: string,
+): Iterable<string> {
+	return store.roomToSessions.get(roomId) ?? [];
+}
+
+function syncDrivePauseAfterToolForRoom(
+	store: ReturnType<typeof getDriveRoomStore>,
+	roomId: string,
+	pause: boolean,
+): void {
+	for (const sessionId of linkedSessionIds(store, roomId)) {
+		setDrivePauseAfterTool(sessionId, pause);
+	}
+}
 
 const RoomIdSchema = z.object({
 	roomId: z.string().min(1),
@@ -308,6 +327,9 @@ export function handleDriveRoomCommand(
 			case "call_leave": {
 				const payload = CallLeavePayloadSchema.parse(envelope.payload ?? {});
 				const committed = store.leave(payload);
+				clearDrivePauseAfterToolForSessions(
+					linkedSessionIds(store, payload.roomId),
+				);
 				publishRoomEvent(
 					ctx,
 					payload.roomId,
@@ -340,12 +362,11 @@ export function handleDriveRoomCommand(
 					envelope.payload ?? {},
 				);
 				const committed = store.raiseHand(payload);
-				// TODO(DRV-INTERRUPT): when raised=true and a session is linked
-				// to this room, set a pause-after-tool flag the AgentRuntime
-				// consults via hooks.shouldPauseAfterTool (see @cline/agents
-				// PAUSE_AFTER_TOOL_REASON / @cline/drive expectsPauseAfterTool).
-				// Room snapshot already tracks raisedHandByParticipantId; the
-				// missing piece is routing that flag into the in-flight turn.
+				syncDrivePauseAfterToolForRoom(
+					store,
+					payload.roomId,
+					payload.raised,
+				);
 				publishRoomEvent(
 					ctx,
 					payload.roomId,
