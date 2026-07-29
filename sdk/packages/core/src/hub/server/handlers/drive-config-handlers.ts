@@ -3,10 +3,7 @@
  */
 
 import type { HubCommandEnvelope, HubReplyEnvelope } from "@cline/shared";
-import {
-	parseDriveFacetValues,
-	type ResolvedLlmEgress,
-} from "@cline/shared";
+import { parseDriveFacetValues, type ResolvedLlmEgress } from "@cline/shared";
 import {
 	loadOrSeedDriveFacets,
 	setDriveFacets,
@@ -46,7 +43,7 @@ export function handleDriveConfigCommand(
 			return okReply(envelope, { facets });
 		}
 		case "drive_config_put": {
-			let facets;
+			let facets: ReturnType<typeof parseDriveFacetValues>;
 			try {
 				facets = parseDriveFacetValues(envelope.payload?.facets);
 			} catch (error) {

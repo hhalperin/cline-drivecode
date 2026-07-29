@@ -4,17 +4,17 @@
  */
 
 import {
+	appendFileSync,
 	existsSync,
 	mkdirSync,
 	readFileSync,
 	renameSync,
 	writeFileSync,
-	appendFileSync,
 } from "node:fs";
 import { dirname } from "node:path";
 import {
-	parseDriveEvent,
 	type DriveEvent,
+	parseDriveEvent,
 	resolveDriveRoomEventsPath,
 	resolveDriveRoomMetaPath,
 } from "@cline/shared";
@@ -114,12 +114,14 @@ export class MemoryRoomEventLog implements RoomEventLog {
 
 	latestSeq(roomId: string): number {
 		const records = this.byRoom.get(roomId) ?? [];
-		return records.length === 0 ? 0 : records[records.length - 1]!.seq;
+		const last = records[records.length - 1];
+		return last?.seq ?? 0;
 	}
 
 	appendSync(roomId: string, event: DriveEvent): RoomLogRecord {
 		const list = this.byRoom.get(roomId) ?? [];
-		const seq = list.length === 0 ? 1 : list[list.length - 1]!.seq + 1;
+		const last = list[list.length - 1];
+		const seq = last ? last.seq + 1 : 1;
 		const record = { seq, event };
 		list.push(record);
 		this.byRoom.set(roomId, list);

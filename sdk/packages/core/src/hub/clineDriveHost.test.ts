@@ -5,8 +5,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { runHostConformance } from "@cline/drive";
+import { afterEach, describe, expect, it } from "vitest";
 import { createClineDriveHost } from "./clineDriveHost";
 import { DriveRoomStore } from "./collaboration";
 

@@ -1,12 +1,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import {
-	DriveRoomStore,
-	JsonlRoomEventLog,
-	MemoryRoomEventLog,
-} from "./index";
+import { beforeEach, describe, expect, it } from "vitest";
+import { DriveRoomStore, JsonlRoomEventLog, MemoryRoomEventLog } from "./index";
 
 describe("RoomEventLog + DriveRoomStore", () => {
 	let store: DriveRoomStore;
@@ -45,7 +41,7 @@ describe("RoomEventLog + DriveRoomStore", () => {
 		expect(store.lastSeq("r1")).toBe(1);
 		const gaps = await log.readSince("r1", 0);
 		expect(gaps).toHaveLength(1);
-		expect(gaps[0]!.event.type).toBe("control.join");
+		expect(gaps[0]?.event.type).toBe("control.join");
 	});
 
 	it("hydrates snapshot from jsonl log after restart", async () => {
@@ -104,6 +100,6 @@ describe("RoomEventLog + DriveRoomStore", () => {
 		});
 		const gaps = log.readSinceSync("r1", 1);
 		expect(gaps).toHaveLength(1);
-		expect(gaps[0]!.seq).toBe(2);
+		expect(gaps[0]?.seq).toBe(2);
 	});
 });

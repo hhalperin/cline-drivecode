@@ -25,6 +25,11 @@ export * from "./client";
 export * from "./client/connect";
 export * from "./client/session-client";
 export * from "./client/ui-client";
+export {
+	type ClineDriveHostOptions,
+	createClineDriveHost,
+} from "./clineDriveHost";
+export * from "./collaboration";
 export * from "./daemon";
 export * from "./daemon/runtime-handlers";
 export * from "./daemon/start-shared-server";
@@ -32,11 +37,6 @@ export * from "./discovery";
 export * from "./discovery/defaults";
 export * from "./discovery/workspace";
 export * from "./drive-config/driveFacetsStore";
-export * from "./collaboration";
-export {
-	createClineDriveHost,
-	type ClineDriveHostOptions,
-} from "./clineDriveHost";
 export * from "./drive-producers/produceMermaid";
 export * from "./drive-providers/loadDriveProviderRegistry";
 export * from "./server";

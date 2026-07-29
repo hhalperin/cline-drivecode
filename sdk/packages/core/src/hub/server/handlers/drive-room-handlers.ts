@@ -9,21 +9,21 @@ import type {
 	RoomSnapshot,
 	StageSharer,
 } from "@cline/shared";
-import { DriveSubModeSchema, ParticipantSchema, StageSharerSchema } from "@cline/shared";
+import {
+	DriveSubModeSchema,
+	ParticipantSchema,
+	StageSharerSchema,
+} from "@cline/shared";
 import { z } from "zod";
 import {
-	type JoinCallResult,
-	joinCall,
 	getDriveRoomStore,
+	type JoinCallResult,
 	JsonlRoomEventLog,
-	workRecordFromToolEvent,
+	joinCall,
 	type WorkRecordPayload,
+	workRecordFromToolEvent,
 } from "../../collaboration";
-import {
-	type HubTransportContext,
-	errorReply,
-	okReply,
-} from "./context";
+import { errorReply, type HubTransportContext, okReply } from "./context";
 
 const RoomIdSchema = z.object({
 	roomId: z.string().min(1),
@@ -116,7 +116,9 @@ const CallRecordWorkPayloadSchema = z
 		roomId: z.string().min(1).optional(),
 		sessionId: z.string().min(1).optional(),
 		actorId: z.string().min(1).optional(),
-		work: z.union([WorkEditSchema, WorkCommandSchema, WorkTestSchema]).optional(),
+		work: z
+			.union([WorkEditSchema, WorkCommandSchema, WorkTestSchema])
+			.optional(),
 		tool: z
 			.object({
 				toolCallId: z.string().optional(),
@@ -296,10 +298,7 @@ export function handleDriveRoomCommand(
 				if (payload.sessionId) {
 					store.linkSession(payload.sessionId, payload.roomId);
 				}
-				return okReply(
-					envelope,
-					snapshotPayload(result.snapshot, result.seq),
-				);
+				return okReply(envelope, snapshotPayload(result.snapshot, result.seq));
 			}
 			case "call_leave": {
 				const payload = CallLeavePayloadSchema.parse(envelope.payload ?? {});
@@ -332,9 +331,7 @@ export function handleDriveRoomCommand(
 				);
 			}
 			case "call_set_stage": {
-				const payload = CallSetStagePayloadSchema.parse(
-					envelope.payload ?? {},
-				);
+				const payload = CallSetStagePayloadSchema.parse(envelope.payload ?? {});
 				const committed = store.setStage({
 					roomId: payload.roomId,
 					sharer: payload.sharer as StageSharer | null,
@@ -353,9 +350,7 @@ export function handleDriveRoomCommand(
 				);
 			}
 			case "call_set_mode": {
-				const payload = CallSetModePayloadSchema.parse(
-					envelope.payload ?? {},
-				);
+				const payload = CallSetModePayloadSchema.parse(envelope.payload ?? {});
 				const committed = store.setMode(payload);
 				publishRoomEvent(
 					ctx,
@@ -373,11 +368,7 @@ export function handleDriveRoomCommand(
 				const payload = CallRecordWorkPayloadSchema.parse(
 					envelope.payload ?? {},
 				);
-				const roomId = resolveRoomId(
-					store,
-					payload.roomId,
-					payload.sessionId,
-				);
+				const roomId = resolveRoomId(store, payload.roomId, payload.sessionId);
 				const work = resolveWorkPayload(payload);
 				const committed = store.recordWork({
 					roomId,
@@ -400,15 +391,9 @@ export function handleDriveRoomCommand(
 				);
 			}
 			case "call_get_room": {
-				const payload = CallGetRoomPayloadSchema.parse(
-					envelope.payload ?? {},
-				);
+				const payload = CallGetRoomPayloadSchema.parse(envelope.payload ?? {});
 				ensureEventLog(store, payload.workspaceRoot);
-				const roomId = resolveRoomId(
-					store,
-					payload.roomId,
-					payload.sessionId,
-				);
+				const roomId = resolveRoomId(store, payload.roomId, payload.sessionId);
 				if (!store.get(roomId) && store.getEventLog()) {
 					store.hydrateFromLogSync(roomId);
 				}

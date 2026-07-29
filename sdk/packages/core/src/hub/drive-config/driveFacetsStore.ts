@@ -12,13 +12,13 @@ import {
 } from "@cline/drive";
 import {
 	DRIVE_FACET_SCHEMA_VERSION,
-	parseDriveFacetDiskFile,
-	parseDriveFacetValues,
-	resolveDriveFacetsPath,
 	type DriveFacetDiskFile,
 	type DriveFacetValues,
 	type FacetDiskEntry,
+	parseDriveFacetDiskFile,
+	parseDriveFacetValues,
 	type ResolvedLlmEgress,
+	resolveDriveFacetsPath,
 } from "@cline/shared";
 
 const FACET_IDS = [

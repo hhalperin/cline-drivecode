@@ -455,7 +455,6 @@ export type HubCommandName =
 	| "connector.channels"
 	| "connector.configure"
 	| "connector.delete_config"
-
 	| "drive.room.get"
 	| "drive.spotlight.set"
 	| "drive.participant.mute.set"

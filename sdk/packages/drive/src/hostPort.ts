@@ -34,7 +34,11 @@ export type RoomOp =
 	| { type: "join"; participant: RoomSnapshot["participants"][number] }
 	| { type: "leave"; participantId: string }
 	| { type: "setAddress"; addressSet: RoomSnapshot["addressSet"] }
-	| { type: "setStage"; sharer: RoomSnapshot["stage"]["sharer"]; pin?: RoomSnapshot["stage"]["pin"] }
+	| {
+			type: "setStage";
+			sharer: RoomSnapshot["stage"]["sharer"];
+			pin?: RoomSnapshot["stage"]["pin"];
+	  }
 	| { type: "setMode"; subMode: RoomSnapshot["subMode"]; driveActive?: boolean }
 	| { type: "raiseHand"; participantId: string; raised: boolean }
 	| { type: "mute"; participantId: string; muted: boolean };

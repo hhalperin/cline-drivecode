@@ -11,16 +11,16 @@ import {
 	type RoomOp,
 } from "@cline/drive";
 import type { DriveEvent, RoomSnapshot } from "@cline/shared";
+import { parseDriveFacetValues } from "@cline/shared";
+import {
+	type DriveRoomStore,
+	getDriveRoomStore,
+	JsonlRoomEventLog,
+} from "./collaboration";
 import {
 	loadOrSeedDriveFacets,
 	writeDriveFacetsFile,
 } from "./drive-config/driveFacetsStore";
-import { parseDriveFacetValues } from "@cline/shared";
-import {
-	getDriveRoomStore,
-	JsonlRoomEventLog,
-	type DriveRoomStore,
-} from "./collaboration";
 
 export type ClineDriveHostOptions = {
 	/** Workspace / config parent for facets + room event log. */
@@ -117,14 +117,13 @@ export function createClineDriveHost(
 				}
 				case "raiseHand": {
 					const roomId = firstRoomId(store);
-					const snapshot = store.getOrThrow(roomId);
-					return {
-						...snapshot,
-						raisedHandByParticipantId: {
-							...snapshot.raisedHandByParticipantId,
-							[op.participantId]: op.raised,
-						},
-					};
+					const result = store.raiseHand({
+						roomId,
+						participantId: op.participantId,
+						raised: op.raised,
+					});
+					emit(result.event);
+					return result.snapshot;
 				}
 				case "mute": {
 					const roomId = firstRoomId(store);

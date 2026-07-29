@@ -107,9 +107,7 @@ export function createBankStore(
 		return null;
 	}
 
-	async function loadTasks(
-		taskIds: string[],
-	): Promise<Map<string, DriveTask>> {
+	async function loadTasks(taskIds: string[]): Promise<Map<string, DriveTask>> {
 		const map = new Map<string, DriveTask>();
 		for (const taskId of taskIds) {
 			const task = await readTask(taskId);
@@ -135,9 +133,7 @@ export function createBankStore(
 				status: "open",
 			};
 			await writeTask(task);
-			emit?.(
-				createDriveTaskOpenedEvent({ roomId, taskId: id, title }),
-			);
+			emit?.(createDriveTaskOpenedEvent({ roomId, taskId: id, title }));
 			return task;
 		},
 
@@ -280,9 +276,6 @@ export function createBankStore(
 			for (const taskId of taskIds) {
 				if (await fs.exists(archivedTaskPath(root, taskId))) {
 					if (!(await fs.exists(taskPath(root, taskId)))) {
-						// referencing an archived task id as history is allowed;
-						// it simply will not appear in open cursor
-						continue;
 					}
 				}
 			}

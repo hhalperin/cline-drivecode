@@ -12,11 +12,11 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import {
+	type BankDriveEvent,
+	type DriveLogEnvelope,
 	parseBankDriveEvent,
 	parseDriveLogEnvelope,
 	resolveDriveConfigDir,
-	type BankDriveEvent,
-	type DriveLogEnvelope,
 } from "@cline/shared";
 
 type Meta = { schemaVersion: 1; nextSeq: number };

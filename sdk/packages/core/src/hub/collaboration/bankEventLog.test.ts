@@ -5,8 +5,8 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
 import { createBankStore, createMemoryBankFs } from "@cline/drive";
+import { afterEach, describe, expect, it } from "vitest";
 import { appendBankLogEvent, readBankLogSince } from "./bankEventLog";
 
 describe("bankEventLog", () => {
@@ -40,9 +40,11 @@ describe("bankEventLog", () => {
 		});
 		const gaps = readBankLogSince(dir, 0);
 		expect(gaps.length).toBeGreaterThanOrEqual(1);
-		expect(gaps[0]!.family).toBe("bank");
-		expect(gaps[0]!.seq).toBe(1);
-		const after = readBankLogSince(dir, gaps[gaps.length - 1]!.seq);
+		const first = gaps[0];
+		expect(first?.family).toBe("bank");
+		expect(first?.seq).toBe(1);
+		const last = gaps[gaps.length - 1];
+		const after = readBankLogSince(dir, last?.seq ?? 0);
 		expect(after).toHaveLength(0);
 	});
 });

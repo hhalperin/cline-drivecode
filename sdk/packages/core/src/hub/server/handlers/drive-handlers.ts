@@ -4,15 +4,12 @@ import {
 	setSpotlight,
 } from "@cline/drive";
 import type { HubCommandEnvelope, HubReplyEnvelope } from "@cline/shared";
-import {
-	type ShowBacklogItem,
-	ShowBacklogItemSchema,
-} from "@cline/shared";
-import { produceMermaidShowArtifact } from "../../drive-producers/produceMermaid";
+import { type ShowBacklogItem, ShowBacklogItemSchema } from "@cline/shared";
 import {
 	getDriveRoomStore,
 	resetDriveRoomStoreForTests,
 } from "../../collaboration";
+import { produceMermaidShowArtifact } from "../../drive-producers/produceMermaid";
 import { errorReply, type HubTransportContext, okReply } from "./context";
 
 function readString(

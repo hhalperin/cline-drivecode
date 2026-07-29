@@ -7,10 +7,7 @@
  * module-local Map in drive-handlers.
  */
 
-import {
-	createEmptyRoomSnapshot,
-	reduceRoom,
-} from "@cline/drive";
+import { createEmptyRoomSnapshot, reduceRoom } from "@cline/drive";
 import type {
 	DriveEvent,
 	DriveRoomLiveState,
@@ -60,8 +57,9 @@ export class DriveRoomStore {
 	}
 
 	lastSeq(roomId: string): number {
-		if (this.seqByRoom.has(roomId)) {
-			return this.seqByRoom.get(roomId)!;
+		const cached = this.seqByRoom.get(roomId);
+		if (cached !== undefined) {
+			return cached;
 		}
 		return this.eventLog?.latestSeq(roomId) ?? 0;
 	}
@@ -179,7 +177,11 @@ export class DriveRoomStore {
 		if (records.length === 0) {
 			return undefined;
 		}
-		this.create(roomId, records[0]!.event.at);
+		const first = records[0];
+		if (!first) {
+			return undefined;
+		}
+		this.create(roomId, first.event.at);
 		let snapshot = this.getOrThrow(roomId);
 		for (const record of records) {
 			if (this.appliedEventIds.has(record.event.id)) {
@@ -204,7 +206,11 @@ export class DriveRoomStore {
 		if (records.length === 0) {
 			return undefined;
 		}
-		this.create(roomId, records[0]!.event.at);
+		const first = records[0];
+		if (!first) {
+			return undefined;
+		}
+		this.create(roomId, first.event.at);
 		let snapshot = this.getOrThrow(roomId);
 		for (const record of records) {
 			if (this.appliedEventIds.has(record.event.id)) {
@@ -255,13 +261,15 @@ export class DriveRoomStore {
 			participantAudio: [...byId.values()],
 			spotlightParticipantId:
 				live.spotlightParticipantId ??
-				(snapshot.stage.sharer?.participantId ?? null),
+				snapshot.stage.sharer?.participantId ??
+				null,
 			director: {
 				...live.director,
 				spotlightParticipantId:
 					live.director.spotlightParticipantId ??
 					live.spotlightParticipantId ??
-					(snapshot.stage.sharer?.participantId ?? null),
+					snapshot.stage.sharer?.participantId ??
+					null,
 			},
 		});
 	}
@@ -366,6 +374,26 @@ export class DriveRoomStore {
 			track: "control",
 			subMode: input.subMode,
 			driveActive: input.driveActive,
+		});
+	}
+
+	raiseHand(input: {
+		roomId: string;
+		participantId: string;
+		raised: boolean;
+		actorId?: string;
+		at?: string;
+	}): RoomCommitResult {
+		return this.commit({
+			schemaVersion: 1,
+			id: newEventId("hand"),
+			roomId: input.roomId,
+			at: input.at ?? nowIso(),
+			actorId: input.actorId ?? input.participantId,
+			type: "control.raise_hand",
+			track: "control",
+			participantId: input.participantId,
+			raised: input.raised,
 		});
 	}
 
