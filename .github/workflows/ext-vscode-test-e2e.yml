@@ -154,15 +154,47 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-bun-
 
-            # Cache VS Code installation
+            # Cache VS Code installation.
+            # Key suffix electron-v2: prior macOS caches restored .app trees with a
+            # COMPLETE marker but missing Contents/MacOS/Electron (gtar/.app quirk),
+            # which made @vscode/test-electron skip re-download and fail with ENOENT.
             - name: Cache VS Code
               uses: actions/cache@v4
               id: vscode-cache
               with:
                   path: apps/vscode/.vscode-test
-                  key: vscode-${{ runner.os }}-stable-${{ hashFiles('apps/vscode/.vscode-test.mjs', 'apps/vscode/package.json') }}
+                  key: vscode-${{ runner.os }}-stable-electron-v2-${{ hashFiles('apps/vscode/.vscode-test.mjs', 'apps/vscode/package.json') }}
                   restore-keys: |
-                      vscode-${{ runner.os }}-stable-
+                      vscode-${{ runner.os }}-stable-electron-v2-
+
+            # actions/cache can restore an incomplete VS Code tree. Drop it so
+            # downloadAndUnzipVSCode re-fetches instead of trusting COMPLETE alone.
+            - name: Validate cached VS Code Electron
+              shell: bash
+              run: |
+                  set -euo pipefail
+                  ROOT="apps/vscode/.vscode-test"
+                  if [ ! -d "$ROOT" ]; then
+                    echo "No VS Code cache directory; download will populate it."
+                    exit 0
+                  fi
+                  case "${{ runner.os }}" in
+                    macOS)
+                      ELECTRON=$(find "$ROOT" -path '*/Contents/MacOS/Electron' -type f 2>/dev/null | head -n 1 || true)
+                      ;;
+                    Windows)
+                      ELECTRON=$(find "$ROOT" -name 'Code.exe' -type f 2>/dev/null | head -n 1 || true)
+                      ;;
+                    *)
+                      ELECTRON=$(find "$ROOT" -type f \( -name 'code' -o -name 'code-insiders' \) 2>/dev/null | head -n 1 || true)
+                      ;;
+                  esac
+                  if [ -z "${ELECTRON}" ] || [ ! -f "${ELECTRON}" ]; then
+                    echo "Cached VS Code is incomplete (missing Electron/code binary); clearing $ROOT"
+                    rm -rf "$ROOT"
+                  else
+                    echo "Cached VS Code executable OK: $ELECTRON"
+                  fi
 
             # Cache Playwright browsers
             - name: Cache Playwright browsers
