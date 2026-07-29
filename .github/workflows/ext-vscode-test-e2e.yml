@@ -114,10 +114,10 @@ jobs:
         steps:
             - id: set-matrix
               run: |
-                  # PRs: ubuntu only (cuts ~2/3 e2e runners). Full 3-OS on main push / dispatch.
-                  # Upstream sample: macos ~45% fail; windows ~2× ubuntu job-minutes.
+                  # PRs: ubuntu + macos (macos covers VS Code .app cache recovery).
+                  # Windows stays main/dispatch-only (~2× ubuntu job-minutes).
                   if [ "${{ github.event_name }}" = "pull_request" ]; then
-                    echo 'matrix=[{"runner":"ubuntu"}]' >> "$GITHUB_OUTPUT"
+                    echo 'matrix=[{"runner":"ubuntu"},{"runner":"macos"}]' >> "$GITHUB_OUTPUT"
                   else
                     echo 'matrix=[{"runner":"ubuntu"},{"runner":"windows"},{"runner":"macos"}]' >> "$GITHUB_OUTPUT"
                   fi
