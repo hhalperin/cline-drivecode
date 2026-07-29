@@ -29,8 +29,8 @@ export class E2ETestHelper {
 
 	/**
 	 * Resolve a VS Code executable, clearing a corrupt `.vscode-test` tree once if
-	 * `@vscode/test-electron` trusts a COMPLETE marker without an Electron binary
-	 * (common after Actions cache restore of macOS .app bundles).
+	 * download metadata claims COMPLETE but the darwin binary is missing
+	 * (VS Code >=1.110 ships Contents/MacOS/Code; older trees used Electron).
 	 */
 	public static async resolveVSCodeExecutable(channel: "stable" | "insiders"): Promise<string> {
 		const cachePath = path.join(E2ETestHelper.CODEBASE_ROOT_DIR, ".vscode-test")

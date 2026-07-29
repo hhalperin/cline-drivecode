@@ -9,7 +9,8 @@ import { execa } from "execa"
 
 const TIMEOUT_MINUTE = 5
 const INSTALL_TIMEOUT_MS = TIMEOUT_MINUTE * 60 * 1000
-const CODEBASE_ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..")
+// build.mjs lives at apps/vscode/src/test/e2e/utils — four levels up is apps/vscode
+const CODEBASE_ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..")
 const VSCODE_CACHE_DIR = path.join(CODEBASE_ROOT_DIR, ".vscode-test")
 
 async function installVSCode() {
