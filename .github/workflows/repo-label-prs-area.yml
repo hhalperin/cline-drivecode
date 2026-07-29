@@ -1,0 +1,30 @@
+# Apply area/* labels from .github/labeler.yml on PR open/sync.
+# Does not route CI — drive-ci / vscode / sdk path filters own that.
+name: repo-label-prs-area
+
+on:
+    pull_request_target:
+        types: [opened, reopened, synchronize]
+
+concurrency:
+    group: label-prs-area-${{ github.event.pull_request.number }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    label:
+        runs-on: ubuntu-latest
+        steps:
+            # pull_request_target + checkout of the base ref only (labeler config).
+            # Never execute PR code here.
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.pull_request.base.sha }}
+
+            - uses: actions/labeler@v5
+              with:
+                  configuration-path: .github/labeler.yml
+                  sync-labels: false

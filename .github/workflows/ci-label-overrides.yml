@@ -1,0 +1,43 @@
+# Pathless companion: wake reusable suites when a ci/* override label is applied.
+# Default path-filtered workflows stay untouched — this is the rare expand path.
+name: ci-label-overrides
+
+on:
+    pull_request:
+        types: [labeled]
+
+concurrency:
+    group: ci-label-overrides-${{ github.event.pull_request.number }}-${{ github.event.label.name }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    pull-requests: read
+
+jobs:
+    drive:
+        if: github.event.label.name == 'ci/drive'
+        uses: ./.github/workflows/drive-ci.yml
+        with:
+            force: true
+
+    sdk:
+        if: github.event.label.name == 'ci/sdk'
+        uses: ./.github/workflows/sdk-test.yml
+
+    docs:
+        if: github.event.label.name == 'ci/docs'
+        uses: ./.github/workflows/docs-link-check.yml
+
+    vscode:
+        if: github.event.label.name == 'ci/vscode'
+        uses: ./.github/workflows/ext-vscode-test.yml
+
+    e2e:
+        if: >
+            github.event.label.name == 'ci/e2e' ||
+            github.event.label.name == 'ci/e2e-full'
+        uses: ./.github/workflows/ext-vscode-test-e2e.yml
+        with:
+            matrix_mode: ${{ github.event.label.name == 'ci/e2e-full' && 'full' || 'ubuntu' }}
+            force: true
