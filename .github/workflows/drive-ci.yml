@@ -204,6 +204,9 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+            - name: Build SDK packages
+              run: bun run build:sdk
+
             - name: Typecheck demo
               run: bun -F @cline/drivecode-demo typecheck
 
@@ -247,8 +250,8 @@ jobs:
             - name: Unit test CLI
               run: bun -F @cline/cli test:unit
 
-    # Single required check for Drive Mode. Always runs; fails only if a needed
-    # job failed or was cancelled. Skipped upstream jobs are fine.
+    # Single required check for Drive Mode. Always runs; fails if detect-changes
+    # or a needed package job failed/cancelled. Skipped package jobs are fine.
     drive-ci:
         needs: [detect-changes, hub, drive, demo, cli]
         if: always()
@@ -256,13 +259,16 @@ jobs:
         name: drive-ci
         steps:
             - name: Gate
+              env:
+                  DETECT_CHANGES_RESULT: ${{ needs.detect-changes.result }}
               run: |
+                  if [ "$DETECT_CHANGES_RESULT" != "success" ]; then
+                    echo "detect-changes did not succeed: $DETECT_CHANGES_RESULT"
+                    exit 1
+                  fi
                   fail=0
-                  for job in hub drive demo cli; do
-                    # Indirect expansion of needs.<job>.result via env is awkward
-                    # in bash; evaluate each explicitly.
-                    :
-                  done
+                  # Indirect expansion of needs.<job>.result via env is awkward
+                  # in bash; evaluate each explicitly.
                   hub="${{ needs.hub.result }}"
                   drive="${{ needs.drive.result }}"
                   demo="${{ needs.demo.result }}"

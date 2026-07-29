@@ -40,7 +40,7 @@ jobs:
                       const wanted = new Set()
                       for (const name of overrides) {
                         const checked = new RegExp(
-                          String.raw`- \[x\][^\n]*\`${name.replace("/", "\\/")}\``,
+                          String.raw`-\s+\[x\][^\n]*\`${name.replace("/", "\\/")}\``,
                           "i",
                         ).test(body)
                         if (checked) wanted.add(name)
