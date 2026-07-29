@@ -325,12 +325,18 @@ export function useDriveSession(
 							? `Could not join Drive: ${message.text}`
 							: "Could not join Drive.",
 					);
-					setDrive((current) => ({
-						...current,
-						active: false,
-						roomId: null,
-						demo: true,
-					}));
+					setDrive((current) => {
+						// Ignore late/duplicate join failures after seating.
+						if (current.roomId != null && current.active) {
+							return current;
+						}
+						return {
+							...current,
+							active: false,
+							roomId: null,
+							demo: true,
+						};
+					});
 					return;
 				}
 				if (command === "call_rename_participant") {
