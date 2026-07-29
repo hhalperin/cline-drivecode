@@ -1,4 +1,7 @@
-import type { SaveProviderSettingsActionRequest } from "@cline/core";
+import type {
+	BoundedOutboundChannel,
+	SaveProviderSettingsActionRequest,
+} from "@cline/core";
 import type { ToolApprovalResult } from "@cline/shared";
 import type {
 	WebviewInboundMessage,
@@ -32,6 +35,9 @@ export type TrackedSession = {
 	provider?: string;
 	model?: string;
 	source?: string;
+	/** Hidden from default session chrome when true (ChatFork / subagent). */
+	isSubagent?: boolean;
+	chatFork?: boolean;
 	createdAt: number;
 	updatedAt: number;
 	createdByClientId?: string;
@@ -55,6 +61,7 @@ export type BrowserPeer = {
 	displayName: string;
 	selectedSessionId?: string;
 	unsubscribeEvents?: () => void;
+	outbound?: BoundedOutboundChannel;
 	sending: boolean;
 };
 

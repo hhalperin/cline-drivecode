@@ -72,6 +72,7 @@ import { PageFrame, PageHeader } from "./components/views/page-layout";
 import type { CustomizationSection } from "./components/views/settings/extensions-view";
 import type { SettingsSection } from "./components/views/settings/settings-view";
 import { ShareScreenSpotlightDemo } from "./drive/ShareScreenSpotlightDemo";
+import { ChatForkDemo } from "./drive/ChatForkDemo";
 import { syncHubTheme } from "./lib/theme";
 import { postToHost } from "./vscode";
 
@@ -1165,10 +1166,13 @@ function App() {
 	const [recentSessions, setRecentSessions] = useState<WebviewSessionSummary[]>(
 		[],
 	);
+	const [locationSearch, setLocationSearch] = useState(
+		() => (typeof window !== "undefined" ? window.location.search : ""),
+	);
 
 	const demoHub = useMemo(
-		() => readDrivecodeDemoHubBootstrap(window.location.search),
-		[],
+		() => readDrivecodeDemoHubBootstrap(locationSearch),
+		[locationSearch],
 	);
 	const statusTeamsSource = useMemo((): StatusTeamsSource => {
 		if (demoHub.useDemoTeamsAdapter) {
@@ -1191,6 +1195,7 @@ function App() {
 				nextView === "chat" ? readCurrentChatSessionId() : undefined,
 			);
 			setSettingsSection(readCurrentSettingsSection());
+			setLocationSearch(window.location.search);
 		};
 		window.addEventListener("popstate", handlePopState);
 		return () => window.removeEventListener("popstate", handlePopState);
@@ -1289,6 +1294,9 @@ function App() {
 		if (view === "drive") {
 			if (demoHub.useShareScreenSpotlightDemo) {
 				return <ShareScreenSpotlightDemo />;
+			}
+			if (demoHub.useChatForkDemo) {
+				return <ChatForkDemo />;
 			}
 			return (
 				<DriveView
@@ -1408,6 +1416,7 @@ function App() {
 		);
 	}, [
 		demoHub.initialStatusMode,
+		demoHub.useChatForkDemo,
 		demoHub.useShareScreenSpotlightDemo,
 		statusTeamsSource,
 		hubState,

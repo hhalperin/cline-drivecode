@@ -32,6 +32,10 @@ import { PlanEditor, removeTask } from "./components/PlanEditor";
 import { listPlanTasks } from "./drive/bankSession";
 import { DriveHeaderControls, DriveStagePanel } from "./drive/DriveCallChrome";
 import { DriveRoomChrome, DriveVoiceBar } from "./drive/DriveRoomChrome";
+import {
+	ChatForkAuditPanel,
+	isChatForkSession,
+} from "./drive/ChatForkAuditPanel";
 import { StickyStagePane } from "./drive/StickyStagePane";
 import {
 	applyBankSnapshot,
@@ -175,7 +179,20 @@ export default function Chat({
 		toggleDrive,
 		toggleStage,
 		presentedShow,
+		chatForks,
+		workersPanelOpen,
+		focusedAuditHandle,
+		auditMessages,
+		auditSummaryOnly,
+		toggleWorkersPanel,
+		openForkAudit,
+		setForkRetain,
 	} = driveSession;
+
+	const visibleSessions = useMemo(
+		() => sessions.filter((session) => !isChatForkSession(session)),
+		[sessions],
+	);
 
 	const attachSession = useCallback(
 		(nextSessionId: string) => {
@@ -572,7 +589,13 @@ export default function Chat({
 					utterance: trimmed,
 				});
 				setDriveJoinNote(ack.text);
-				void createVoiceStack(driveVoiceResolved.topology).tts.speak(ack.text);
+				void createVoiceStack(driveVoiceResolved.topology).tts.speak(
+					ack.text,
+					{
+						volume: driveVoice.hardware.outputVolume,
+						sinkId: driveVoice.hardware.speakerDeviceId,
+					},
+				);
 			}
 
 			const assistantMessage = createMessage("assistant", "");
@@ -612,6 +635,8 @@ export default function Chat({
 		[
 			autoApproveTools,
 			drive,
+			driveVoice.hardware.outputVolume,
+			driveVoice.hardware.speakerDeviceId,
 			driveVoice.profile,
 			driveVoiceResolved,
 			effectiveReasonLevel,
@@ -649,7 +674,7 @@ export default function Chat({
 			<div className="relative flex h-screen flex-col overflow-hidden">
 				<div className="flex items-center justify-between border-b px-4 py-3">
 					<div className="min-w-0">
-						{sessions.length > 0 ? (
+						{visibleSessions.length > 0 ? (
 							<select
 								className="max-w-48 rounded-md border bg-background px-2 py-1 text-xs"
 								disabled={isHydrating}
@@ -666,7 +691,7 @@ export default function Chat({
 								value={sessionId ?? ""}
 							>
 								<option value="">New session</option>
-								{sessions.map((item) => (
+								{visibleSessions.map((item) => (
 									<option key={item.sessionId} value={item.sessionId}>
 										{formatSessionLabel(item)}
 									</option>
@@ -893,6 +918,17 @@ export default function Chat({
 								drive={drive}
 								title={presentedShow?.title}
 								uri={presentedShow?.uri}
+							/>
+							<ChatForkAuditPanel
+								auditMessages={auditMessages}
+								className="mt-3"
+								focusedAuditHandle={focusedAuditHandle}
+								forks={chatForks}
+								onClose={toggleWorkersPanel}
+								onOpenAudit={openForkAudit}
+								onRetain={setForkRetain}
+								open={workersPanelOpen}
+								summaryOnly={auditSummaryOnly}
 							/>
 							<div className="space-y-3 text-xs text-muted-foreground">
 								<p>
