@@ -3,6 +3,7 @@ import type {
 	AgentModel,
 	AgentModelEvent,
 	AgentModelRequest,
+	AgentRuntimeEvent,
 	AgentRuntimePlugin,
 	AgentTool,
 	ITelemetryService,
@@ -99,6 +100,117 @@ describe("AgentRuntime", () => {
 		expect(result.outputText).toBe("hello");
 		expect(result.messages).toHaveLength(2);
 		expect(model.requests).toHaveLength(1);
+	});
+
+	it("keeps delta event snapshots message-free and history-independent", async () => {
+		const historyMessage = (index: number): AgentMessage => ({
+			id: `history-${index}`,
+			role: index % 2 === 0 ? "user" : "assistant",
+			content: [{ type: "text", text: "x".repeat(200) }],
+			createdAt: index,
+		});
+		const runWithHistory = async (historySize: number) => {
+			const model = new ScriptedModel([
+				() => [
+					{ type: "reasoning-delta", text: "think" },
+					{ type: "text-delta", text: "hello" },
+					{
+						type: "usage",
+						usage: { inputTokens: 10, outputTokens: 2 },
+					},
+					{ type: "finish", reason: "stop" },
+				],
+			]);
+			const runtime = new AgentRuntime({
+				model,
+				initialMessages: Array.from({ length: historySize }, (_, index) =>
+					historyMessage(index),
+				),
+			});
+			const events: AgentRuntimeEvent[] = [];
+			runtime.subscribe((event) => {
+				if (
+					event.type === "assistant-text-delta" ||
+					event.type === "assistant-reasoning-delta" ||
+					event.type === "usage-updated"
+				) {
+					events.push(event);
+				}
+			});
+
+			await runtime.run("Hi");
+			return { events, snapshot: runtime.snapshot() };
+		};
+
+		const baseline = await runWithHistory(1_000);
+		const large = await runWithHistory(9_000);
+
+		expect(large.events.map((event) => event.type)).toEqual([
+			"assistant-reasoning-delta",
+			"assistant-text-delta",
+			"usage-updated",
+		]);
+		for (const event of large.events) {
+			expect(event.snapshot).not.toHaveProperty("messages");
+			expect(event.snapshot.messageCount).toBe(9_001);
+		}
+		expect(large.snapshot.messages).toHaveLength(9_002);
+		expect(large.snapshot).not.toHaveProperty("messageCount");
+
+		const eventSizes = (events: AgentRuntimeEvent[]) =>
+			events.map((event) => JSON.stringify(event).length);
+		expect(eventSizes(large.events)).toEqual(eventSizes(baseline.events));
+	});
+
+	it("keeps tool update snapshots message-free with large history", async () => {
+		const initialMessages: AgentMessage[] = Array.from(
+			{ length: 1_000 },
+			(_, index) => ({
+				id: `history-${index}`,
+				role: "user",
+				content: [{ type: "text", text: "large history".repeat(100) }],
+				createdAt: index,
+			}),
+		);
+		const tool: AgentTool = {
+			name: "updates",
+			description: "Emits progress",
+			inputSchema: { type: "object" },
+			async execute(_input, context) {
+				context.emitUpdate?.({ progress: 0.5 });
+				return { ok: true };
+			},
+		};
+		const model = new ScriptedModel([
+			() => [
+				{
+					type: "tool-call-delta",
+					toolCallId: "update-call",
+					toolName: "updates",
+					input: {},
+				},
+				{ type: "finish", reason: "tool-calls" },
+			],
+			() => [
+				{ type: "text-delta", text: "done" },
+				{ type: "finish", reason: "stop" },
+			],
+		]);
+		const runtime = new AgentRuntime({ model, tools: [tool], initialMessages });
+		let updateEvent:
+			| Extract<AgentRuntimeEvent, { type: "tool-updated" }>
+			| undefined;
+		runtime.subscribe((event) => {
+			if (event.type === "tool-updated") updateEvent = event;
+		});
+
+		await runtime.run("Run tool");
+
+		expect(updateEvent).toBeDefined();
+		expect(updateEvent?.snapshot).not.toHaveProperty("messages");
+		expect(updateEvent?.snapshot.messageCount).toBe(1_002);
+		expect(updateEvent?.snapshot.pendingToolCalls).toEqual(["update-call"]);
+		expect(JSON.stringify(updateEvent).length).toBeLessThan(1_000);
 	});
 
 	it("fails a turn that hits the model output token limit before completion", async () => {
