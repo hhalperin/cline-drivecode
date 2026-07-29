@@ -162,6 +162,48 @@ describe("AgentRuntime", () => {
 		expect(eventSizes(large.events)).toEqual(eventSizes(baseline.events));
 	});
 
+	it("keeps a long transcript bounded across a sustained delta stream", async () => {
+		const historySize = 20_000;
+		const deltaCount = 2_000;
+		const initialMessages: AgentMessage[] = Array.from(
+			{ length: historySize },
+			(_, index) => ({
+				id: `history-${index}`,
+				role: index % 2 === 0 ? "user" : "assistant",
+				content: [{ type: "text", text: "history".repeat(64) }],
+				createdAt: index,
+			}),
+		);
+		const model = new ScriptedModel([
+			function* (): Iterable<AgentModelEvent> {
+				for (let index = 0; index < deltaCount; index++) {
+					yield { type: "text-delta", text: `chunk-${index};` };
+				}
+				yield { type: "finish", reason: "stop" };
+			},
+		]);
+		const runtime = new AgentRuntime({ model, initialMessages });
+		let observedDeltas = 0;
+		let largestEventOverheadBytes = 0;
+		let includedMessages = false;
+		runtime.subscribe((event) => {
+			if (event.type !== "assistant-text-delta") return;
+			observedDeltas += 1;
+			includedMessages ||= "messages" in event.snapshot;
+			largestEventOverheadBytes = Math.max(
+				largestEventOverheadBytes,
+				JSON.stringify(event).length - event.accumulatedText.length,
+			);
+		});
+
+		await runtime.run("Continue");
+
+		expect(observedDeltas).toBe(deltaCount);
+		expect(includedMessages).toBe(false);
+		expect(largestEventOverheadBytes).toBeLessThan(1_000);
+		expect(runtime.snapshot().messages).toHaveLength(historySize + 2);
+	});
+
 	it("keeps tool update snapshots message-free with large history", async () => {
 		const initialMessages: AgentMessage[] = Array.from(
 			{ length: 1_000 },
