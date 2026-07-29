@@ -1,8 +1,9 @@
 /**
  * Process-wide pause-after-tool flags for Drive raise-hand (DRV-INTERRUPT).
  *
- * Hub `call_raise_hand` sets these for sessions linked to the room;
- * SessionRuntime consults them via `AgentRuntimeHooks.shouldPauseAfterTool`.
+ * Linked sessions pause iff any current room participant has a raised hand
+ * on the post-mutation snapshot. SessionRuntime consults these via
+ * `AgentRuntimeHooks.shouldPauseAfterTool`.
  */
 
 const pauseBySessionId = new Map<string, boolean>();
@@ -32,6 +33,27 @@ export function clearDrivePauseAfterToolForSessions(
 ): void {
 	for (const sessionId of sessionIds) {
 		pauseBySessionId.delete(sessionId);
+	}
+}
+
+type RaisedHandSnapshot = {
+	raisedHandByParticipantId: Record<string, boolean>;
+	participants: ReadonlyArray<{ id: string }>;
+};
+
+/**
+ * Sync pause-after-tool for linked sessions from a room snapshot.
+ * True iff any current participant still has a raised hand.
+ */
+export function syncDrivePauseAfterToolForRoom(
+	snapshot: RaisedHandSnapshot,
+	sessionIds: Iterable<string>,
+): void {
+	const anyRaised = snapshot.participants.some(
+		(p) => snapshot.raisedHandByParticipantId[p.id] === true,
+	);
+	for (const sessionId of sessionIds) {
+		setDrivePauseAfterTool(sessionId, anyRaised);
 	}
 }
 

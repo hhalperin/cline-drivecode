@@ -11,18 +11,29 @@ function asBankSnapshot(value: unknown): BankSnapshot | undefined {
 	}
 }
 
+export type DriveBankWebviewFrame = {
+	type:
+		| "drive_bank_get"
+		| "drive_bank_seed"
+		| "drive_bank_create_task"
+		| "drive_bank_edit_plan_tasks";
+	workspaceRoot: string;
+	requestId?: string;
+	id?: string;
+	title?: string;
+	body?: string;
+	planId?: string;
+	taskIds?: string[];
+	[key: string]: unknown;
+};
+
 /**
- * Bridges Chat Drive bank seed/get to hub `drive_bank_*` durable ops.
+ * Bridges Chat Drive bank seed/get/mutations to hub `drive_bank_*` durable ops.
  */
 export async function handleDriveBankWebviewCommand(
 	ctx: HubContext,
 	peer: BrowserPeer,
-	frame: {
-		type: "drive_bank_get" | "drive_bank_seed";
-		workspaceRoot: string;
-		requestId?: string;
-		[key: string]: unknown;
-	},
+	frame: DriveBankWebviewFrame,
 ): Promise<void> {
 	const requestId =
 		typeof frame.requestId === "string" ? frame.requestId : undefined;
@@ -50,8 +61,25 @@ export async function handleDriveBankWebviewCommand(
 	}
 
 	const command = frame.type as HubCommandName;
+	const payload: Record<string, unknown> = { workspaceRoot };
+	if (typeof frame.id === "string") {
+		payload.id = frame.id;
+	}
+	if (typeof frame.title === "string") {
+		payload.title = frame.title;
+	}
+	if (typeof frame.body === "string") {
+		payload.body = frame.body;
+	}
+	if (typeof frame.planId === "string") {
+		payload.planId = frame.planId;
+	}
+	if (Array.isArray(frame.taskIds)) {
+		payload.taskIds = frame.taskIds;
+	}
+
 	try {
-		const reply = await ctx.uiClient.command(command, { workspaceRoot });
+		const reply = await ctx.uiClient.command(command, payload);
 		if (!reply.ok) {
 			ctx.send(peer, {
 				type: "drive_bank_error",

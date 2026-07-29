@@ -29,7 +29,11 @@ import {
 	PendingApprovalsPanel,
 } from "./components/PendingApprovalsPanel";
 import { PlanEditor, removeTask } from "./components/PlanEditor";
-import { listPlanTasks } from "./drive/bankSession";
+import {
+	listPlanTasks,
+	mutateBankCreateTask,
+	mutateBankEditPlanTasks,
+} from "./drive/bankSession";
 import { DriveHeaderControls } from "./drive/DriveCallChrome";
 import { DriveRoomChrome, DriveVoiceBar } from "./drive/DriveRoomChrome";
 import { Spotlight } from "./drive/Spotlight";
@@ -925,20 +929,16 @@ export default function Chat({
 											if (!planId) {
 												return;
 											}
-											await bankSessionRef.current.store.createTask({
-												id: task.id,
-												title: task.title,
-												body: "",
-											});
-											const ids = [
-												...planEditorTasks.map((item) => item.id),
-												task.id,
-											];
-											await bankSessionRef.current.store.editPlanTaskIds(
-												planId,
-												ids,
+											const { snapshot } = await mutateBankCreateTask(
+												bankSessionRef.current,
+												defaults.workspaceRoot,
+												{
+													id: task.id,
+													title: task.title,
+													body: "",
+													planId,
+												},
 											);
-											const snapshot = await bankSessionRef.current.refresh();
 											setPlanEditorTasks(
 												await listPlanTasks(bankSessionRef.current, planId),
 											);
@@ -957,11 +957,11 @@ export default function Chat({
 												planEditorTasks.map((item) => item.id),
 												taskId,
 											);
-											await bankSessionRef.current.store.editPlanTaskIds(
-												planId,
-												ids,
+											const { snapshot } = await mutateBankEditPlanTasks(
+												bankSessionRef.current,
+												defaults.workspaceRoot,
+												{ planId, taskIds: ids },
 											);
-											const snapshot = await bankSessionRef.current.refresh();
 											setPlanEditorTasks(
 												await listPlanTasks(bankSessionRef.current, planId),
 											);
@@ -976,11 +976,11 @@ export default function Chat({
 											if (!planId) {
 												return;
 											}
-											await bankSessionRef.current.store.editPlanTaskIds(
-												planId,
-												taskIds,
+											const { snapshot } = await mutateBankEditPlanTasks(
+												bankSessionRef.current,
+												defaults.workspaceRoot,
+												{ planId, taskIds },
 											);
-											const snapshot = await bankSessionRef.current.refresh();
 											setPlanEditorTasks(
 												await listPlanTasks(bankSessionRef.current, planId),
 											);

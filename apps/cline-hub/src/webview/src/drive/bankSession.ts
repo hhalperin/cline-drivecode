@@ -14,15 +14,18 @@ export type DriveBankSession = {
 	refresh: () => Promise<BankSnapshot>;
 };
 
+export type HubBankOpType =
+	| "drive_bank_get"
+	| "drive_bank_seed"
+	| "drive_bank_create_task"
+	| "drive_bank_edit_plan_tasks";
+
 /**
  * Browser projection of the task bank.
  *
- * Join seed prefers hub durable ops (`drive_bank_seed`) when a workspaceRoot
- * is available; the memory FS is only a fallback / local edit buffer.
- *
- * PlanEditor mutations still write the in-memory store only (no hub
- * write-through yet). Hub snapshot initializes Now/Next chrome; local edits
- * may diverge until durable bank mutations are bridged.
+ * Join seed and PlanEditor mutations write through hub durable ops
+ * (`drive_bank_*`) when a workspaceRoot is available; the memory FS is a
+ * fallback / local edit buffer when hub is unavailable or root is unset.
  */
 export function createDriveBankSession(): DriveBankSession {
 	const fs = createMemoryBankFs();
@@ -60,7 +63,8 @@ export async function seedDemoBank(
 
 /**
  * Mirror a hub BankSnapshot into the local memory store so PlanEditor can
- * mutate plan refs locally. Idempotent when the active plan already exists.
+ * mutate plan refs locally. Syncs plan taskIds and creates missing tasks even
+ * when the active plan already exists.
  */
 export async function hydrateLocalBankFromHubSnapshot(
 	session: DriveBankSession,
@@ -69,11 +73,11 @@ export async function hydrateLocalBankFromHubSnapshot(
 	if (!snapshot.activePlanId) {
 		return;
 	}
-	const existing = await session.store.getPlan(snapshot.activePlanId);
-	if (existing) {
-		return;
-	}
 	for (const taskId of snapshot.openTaskIds) {
+		const existingTask = await session.store.getTask(taskId);
+		if (existingTask) {
+			continue;
+		}
 		const title =
 			taskId === snapshot.nowTaskId
 				? (snapshot.nowTitle ?? taskId)
@@ -85,6 +89,13 @@ export async function hydrateLocalBankFromHubSnapshot(
 			title,
 			body: "",
 		});
+	}
+	const existing = await session.store.getPlan(snapshot.activePlanId);
+	if (existing) {
+		await session.store.editPlanTaskIds(snapshot.activePlanId, [
+			...snapshot.openTaskIds,
+		]);
+		return;
 	}
 	await session.store.createPlan({
 		id: snapshot.activePlanId,
@@ -108,11 +119,19 @@ export function planTasksFromSnapshot(
 }
 
 /**
- * Request hub `drive_bank_seed` and resolve with the snapshot reply.
+ * Request a hub `drive_bank_*` op and resolve with the snapshot reply.
  * Rejects on error reply or timeout (~3s).
  */
-export function requestHubBankSeed(
-	workspaceRoot: string,
+export function requestHubBankOp(
+	type: HubBankOpType,
+	payload: {
+		workspaceRoot: string;
+		id?: string;
+		title?: string;
+		body?: string;
+		planId?: string;
+		taskIds?: string[];
+	},
 	options?: { timeoutMs?: number },
 ): Promise<BankSnapshot> {
 	const timeoutMs = options?.timeoutMs ?? HUB_BANK_TIMEOUT_MS;
@@ -121,7 +140,7 @@ export function requestHubBankSeed(
 	return new Promise((resolve, reject) => {
 		const timer = setTimeout(() => {
 			window.removeEventListener("message", onMessage);
-			reject(new Error("drive_bank_seed timed out"));
+			reject(new Error(`${type} timed out`));
 		}, timeoutMs);
 
 		function onMessage(event: MessageEvent) {
@@ -143,7 +162,7 @@ export function requestHubBankSeed(
 			clearTimeout(timer);
 			window.removeEventListener("message", onMessage);
 			if (message.type === "drive_bank_error") {
-				reject(new Error(message.text?.trim() || "drive_bank_seed failed"));
+				reject(new Error(message.text?.trim() || `${type} failed`));
 				return;
 			}
 			if (!message.snapshot) {
@@ -155,11 +174,23 @@ export function requestHubBankSeed(
 
 		window.addEventListener("message", onMessage);
 		postToHost({
-			type: "drive_bank_seed",
-			workspaceRoot,
+			type,
 			requestId,
+			...payload,
 		});
 	});
+}
+
+/** Convenience wrapper around requestHubBankOp("drive_bank_seed", …). */
+export function requestHubBankSeed(
+	workspaceRoot: string,
+	options?: { timeoutMs?: number },
+): Promise<BankSnapshot> {
+	return requestHubBankOp(
+		"drive_bank_seed",
+		{ workspaceRoot },
+		options,
+	);
 }
 
 /**
@@ -173,7 +204,9 @@ export async function seedBankForJoin(
 	const root = workspaceRoot?.trim();
 	if (root) {
 		try {
-			const snapshot = await requestHubBankSeed(root);
+			const snapshot = await requestHubBankOp("drive_bank_seed", {
+				workspaceRoot: root,
+			});
 			await hydrateLocalBankFromHubSnapshot(session, snapshot);
 			return { snapshot, fromHub: true };
 		} catch {
@@ -181,6 +214,94 @@ export async function seedBankForJoin(
 		}
 	}
 	const snapshot = await seedDemoBank(session);
+	return { snapshot, fromHub: false };
+}
+
+export type BankMutationResult = {
+	snapshot: BankSnapshot;
+	/** True when the durable hub bank handled the write. */
+	fromHub: boolean;
+};
+
+/**
+ * Create a task (optionally appending to a plan). Writes through hub when
+ * workspaceRoot is set; on hub error falls back to local memory store and
+ * returns `{ fromHub: false }` so callers can surface divergence.
+ */
+export async function mutateBankCreateTask(
+	session: DriveBankSession,
+	workspaceRoot: string | undefined,
+	input: {
+		id: string;
+		title: string;
+		body?: string;
+		planId?: string;
+	},
+): Promise<BankMutationResult> {
+	const root = workspaceRoot?.trim();
+	const body = input.body ?? "";
+	if (root) {
+		try {
+			const snapshot = await requestHubBankOp("drive_bank_create_task", {
+				workspaceRoot: root,
+				id: input.id,
+				title: input.title,
+				body,
+				planId: input.planId,
+			});
+			await hydrateLocalBankFromHubSnapshot(session, snapshot);
+			return { snapshot, fromHub: true };
+		} catch {
+			// Hub failed — local-only fallback (fromHub: false).
+		}
+	}
+	await session.store.createTask({
+		id: input.id,
+		title: input.title,
+		body,
+	});
+	if (input.planId) {
+		const plan = await session.store.getPlan(input.planId);
+		if (plan) {
+			await session.store.editPlanTaskIds(input.planId, [
+				...plan.taskIds,
+				input.id,
+			]);
+		}
+	}
+	const snapshot = await session.refresh();
+	return { snapshot, fromHub: false };
+}
+
+/**
+ * Replace a plan's task id list (reorder/remove). Writes through hub when
+ * workspaceRoot is set; on hub error falls back to local memory store and
+ * returns `{ fromHub: false }`.
+ */
+export async function mutateBankEditPlanTasks(
+	session: DriveBankSession,
+	workspaceRoot: string | undefined,
+	input: { planId: string; taskIds: string[] },
+): Promise<BankMutationResult> {
+	const root = workspaceRoot?.trim();
+	if (root) {
+		try {
+			const snapshot = await requestHubBankOp(
+				"drive_bank_edit_plan_tasks",
+				{
+					workspaceRoot: root,
+					planId: input.planId,
+					taskIds: input.taskIds,
+				},
+			);
+			await hydrateLocalBankFromHubSnapshot(session, snapshot);
+			return { snapshot, fromHub: true };
+		} catch {
+			// Hub failed — local-only fallback (fromHub: false).
+		}
+	}
+	await session.store.editPlanTaskIds(input.planId, input.taskIds);
+	const snapshot = await session.refresh();
 	return { snapshot, fromHub: false };
 }
 

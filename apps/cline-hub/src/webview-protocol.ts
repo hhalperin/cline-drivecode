@@ -340,6 +340,22 @@ export type WebviewInboundMessage =
 			requestId?: string;
 	  }
 	| {
+			type: "drive_bank_create_task";
+			workspaceRoot: string;
+			requestId?: string;
+			id: string;
+			title: string;
+			body?: string;
+			planId?: string;
+	  }
+	| {
+			type: "drive_bank_edit_plan_tasks";
+			workspaceRoot: string;
+			requestId?: string;
+			planId: string;
+			taskIds: string[];
+	  }
+	| {
 			/** Paged changelog across every agent. */
 			type: "status_query";
 			requestId: string;

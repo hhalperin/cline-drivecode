@@ -53,6 +53,7 @@ import {
 import { handleDriveBankCommand } from "./handlers/drive-bank-handlers";
 import { handleDriveConfigCommand } from "./handlers/drive-config-handlers";
 import { handleDriveCommand } from "./handlers/drive-handlers";
+import { handleDriveHomeCommand } from "./handlers/drive-home-handlers";
 import { handleDriveRoomCommand } from "./handlers/drive-room-handlers";
 import {
 	handleRunAbort,
@@ -442,7 +443,11 @@ export class HubServerTransport implements NativeHubTransport {
 				return handleDriveConfigCommand(this.ctx, envelope);
 			case "drive_bank_get":
 			case "drive_bank_seed":
+			case "drive_bank_create_task":
+			case "drive_bank_edit_plan_tasks":
 				return await handleDriveBankCommand(this.ctx, envelope);
+			case "drive_agent_home_get":
+				return await handleDriveHomeCommand(this.ctx, envelope);
 			case "call_join":
 			case "call_leave":
 			case "call_mute":

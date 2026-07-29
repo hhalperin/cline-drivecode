@@ -20,6 +20,7 @@ export {
 	resetDrivePauseAfterToolForTests,
 	setDrivePauseAfterTool,
 	shouldDrivePauseAfterTool,
+	syncDrivePauseAfterToolForRoom,
 } from "./drivePauseAfterTool";
 export {
 	DriveRoomStore,

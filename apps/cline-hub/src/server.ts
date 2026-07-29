@@ -320,7 +320,9 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 						await handleCallCommand(ctx, peer, frame);
 					} else if (
 						frame.type === "drive_bank_get" ||
-						frame.type === "drive_bank_seed"
+						frame.type === "drive_bank_seed" ||
+						frame.type === "drive_bank_create_task" ||
+						frame.type === "drive_bank_edit_plan_tasks"
 					) {
 						await handleDriveBankWebviewCommand(ctx, peer, frame);
 					} else if (

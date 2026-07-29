@@ -113,4 +113,65 @@ describe("handleDriveBankWebviewCommand", () => {
 			},
 		]);
 	});
+
+	it("forwards drive_bank_create_task payload fields", async () => {
+		const command = vi.fn().mockResolvedValue({
+			ok: true,
+			payload: { snapshot: sampleSnapshot },
+		});
+		const { context, sent } = ctx({
+			uiClient: { command } as unknown as HubContext["uiClient"],
+		});
+		await handleDriveBankWebviewCommand(context, peer(), {
+			type: "drive_bank_create_task",
+			workspaceRoot: "/tmp/ws",
+			requestId: "req-5",
+			id: "t-new",
+			title: "New task",
+			body: "details",
+			planId: "p-active",
+		});
+		expect(command).toHaveBeenCalledWith("drive_bank_create_task", {
+			workspaceRoot: "/tmp/ws",
+			id: "t-new",
+			title: "New task",
+			body: "details",
+			planId: "p-active",
+		});
+		expect(sent[0]).toMatchObject({
+			type: "drive_bank_snapshot",
+			requestId: "req-5",
+		});
+	});
+
+	it("forwards drive_bank_edit_plan_tasks payload fields", async () => {
+		const command = vi.fn().mockResolvedValue({
+			ok: true,
+			payload: {
+				snapshot: {
+					...sampleSnapshot,
+					openTaskIds: ["t-tests", "t-parse"],
+				},
+			},
+		});
+		const { context, sent } = ctx({
+			uiClient: { command } as unknown as HubContext["uiClient"],
+		});
+		await handleDriveBankWebviewCommand(context, peer(), {
+			type: "drive_bank_edit_plan_tasks",
+			workspaceRoot: "/tmp/ws",
+			requestId: "req-6",
+			planId: "p-active",
+			taskIds: ["t-tests", "t-parse"],
+		});
+		expect(command).toHaveBeenCalledWith("drive_bank_edit_plan_tasks", {
+			workspaceRoot: "/tmp/ws",
+			planId: "p-active",
+			taskIds: ["t-tests", "t-parse"],
+		});
+		expect(sent[0]).toMatchObject({
+			type: "drive_bank_snapshot",
+			requestId: "req-6",
+		});
+	});
 });

@@ -1,5 +1,5 @@
 /**
- * Hub drive_bank_get / drive_bank_seed (durable task bank under .drive/bank/).
+ * Hub drive_bank_* durable task bank ops under .drive/bank/.
  */
 
 import type { HubCommandEnvelope, HubReplyEnvelope } from "@cline/shared";
@@ -12,6 +12,24 @@ function readString(
 ): string | undefined {
 	const value = payload?.[key];
 	return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function readStringArray(
+	payload: Record<string, unknown> | undefined,
+	key: string,
+): string[] | undefined {
+	const value = payload?.[key];
+	if (!Array.isArray(value)) {
+		return undefined;
+	}
+	const out: string[] = [];
+	for (const item of value) {
+		if (typeof item !== "string" || !item.trim()) {
+			return undefined;
+		}
+		out.push(item.trim());
+	}
+	return out;
 }
 
 async function seedDemoIfEmpty(workspaceRoot: string) {
@@ -62,6 +80,72 @@ export async function handleDriveBankCommand(
 		case "drive_bank_seed": {
 			const snapshot = await seedDemoIfEmpty(workspaceRoot);
 			return okReply(envelope, { snapshot });
+		}
+		case "drive_bank_create_task": {
+			const id = readString(envelope.payload, "id");
+			const title = readString(envelope.payload, "title");
+			if (!id || !title) {
+				return errorReply(
+					envelope,
+					"invalid_payload",
+					"id and title are required",
+				);
+			}
+			const bodyRaw = envelope.payload?.body;
+			const body =
+				typeof bodyRaw === "string" ? bodyRaw : "";
+			const planId = readString(envelope.payload, "planId");
+			try {
+				const store = openWorkspaceBankStore(workspaceRoot);
+				if (planId) {
+					const plan = await store.getPlan(planId);
+					if (!plan) {
+						return errorReply(
+							envelope,
+							"not_found",
+							`Plan not found: ${planId}`,
+						);
+					}
+					await store.createTask({ id, title, body });
+					await store.editPlanTaskIds(planId, [
+						...plan.taskIds,
+						id,
+					]);
+				} else {
+					await store.createTask({ id, title, body });
+				}
+				const snapshot = await store.getSnapshot();
+				return okReply(envelope, { snapshot });
+			} catch (error) {
+				return errorReply(
+					envelope,
+					"drive_bank_create_task_failed",
+					error instanceof Error ? error.message : String(error),
+				);
+			}
+		}
+		case "drive_bank_edit_plan_tasks": {
+			const planId = readString(envelope.payload, "planId");
+			const taskIds = readStringArray(envelope.payload, "taskIds");
+			if (!planId || !taskIds) {
+				return errorReply(
+					envelope,
+					"invalid_payload",
+					"planId and taskIds (string[]) are required",
+				);
+			}
+			try {
+				const store = openWorkspaceBankStore(workspaceRoot);
+				await store.editPlanTaskIds(planId, taskIds);
+				const snapshot = await store.getSnapshot();
+				return okReply(envelope, { snapshot });
+			} catch (error) {
+				return errorReply(
+					envelope,
+					"drive_bank_edit_plan_tasks_failed",
+					error instanceof Error ? error.message : String(error),
+				);
+			}
 		}
 		default:
 			return errorReply(

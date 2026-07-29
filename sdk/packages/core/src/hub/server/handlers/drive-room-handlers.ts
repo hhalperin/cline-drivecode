@@ -21,7 +21,7 @@ import {
 	type JoinCallResult,
 	JsonlRoomEventLog,
 	joinCall,
-	setDrivePauseAfterTool,
+	syncDrivePauseAfterToolForRoom,
 	type WorkRecordPayload,
 	workRecordFromToolEvent,
 } from "../../collaboration";
@@ -30,18 +30,8 @@ import { errorReply, type HubTransportContext, okReply } from "./context";
 function linkedSessionIds(
 	store: ReturnType<typeof getDriveRoomStore>,
 	roomId: string,
-): Iterable<string> {
-	return store.roomToSessions.get(roomId) ?? [];
-}
-
-function syncDrivePauseAfterToolForRoom(
-	store: ReturnType<typeof getDriveRoomStore>,
-	roomId: string,
-	pause: boolean,
-): void {
-	for (const sessionId of linkedSessionIds(store, roomId)) {
-		setDrivePauseAfterTool(sessionId, pause);
-	}
+): string[] {
+	return [...(store.roomToSessions.get(roomId) ?? [])];
 }
 
 const RoomIdSchema = z.object({
@@ -326,10 +316,14 @@ export function handleDriveRoomCommand(
 			}
 			case "call_leave": {
 				const payload = CallLeavePayloadSchema.parse(envelope.payload ?? {});
+				const sessionIds = linkedSessionIds(store, payload.roomId);
 				const committed = store.leave(payload);
-				clearDrivePauseAfterToolForSessions(
-					linkedSessionIds(store, payload.roomId),
-				);
+				const remaining = store.get(payload.roomId);
+				if (!remaining || sessionIds.length === 0) {
+					clearDrivePauseAfterToolForSessions(sessionIds);
+				} else {
+					syncDrivePauseAfterToolForRoom(committed.snapshot, sessionIds);
+				}
 				publishRoomEvent(
 					ctx,
 					payload.roomId,
@@ -363,9 +357,8 @@ export function handleDriveRoomCommand(
 				);
 				const committed = store.raiseHand(payload);
 				syncDrivePauseAfterToolForRoom(
-					store,
-					payload.roomId,
-					payload.raised,
+					committed.snapshot,
+					linkedSessionIds(store, payload.roomId),
 				);
 				publishRoomEvent(
 					ctx,
