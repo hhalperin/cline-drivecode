@@ -108,12 +108,10 @@ Drive needs a portable domain and policy layer without becoming a second agent r
 
 The implementation must also keep `AgentProfile` separate from agent behavior. Profiles may change display name and visual identity. They must not become a second home for prompts, tools, skills, providers, or model selection.
 
-## Open Decision (needs Harrison)
+## Decision (Accepted 2026-07-29)
 
-**Package location — closed as Recommended.** See [cline-drivemode/decisions/DEC-package-location.md](cline-drivemode/decisions/DEC-package-location.md). Flip to Accepted with `accept all` or override with `change: DEC-package-location …`.
+**Package location — Accepted.** See [cline-drivemode/decisions/DEC-package-location.md](cline-drivemode/decisions/DEC-package-location.md).
 
-**Still needs explicit reply:** Accept ARD-0001 through ARD-0004 (and the leadership DEC bundle) as written, or name one change before phase-0 schema work.
-
-Reply with one of: `accept all` | `change: <id and new default>`.
+**ARD-0000…0013 + DEC bundle — Accepted** via human `accept all` (2026-07-29). ARD-0014 does not exist.
 
 Board: [cline-drivemode/ard/ARD-0000-status-board.md](cline-drivemode/ard/ARD-0000-status-board.md).
