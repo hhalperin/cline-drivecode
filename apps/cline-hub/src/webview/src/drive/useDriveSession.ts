@@ -766,31 +766,7 @@ export function useDriveSession(
 					return;
 				}
 				// Refresh authoritative room state (rolls back optimistic rename, etc.).
-				const roomId = driveRef.current.roomId;
-				if (roomId) {
-					const payload: {
-						type: "call_get_room";
-						roomId: string;
-						sessionId?: string;
-						afterSeq?: number;
-						workspaceRoot?: string;
-					} = {
-						type: "call_get_room",
-						roomId,
-					};
-					const sessionId = sessionIdRef.current;
-					if (sessionId) {
-						payload.sessionId = sessionId;
-					}
-					if (roomSeqRef.current > 0) {
-						payload.afterSeq = roomSeqRef.current;
-					}
-					const workspaceRoot = workspaceRootRef.current?.trim();
-					if (workspaceRoot) {
-						payload.workspaceRoot = workspaceRoot;
-					}
-					postToHost(payload);
-				}
+				refreshDriveRoom();
 				return;
 			}
 			if (message.type === "drive_fork_audit") {
