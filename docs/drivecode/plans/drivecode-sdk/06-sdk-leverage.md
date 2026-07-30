@@ -74,7 +74,7 @@ See [08-followon-tasks.md](08-followon-tasks.md) for the fleshed F1–F3 task gr
 | `createDriveHarness` rooms MVP | Done |
 | Host `getRoom` + roomId on `RoomOp` | Done |
 | Product hub migration onto harness | **Done** for join / raise-hand / address / stage / mode |
-| DirectorPort / show commit on harness | **Done** for enqueue / present / tick wire path; script attach + planner still handler-local |
+| DirectorPort / show commit on harness | **Done** for enqueue / present / tick / script attach / advance / planFromWork |
 | Webview single fold | **Done** — `foldIncomingDriveEvent` + tool→`work.*`→`reduceRoom` in `stageReducer` |
 | Phase-2 pack/address/preset helpers | **Done** (pure helpers + harness wire) |
 | Durable registry + hub add/remove pack | **Done** — `registry.v1.json`, `call_add_roster_pack` / `call_remove_roster_pack` |

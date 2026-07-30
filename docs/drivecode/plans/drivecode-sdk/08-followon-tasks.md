@@ -214,4 +214,14 @@ Checked 2026-07-30 against `driveHarnessBinding`, `drive-room-handlers` (`call_j
 | Dismiss wire | Ship pure `planDismissParticipant` + tests; skip `call_dismiss_participant` wire unless trivial after remove wire. |
 | seatCap on hub | Pass through harness default (`Infinity`) for now; teamOpt gate remains a separate DRV task — do not invent a second gate here. |
 
-Plan is ready to implement in the revised ship order above.
+Plan was implemented in the revised ship order above.
+
+## Slice status (landed)
+
+| Slice | Status |
+|---|---|
+| F1 Durable registry + hub add | **Done** |
+| F2 Remove-pack plan + harness + hub remove | **Done** (`planDismissParticipant` pure only; no dismiss wire) |
+| F3 Script/planner DirectorOps | **Done** |
+
+Still out of scope: webview pack library, `/pack`, Team CI guard.
