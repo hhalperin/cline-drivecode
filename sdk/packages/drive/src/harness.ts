@@ -400,31 +400,44 @@ export function createDriveHarness(
 		},
 
 		async removeRosterPack(roomId, packId) {
+			const removeKeys = new Set<string>([packId]);
+			if (resolveRosterPack) {
+				const resolved = await resolveRosterPack(packId);
+				if (resolved && isRosterPack(resolved)) {
+					removeKeys.add(resolved.id);
+					if (resolved.slug?.trim()) {
+						removeKeys.add(resolved.slug.trim());
+					}
+				}
+			}
+
 			let snapshot = await requireRoom(roomId);
-			const actions = planRemoveRosterPack(snapshot.participants, packId);
-			for (const action of actions) {
-				if (action.action === "leave") {
+			for (const key of removeKeys) {
+				const actions = planRemoveRosterPack(snapshot.participants, key);
+				for (const action of actions) {
+					if (action.action === "leave") {
+						snapshot = await host.commitRoomOp({
+							type: "leave",
+							roomId,
+							participantId: action.participantId,
+						});
+						continue;
+					}
+					const existing = snapshot.participants.find(
+						(participant) => participant.id === action.participantId,
+					);
+					if (!existing || existing.kind !== "agent") {
+						continue;
+					}
 					snapshot = await host.commitRoomOp({
-						type: "leave",
+						type: "join",
 						roomId,
-						participantId: action.participantId,
+						participant: {
+							...existing,
+							seatSources: action.seatSources,
+						},
 					});
-					continue;
 				}
-				const existing = snapshot.participants.find(
-					(participant) => participant.id === action.participantId,
-				);
-				if (!existing || existing.kind !== "agent") {
-					continue;
-				}
-				snapshot = await host.commitRoomOp({
-					type: "join",
-					roomId,
-					participant: {
-						...existing,
-						seatSources: action.seatSources,
-					},
-				});
 			}
 			return snapshot;
 		},

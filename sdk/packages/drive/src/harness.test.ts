@@ -166,6 +166,34 @@ describe("createDriveHarness", () => {
 		}
 	});
 
+	it("removeRosterPack matches seat tags by pack id or slug alias", async () => {
+		const host = memoryDriveHost();
+		const drive = createDriveHarness({
+			host,
+			resolveRosterPack: (packId) => {
+				if (packId === "review-crew" || packId === "review") {
+					return {
+						id: "review",
+						slug: "review-crew",
+						displayName: "Review",
+						members: [{ profileId: "reviewer", role: "specialist" }],
+						addressable: true,
+					};
+				}
+				return null;
+			},
+		});
+		await drive.rooms.createOrAttach({
+			roomId: "r_alias",
+			humanId: "h1",
+			partner: null,
+			activateDrive: false,
+		});
+		await drive.rooms.addRosterPack("r_alias", "review-crew");
+		const after = await drive.rooms.removeRosterPack("r_alias", "review");
+		expect(after.participants.some((p) => p.id === "reviewer")).toBe(false);
+	});
+
 	it("exposes pure director helpers without host IO", async () => {
 		const host = memoryDriveHost();
 		const drive = createDriveHarness({ host });

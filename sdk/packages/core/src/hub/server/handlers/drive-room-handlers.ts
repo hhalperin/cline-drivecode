@@ -24,7 +24,6 @@ import {
 	type WorkRecordPayload,
 	workRecordFromToolEvent,
 } from "../../collaboration";
-import { resolvePackFromRegistry } from "../../drive-config/driveRegistryStore";
 import {
 	captureHubRoomCommit,
 	getHubDriveHarness,
@@ -606,10 +605,6 @@ export async function handleDriveRoomCommand(
 				ensureEventLog(store, payload.workspaceRoot);
 				store.create(payload.roomId);
 				const configParent = payload.workspaceRoot;
-				const resolved = configParent
-					? resolvePackFromRegistry(configParent, payload.packId)
-					: null;
-				const packId = resolved?.id ?? payload.packId;
 				const beforeIds = new Set(
 					(store.get(payload.roomId)?.participants ?? []).map((p) => p.id),
 				);
@@ -626,13 +621,16 @@ export async function handleDriveRoomCommand(
 				const seated = snapshot.participants
 					.filter((p) => p.kind === "agent" && !beforeIds.has(p.id))
 					.map((p) => p.id);
+				// Seat sources are tagged with the lookup packId argument (not pack.id).
+				const seatedPackId = payload.packId;
 				const alreadyPresent = snapshot.participants
 					.filter(
 						(p) =>
 							p.kind === "agent" &&
 							beforeIds.has(p.id) &&
 							p.seatSources.some(
-								(source) => source.kind === "pack" && source.packId === packId,
+								(source) =>
+									source.kind === "pack" && source.packId === seatedPackId,
 							),
 					)
 					.map((p) => p.id);
@@ -651,17 +649,13 @@ export async function handleDriveRoomCommand(
 				ensureEventLog(store, payload.workspaceRoot);
 				store.create(payload.roomId);
 				const configParent = payload.workspaceRoot;
-				const resolved = configParent
-					? resolvePackFromRegistry(configParent, payload.packId)
-					: null;
-				const packId = resolved?.id ?? payload.packId;
 				const { harness } = getHubDriveHarness({
 					store,
 					configParent,
 				});
 				const snapshot = await harness.rooms.removeRosterPack(
 					payload.roomId,
-					packId,
+					payload.packId,
 				);
 				const seq = store.lastSeq(payload.roomId);
 				publishRoomSnapshot(ctx, payload.roomId, snapshot, seq);
