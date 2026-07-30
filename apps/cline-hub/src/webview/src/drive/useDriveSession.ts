@@ -207,6 +207,8 @@ export function useDriveSession(
 	>([]);
 	/** True between call_join and the first successful room_snapshot. */
 	const pendingJoinRef = useRef(false);
+	/** Last hub room seq for afterSeq gap fill on reconnect / get_room. */
+	const roomSeqRef = useRef(0);
 	/** Local RoomSnapshot for reduceRoom fold (same kernel as hub). */
 	const roomSnapshotRef = useRef<RoomSnapshot | null>(null);
 	/**
@@ -279,7 +281,9 @@ export function useDriveSession(
 			const message = event.data as {
 				type?: string;
 				text?: string;
+				code?: string;
 				command?: string;
+				seq?: number;
 				showItemId?: string;
 				title?: string;
 				caption?: string;
@@ -384,6 +388,8 @@ export function useDriveSession(
 						type: "call_get_room";
 						roomId: string;
 						sessionId?: string;
+						afterSeq?: number;
+						workspaceRoot?: string;
 					} = {
 						type: "call_get_room",
 						roomId,
@@ -391,6 +397,13 @@ export function useDriveSession(
 					const sessionId = sessionIdRef.current;
 					if (sessionId) {
 						payload.sessionId = sessionId;
+					}
+					if (roomSeqRef.current > 0) {
+						payload.afterSeq = roomSeqRef.current;
+					}
+					const workspaceRoot = workspaceRootRef.current?.trim();
+					if (workspaceRoot) {
+						payload.workspaceRoot = workspaceRoot;
 					}
 					postToHost(payload);
 				}
@@ -409,6 +422,12 @@ export function useDriveSession(
 				(message.type === "room_snapshot" || message.type === "drive_event") &&
 				message.snapshot
 			) {
+				if (
+					typeof message.seq === "number" &&
+					message.seq >= roomSeqRef.current
+				) {
+					roomSeqRef.current = message.seq;
+				}
 				const hubSnapshot = message.snapshot;
 				// Fold drive_event through reduceRoom; room_snapshot replaces.
 				// Compute candidate before intent guards — only commit to the ref
@@ -592,6 +611,7 @@ export function useDriveSession(
 			pendingJoinRef.current = false;
 			driveIntentRef.current = false;
 			driveActiveRef.current = false;
+			roomSeqRef.current = 0;
 			roomSnapshotRef.current = null;
 			const leaveRoomId = current.roomId ?? DRIVE_DEFAULT_ROOM_ID;
 			postToHost({
@@ -619,6 +639,7 @@ export function useDriveSession(
 			agent: { id: string; displayName: string };
 			activateDrive: boolean;
 			sessionId?: string;
+			workspaceRoot?: string;
 		} = {
 			type: "call_join",
 			roomId: current.roomId ?? DRIVE_DEFAULT_ROOM_ID,
@@ -636,6 +657,10 @@ export function useDriveSession(
 		if (sessionId) {
 			joinPayload.sessionId = sessionId;
 		}
+		const workspaceRoot = workspaceRootRef.current?.trim();
+		if (workspaceRoot) {
+			joinPayload.workspaceRoot = workspaceRoot;
+		}
 		postToHost(joinPayload);
 	}, [args, drive]);
 
@@ -647,6 +672,8 @@ export function useDriveSession(
 					type: "call_get_room";
 					roomId: string;
 					sessionId?: string;
+					afterSeq?: number;
+					workspaceRoot?: string;
 				} = {
 					type: "call_get_room",
 					roomId: current.roomId,
@@ -654,6 +681,13 @@ export function useDriveSession(
 				const sessionId = sessionIdRef.current;
 				if (sessionId) {
 					payload.sessionId = sessionId;
+				}
+				if (roomSeqRef.current > 0) {
+					payload.afterSeq = roomSeqRef.current;
+				}
+				const workspaceRoot = workspaceRootRef.current?.trim();
+				if (workspaceRoot) {
+					payload.workspaceRoot = workspaceRoot;
 				}
 				postToHost(payload);
 			}
