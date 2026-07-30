@@ -176,10 +176,9 @@ export function DriveCallStrip({
 				{drive.handRaised ? " · hand raised" : ""}
 			</span>
 			<div className="ml-auto flex flex-wrap items-center gap-1">
-				<div
+				<fieldset
 					aria-label="Drive working mode"
-					className="flex flex-wrap items-center gap-1"
-					role="group"
+					className="m-0 flex flex-wrap items-center gap-1 border-0 p-0"
 				>
 					{SUB_MODES.map((mode) => (
 						<Button
@@ -195,7 +194,7 @@ export function DriveCallStrip({
 							{mode}
 						</Button>
 					))}
-				</div>
+				</fieldset>
 				{drive.postureOverride ? (
 					<Button
 						disabled={disabled}
