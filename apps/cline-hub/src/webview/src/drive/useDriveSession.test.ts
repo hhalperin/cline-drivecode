@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+	hasPendingDriveJoinRequest,
+	isDriveRoomSnapshotForTarget,
 	resolveDriveCallError,
+	resolveDriveTargetRoomId,
 	shouldReattachDriveSession,
 } from "./useDriveSession";
 
@@ -35,7 +38,21 @@ describe("Drive call error transitions", () => {
 		});
 	});
 
-	it("refreshes after a recoverable in-call command error", () => {
+	it("treats a failed room refresh as a terminal notice", () => {
+		expect(
+			resolveDriveCallError({
+				code: "hub_disconnected",
+				command: "call_get_room",
+				text: "Hub is not connected.",
+				wasJoining: false,
+			}),
+		).toEqual({
+			kind: "notice",
+			note: "Could not refresh the Drive call: Hub is not connected.",
+		});
+	});
+
+	it("refreshes after a recoverable in-call mutation error", () => {
 		expect(
 			resolveDriveCallError({
 				command: "call_rename_participant",
@@ -47,6 +64,21 @@ describe("Drive call error transitions", () => {
 			note: "Could not rename participant: duplicate name",
 		});
 	});
+
+	it("keeps an authoritative call intact when session attachment fails", () => {
+		expect(
+			resolveDriveCallError({
+				code: "room_not_found",
+				command: "call_join",
+				text: "room_not_found:default",
+				wasJoining: false,
+			}),
+		).toEqual({
+			kind: "notice",
+			note:
+				"Could not attach this Chat session to Drive: room_not_found:default",
+		});
+	});
 });
 
 describe("Drive session reattachment", () => {
@@ -54,18 +86,22 @@ describe("Drive session reattachment", () => {
 		expect(
 			shouldReattachDriveSession({
 				active: true,
+				confirmedAttachedSessionId: "session-1",
 				connectionPhase: "on",
 				driveIntended: true,
-				lastAttachedSessionId: "session-1",
+				failedAttachedSessionId: null,
+				pendingAttachedSessionId: null,
 				sessionId: "session-2",
 			}),
 		).toBe(true);
 		expect(
 			shouldReattachDriveSession({
 				active: true,
+				confirmedAttachedSessionId: "session-2",
 				connectionPhase: "on",
 				driveIntended: true,
-				lastAttachedSessionId: "session-2",
+				failedAttachedSessionId: null,
+				pendingAttachedSessionId: null,
 				sessionId: "session-2",
 			}),
 		).toBe(false);
@@ -75,11 +111,101 @@ describe("Drive session reattachment", () => {
 		expect(
 			shouldReattachDriveSession({
 				active: false,
+				confirmedAttachedSessionId: null,
 				connectionPhase: "joining",
 				driveIntended: true,
-				lastAttachedSessionId: null,
+				failedAttachedSessionId: null,
+				pendingAttachedSessionId: null,
 				sessionId: "session-2",
 			}),
 		).toBe(false);
+	});
+
+	it("does not retry an attachment while pending or after failure", () => {
+		expect(
+			shouldReattachDriveSession({
+				active: true,
+				confirmedAttachedSessionId: "session-1",
+				connectionPhase: "on",
+				driveIntended: true,
+				failedAttachedSessionId: null,
+				pendingAttachedSessionId: "session-2",
+				sessionId: "session-2",
+			}),
+		).toBe(false);
+		expect(
+			shouldReattachDriveSession({
+				active: true,
+				confirmedAttachedSessionId: "session-1",
+				connectionPhase: "on",
+				driveIntended: true,
+				failedAttachedSessionId: "session-2",
+				pendingAttachedSessionId: null,
+				sessionId: "session-2",
+			}),
+		).toBe(false);
+	});
+
+	it("does not treat a late join error as pending work", () => {
+		expect(
+			hasPendingDriveJoinRequest({
+				pendingRoomJoin: false,
+				pendingAttachedSessionId: null,
+			}),
+		).toBe(false);
+		expect(
+			hasPendingDriveJoinRequest({
+				pendingRoomJoin: false,
+				pendingAttachedSessionId: "session-2",
+			}),
+		).toBe(true);
+	});
+});
+
+describe("Drive room targeting", () => {
+	it("requires both the envelope and snapshot to match the target room", () => {
+		expect(
+			isDriveRoomSnapshotForTarget({
+				expectedRoomId: "pairing-room",
+				outerRoomId: "pairing-room",
+				snapshotRoomId: "pairing-room",
+			}),
+		).toBe(true);
+		expect(
+			isDriveRoomSnapshotForTarget({
+				expectedRoomId: "pairing-room",
+				outerRoomId: "foreign-room",
+				snapshotRoomId: "pairing-room",
+			}),
+		).toBe(false);
+		expect(
+			isDriveRoomSnapshotForTarget({
+				expectedRoomId: "pairing-room",
+				outerRoomId: "pairing-room",
+				snapshotRoomId: "foreign-room",
+			}),
+		).toBe(false);
+		expect(
+			isDriveRoomSnapshotForTarget({
+				expectedRoomId: "pairing-room",
+				snapshotRoomId: "pairing-room",
+			}),
+		).toBe(true);
+	});
+
+	it("prefers an explicit normalized target room", () => {
+		expect(
+			resolveDriveTargetRoomId({
+				requestedRoomId: "  pairing-room  ",
+				currentRoomId: "current-room",
+				expectedRoomId: "expected-room",
+			}),
+		).toBe("pairing-room");
+		expect(
+			resolveDriveTargetRoomId({
+				currentRoomId: null,
+				expectedRoomId: "expected-room",
+			}),
+		).toBe("expected-room");
 	});
 });

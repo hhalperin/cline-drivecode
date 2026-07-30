@@ -152,6 +152,17 @@ describe("applyDriveRoomPreviewMessage", () => {
 		expect(next).toEqual(EMPTY_DRIVE_ROOM_PREVIEW);
 	});
 
+	it("accepts a legacy room_not_found error without a structured code", () => {
+		const current = projectDriveRoomPreview(roomSnapshot());
+		const next = applyDriveRoomPreviewMessage(current, {
+			type: "call_error",
+			command: "call_get_room",
+			text: "room_not_found:default",
+		});
+
+		expect(next).toEqual(EMPTY_DRIVE_ROOM_PREVIEW);
+	});
+
 	it("ignores foreign-room snapshots and unrelated errors", () => {
 		const current = projectDriveRoomPreview(roomSnapshot());
 		const foreign = applyDriveRoomPreviewMessage(current, {

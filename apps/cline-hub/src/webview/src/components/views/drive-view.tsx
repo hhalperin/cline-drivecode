@@ -24,6 +24,7 @@ import {
 	type DriveRoomPreviewState,
 	driveRoomOpenIntent,
 	EMPTY_DRIVE_ROOM_PREVIEW,
+	isDriveRoomNotFoundMessage,
 } from "../../drive/driveRoomPreview";
 import type { DriveOpenCallRequest } from "../../drive/driveLaunch";
 import { DRIVE_DEFAULT_ROOM_ID } from "../../drive/types";
@@ -282,10 +283,11 @@ export function DriveView({
 			} else if (message.type === "status_updated") {
 				requestSummary();
 			}
+			const roomNotFound = isDriveRoomNotFoundMessage(message);
 			if (
 				message.type === "call_error" &&
 				message.command === "call_get_room" &&
-				message.code !== "room_not_found"
+				!roomNotFound
 			) {
 				setRoomPreview(null);
 				setRoomLookupError(
@@ -298,10 +300,7 @@ export function DriveView({
 			if (
 				message.type === "room_snapshot" ||
 				message.type === "drive_event" ||
-				message.type === "room_not_found" ||
-				(message.type === "call_error" &&
-					message.code === "room_not_found" &&
-					message.command === "call_get_room")
+				roomNotFound
 			) {
 				setRoomLookupError(null);
 				setRoomPreview((current) => {

@@ -89,7 +89,21 @@ type DriveRoomPreviewMessage = {
 	snapshot?: unknown;
 	code?: unknown;
 	command?: unknown;
+	text?: unknown;
 };
+
+export function isDriveRoomNotFoundMessage(
+	message: DriveRoomPreviewMessage,
+): boolean {
+	return (
+		message.type === "room_not_found" ||
+		(message.type === "call_error" &&
+			message.command === "call_get_room" &&
+			(message.code === "room_not_found" ||
+				(typeof message.text === "string" &&
+					message.text.startsWith("room_not_found"))))
+	);
+}
 
 function isRoomSnapshot(value: unknown): value is RoomSnapshot {
 	if (!value || typeof value !== "object") {
@@ -132,12 +146,7 @@ export function applyDriveRoomPreviewMessage(
 		return projectDriveRoomPreview(message.snapshot);
 	}
 
-	const roomNotFound =
-		message.type === "room_not_found" ||
-		(message.type === "call_error" &&
-			message.code === "room_not_found" &&
-			message.command === "call_get_room");
-	if (!roomNotFound) {
+	if (!isDriveRoomNotFoundMessage(message)) {
 		return current;
 	}
 	if (typeof message.roomId === "string" && message.roomId !== roomId) {

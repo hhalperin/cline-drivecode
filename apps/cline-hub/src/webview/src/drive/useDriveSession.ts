@@ -927,6 +927,9 @@ export function useDriveSession(
 	}, [refreshDriveRoom, resetDriveConnection, seedBankAfterJoin]);
 
 	useEffect(() => {
+		// Attachment refs do not render; the revision intentionally re-evaluates
+		// this effect after a pending attachment is confirmed or rejected.
+		void attachmentRevision;
 		const sessionId = args.sessionId?.trim();
 		if (!shouldReattachDriveSession({
 			active: drive.active,
