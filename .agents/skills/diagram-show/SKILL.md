@@ -20,7 +20,7 @@ Stage diagrams for Spotlight via the dual-backlog director. Sources come from th
 ## Source bias (required)
 
 1. Prefer kit `mermaidSource` from `showItemFromTemplate({ templateId: "arch.overview" | "flow.data" | "sec.network", … })`.
-2. Prefer living fences in `docs/drivecode/architecture.md` when explaining product planes.
+2. Prefer living fences in `docs/drivecode/reference/architecture.md` when explaining product planes.
 3. Honor `.claude/diagram-conventions.md` node IDs (`HubDaemon`, `ShowBacklog`, `MermaidProduce`, …).
 4. Override args only with parse-valid Mermaid that still uses convention names.
 

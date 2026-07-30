@@ -92,7 +92,7 @@ flowchart LR
 
 **Fail closed:** `render_mermaid` without parse-valid `mermaidSource` does not get a `uri` and is not presented onto `StickyStagePane`.
 
-See [show-backlog-director/overview.md](../show-backlog-director/overview.md).
+See [show-backlog-director/overview.md](../initiatives/show-backlog-director/overview.md).
 
 ## Failure modes (minimum UX)
 

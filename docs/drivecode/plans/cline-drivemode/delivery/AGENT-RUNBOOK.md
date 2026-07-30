@@ -53,11 +53,11 @@ Agents working the same phase must not share write targets. Features in one phas
 
 ## Diagram-first vs diagram-show (Cline skills)
 
-Honor [`.claude/diagram-conventions.md`](../../../../.claude/diagram-conventions.md). Skills live under `.agents/skills/` (Cline discovers them; SDK-backed, not Claude plugins).
+Honor [`.claude/diagram-conventions.md`](../../../../../.claude/diagram-conventions.md). Skills live under `.agents/skills/` (Cline discovers them; SDK-backed, not Claude plugins).
 
 | Skill | When |
 |---|---|
-| **`diagram-first`** | Structural nest docs: ARDs, [architecture.md](../../architecture.md), share-and-router, ops topology, show-backlog DAGs |
+| **`diagram-first`** | Structural nest docs: ARDs, [architecture.md](../../../reference/architecture.md), share-and-router, ops topology, show-backlog DAGs |
 | **`diagram-show`** | Enqueue/present `diagram.*` Show items via `SHOW_TEMPLATE_KIT` + `drive.show.*` |
 
 **Do not** use diagram-first as the default for feature checklists or PR implementation plans — use visual-plan / the DRV checklist. Do not replace [TASK-GRAPH.md](TASK-GRAPH.md) with date `gantt` charts.

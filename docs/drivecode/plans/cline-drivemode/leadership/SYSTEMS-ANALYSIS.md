@@ -373,8 +373,8 @@ See [ops/hub-drive-ops.md](../ops/hub-drive-ops.md). Families:
 
 > **Living-diagram note (2026-07-30).** §13.1 below was the pre-landing inventory.
 > Treat dashed rows as **designed-vs-actual closed**. Current truth: nest
-> [HANDOFF.md](../../HANDOFF.md), [architecture.md](../../architecture.md),
-> [ops/hub-drive-ops.md](ops/hub-drive-ops.md). Cline skills: `diagram-first`, `diagram-show`.
+> [HANDOFF.md](../../../HANDOFF.md), [architecture.md](../../../reference/architecture.md),
+> [ops/hub-drive-ops.md](../ops/hub-drive-ops.md). Cline skills: `diagram-first`, `diagram-show`.
 
 ### 13.1 As-is (code) — historical snapshot (2026-07-25)
 

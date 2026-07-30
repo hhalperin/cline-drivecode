@@ -59,7 +59,7 @@ For `diagram.architecture` / `diagram.data_flow` / `diagram.network_security` /
 `diagram.sequence`:
 
 1. Prefer `SHOW_TEMPLATE_KIT` defaults + convention-stable `mermaidSource`.
-2. Prefer nest living fences ([docs/drivecode/architecture.md](../docs/drivecode/architecture.md)) over free-form invent.
+2. Prefer nest living fences ([docs/drivecode/reference/architecture.md](../docs/drivecode/reference/architecture.md)) over free-form invent.
 3. Parse-validate before present; fail closed (no silent stub of invalid Mermaid onto stage).
 
 ## Provenance caption

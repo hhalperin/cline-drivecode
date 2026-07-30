@@ -64,4 +64,4 @@ State the grade truthfully. Silence about grade is failure.
 
 ## Drive / director note
 
-Living architecture for Status / Room / Director planes lives in `docs/drivecode/architecture.md`. Do not conflate Status Dependency map with Show sticky diagrams. For stage `diagram.*` items, load **diagram-show**.
+Living architecture for Status / Room / Director planes lives in `docs/drivecode/reference/architecture.md`. Do not conflate Status Dependency map with Show sticky diagrams. For stage `diagram.*` items, load **diagram-show**.
