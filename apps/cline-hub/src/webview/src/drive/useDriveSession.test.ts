@@ -23,6 +23,20 @@ describe("Drive call error transitions", () => {
 		});
 	});
 
+	it("clears a stale missing room from a legacy call_error without code", () => {
+		expect(
+			resolveDriveCallError({
+				command: "call_get_room",
+				text: "room_not_found:default",
+				wasJoining: false,
+			}),
+		).toEqual({
+			kind: "reset",
+			note: "The Drive call is no longer available.",
+			phase: "off",
+		});
+	});
+
 	it("makes a failed join retryable", () => {
 		expect(
 			resolveDriveCallError({

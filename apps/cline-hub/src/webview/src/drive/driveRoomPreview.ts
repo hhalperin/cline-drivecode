@@ -92,6 +92,18 @@ type DriveRoomPreviewMessage = {
 	text?: unknown;
 };
 
+/** True when a call_error payload identifies a missing room (incl. legacy text). */
+export function isDriveRoomNotFoundError(fields: {
+	code?: unknown;
+	text?: unknown;
+}): boolean {
+	return (
+		fields.code === "room_not_found" ||
+		(typeof fields.text === "string" &&
+			fields.text.startsWith("room_not_found"))
+	);
+}
+
 export function isDriveRoomNotFoundMessage(
 	message: DriveRoomPreviewMessage,
 ): boolean {
@@ -99,9 +111,7 @@ export function isDriveRoomNotFoundMessage(
 		message.type === "room_not_found" ||
 		(message.type === "call_error" &&
 			message.command === "call_get_room" &&
-			(message.code === "room_not_found" ||
-				(typeof message.text === "string" &&
-					message.text.startsWith("room_not_found"))))
+			isDriveRoomNotFoundError(message))
 	);
 }
 

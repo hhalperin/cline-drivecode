@@ -19,6 +19,7 @@ import {
 	listPlanTasks,
 	seedBankForJoin,
 } from "./bankSession";
+import { isDriveRoomNotFoundError } from "./driveRoomPreview";
 import { foldIncomingDriveEvent } from "./foldRoomSnapshot";
 import {
 	isDriveHumanId,
@@ -162,7 +163,7 @@ export function resolveDriveCallError({
 	wasJoining: boolean;
 }): DriveCallErrorResolution {
 	const detail = text?.trim();
-	if (code === "room_not_found") {
+	if (isDriveRoomNotFoundError({ code, text })) {
 		const joinFailed =
 			wasJoining && (command === undefined || command === "call_join");
 		if (command === "call_join" && !joinFailed) {
