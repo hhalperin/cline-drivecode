@@ -11,42 +11,22 @@
  */
 
 import { readdir, stat } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
-const repoRoot = resolve(import.meta.dirname, "..", "..");
-const nest = join(repoRoot, "docs", "drivecode");
+export type StructureIssue = { path: string; message: string };
 
-type Issue = { path: string; message: string };
-
-const issues: Issue[] = [];
-
-function fail(relPath: string, message: string): void {
-	issues.push({ path: relPath, message });
-}
-
-async function exists(path: string): Promise<boolean> {
-	try {
-		await stat(path);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-async function list(dir: string): Promise<{ name: string; isDir: boolean }[]> {
-	if (!(await exists(dir))) return [];
-	const entries = await readdir(dir, { withFileTypes: true });
-	return entries
-		.filter((e) => e.name !== ".DS_Store")
-		.map((e) => ({ name: e.name, isDir: e.isDirectory() }));
-}
-
-function nestRel(abs: string): string {
-	return relative(repoRoot, abs).split("\\").join("/");
-}
+export type CheckDrivecodeStructureOptions = {
+	/** Absolute path to docs/drivecode (or a fixture that mirrors it). */
+	nestPath: string;
+	/**
+	 * Prefix used in reported paths. Defaults to `docs/drivecode` so messages
+	 * match the live nest; tests can pass `fixture` for clarity.
+	 */
+	reportPrefix?: string;
+};
 
 /** Required directories that must exist after migration. */
-const REQUIRED_DIRS = [
+export const REQUIRED_DIRS = [
 	"reference",
 	"plans",
 	"plans/cline-drivemode",
@@ -77,17 +57,17 @@ const REQUIRED_DIRS = [
 	"assets/demos",
 	"meta",
 	"meta/reviews",
-];
+] as const;
 
 /** Nest root may only contain these files and directories. */
-const NEST_ROOT_FILES = new Set([
+export const NEST_ROOT_FILES = new Set([
 	"README.md",
 	"AGENTS.md",
 	"HANDOFF.md",
 	"CI.md",
 	"STRUCTURE.md",
 ]);
-const NEST_ROOT_DIRS = new Set([
+export const NEST_ROOT_DIRS = new Set([
 	"reference",
 	"plans",
 	"design",
@@ -96,7 +76,7 @@ const NEST_ROOT_DIRS = new Set([
 ]);
 
 /** Product plan track root: README + role folders only. */
-const PRODUCT_ROLE_DIRS = new Set([
+export const PRODUCT_ROLE_DIRS = new Set([
 	"foundation",
 	"research",
 	"leadership",
@@ -112,49 +92,114 @@ const PRODUCT_ROLE_DIRS = new Set([
 	"archive",
 ]);
 
-const HARNESS_ROOT_FILES = new Set(["README.md", "decisions.tsv"]);
-const HARNESS_ROOT_DIRS = new Set(["foundation", "delivery"]);
+export const HARNESS_ROOT_FILES = new Set(["README.md", "decisions.tsv"]);
+export const HARNESS_ROOT_DIRS = new Set(["foundation", "delivery"]);
 
-const ASSET_BUCKETS = new Set(["logos", "hub", "tui", "demos"]);
-const DESIGN_DIRS = new Set(["brand", "wireframes", "canvases"]);
+export const ASSET_BUCKETS = new Set(["logos", "hub", "tui", "demos"]);
+export const DESIGN_DIRS = new Set(["brand", "wireframes", "canvases"]);
 
 /** Legacy paths that must stay gone. */
-const FORBIDDEN_PATHS = [
+export const FORBIDDEN_PATHS = [
 	"design/drive-wireframes",
 	"reviews",
 	"plans/cline-drivemode/show-backlog-director",
 	"plans/cline-drivemode/task-bank-drive-loop",
 	"plans/cline-drivemode/share-and-router",
 	"plans/cline-drivemode/share-screen-canvas",
-];
+] as const;
 
-async function checkRequiredDirs(): Promise<void> {
-	for (const dir of REQUIRED_DIRS) {
-		const abs = join(nest, dir);
-		if (!(await exists(abs))) {
-			fail(`docs/drivecode/${dir}`, "required directory missing");
-		}
+/** Key files that must exist after the migration (spot-check the move map). */
+export const REQUIRED_FILES = [
+	"README.md",
+	"AGENTS.md",
+	"HANDOFF.md",
+	"CI.md",
+	"STRUCTURE.md",
+	"reference/architecture.md",
+	"reference/native-vs-drivecode.md",
+	"reference/skills-inventory.md",
+	"plans/cline-drivemode/foundation/00-vision.md",
+	"plans/cline-drivemode/foundation/01-architecture.md",
+	"plans/cline-drivemode/delivery/TASK-GRAPH.md",
+	"plans/cline-drivemode/delivery/AGENT-RUNBOOK.md",
+	"plans/cline-drivemode/initiatives/README.md",
+	"plans/drivecode-sdk/foundation/02-architecture.md",
+	"plans/drivecode-sdk/delivery/07-agent-handoff.md",
+	"design/brand/CLINE-BRAND-TOKENS.md",
+	"design/wireframes/DRIVE-TAB.md",
+	"design/canvases/overview-canvas.html",
+	"meta/glossary.md",
+] as const;
+
+async function exists(path: string): Promise<boolean> {
+	try {
+		await stat(path);
+		return true;
+	} catch {
+		return false;
 	}
 }
 
-async function checkForbidden(): Promise<void> {
+async function list(dir: string): Promise<{ name: string; isDir: boolean }[]> {
+	if (!(await exists(dir))) return [];
+	const entries = await readdir(dir, { withFileTypes: true });
+	return entries
+		.filter((e) => e.name !== ".DS_Store")
+		.map((e) => ({ name: e.name, isDir: e.isDirectory() }));
+}
+
+/**
+ * Validate a docs/drivecode nest (live or fixture). Returns issues; does not
+ * exit. Empty array means the skeleton is valid.
+ */
+export async function checkDrivecodeStructure(
+	options: CheckDrivecodeStructureOptions,
+): Promise<StructureIssue[]> {
+	const nest = options.nestPath;
+	const prefix = options.reportPrefix ?? "docs/drivecode";
+	const issues: StructureIssue[] = [];
+
+	const fail = (relPath: string, message: string): void => {
+		issues.push({ path: relPath, message });
+	};
+
+	const report = (rel: string): string =>
+		rel.length === 0 ? prefix : `${prefix}/${rel}`;
+
+	if (!(await exists(nest))) {
+		fail(prefix, "nest directory is missing");
+		return issues;
+	}
+
+	for (const dir of REQUIRED_DIRS) {
+		if (!(await exists(join(nest, dir)))) {
+			fail(report(dir), "required directory missing");
+		}
+	}
+
+	for (const file of REQUIRED_FILES) {
+		if (!(await exists(join(nest, file)))) {
+			fail(report(file), "required file missing after migration");
+		}
+	}
+
 	for (const dir of FORBIDDEN_PATHS) {
-		const abs = join(nest, dir);
-		if (await exists(abs)) {
+		if (await exists(join(nest, dir))) {
 			fail(
-				`docs/drivecode/${dir}`,
+				report(dir),
 				"legacy path must not exist — see STRUCTURE.md placement matrix",
 			);
 		}
 	}
-}
 
-async function checkNestRoot(): Promise<void> {
 	for (const entry of await list(nest)) {
-		const rel = `docs/drivecode/${entry.name}`;
+		const rel = report(entry.name);
 		if (entry.isDir) {
 			if (!NEST_ROOT_DIRS.has(entry.name)) {
-				fail(rel, `unknown nest-root directory (allowed: ${[...NEST_ROOT_DIRS].join(", ")})`);
+				fail(
+					rel,
+					`unknown nest-root directory (allowed: ${[...NEST_ROOT_DIRS].join(", ")})`,
+				);
 			}
 		} else if (!NEST_ROOT_FILES.has(entry.name)) {
 			fail(
@@ -163,17 +208,25 @@ async function checkNestRoot(): Promise<void> {
 			);
 		}
 	}
-}
 
-async function checkProductPlanRoot(): Promise<void> {
-	const root = join(nest, "plans", "cline-drivemode");
-	for (const entry of await list(root)) {
-		const rel = `docs/drivecode/plans/cline-drivemode/${entry.name}`;
+	for (const entry of await list(join(nest, "plans"))) {
+		const rel = report(`plans/${entry.name}`);
+		if (entry.isDir) {
+			if (entry.name !== "cline-drivemode" && entry.name !== "drivecode-sdk") {
+				fail(rel, "plans/ only hosts cline-drivemode/ and drivecode-sdk/");
+			}
+		} else if (entry.name !== "README.md") {
+			fail(rel, "plans/ root only allows README.md");
+		}
+	}
+
+	for (const entry of await list(join(nest, "plans", "cline-drivemode"))) {
+		const rel = report(`plans/cline-drivemode/${entry.name}`);
 		if (entry.isDir) {
 			if (!PRODUCT_ROLE_DIRS.has(entry.name)) {
 				fail(
 					rel,
-					`unknown product-plan role directory — multi-file tracks go under initiatives/<slug>/`,
+					"unknown product-plan role directory — multi-file tracks go under initiatives/<slug>/",
 				);
 			}
 		} else if (entry.name !== "README.md") {
@@ -183,15 +236,15 @@ async function checkProductPlanRoot(): Promise<void> {
 			);
 		}
 	}
-}
 
-async function checkHarnessRoot(): Promise<void> {
-	const root = join(nest, "plans", "drivecode-sdk");
-	for (const entry of await list(root)) {
-		const rel = `docs/drivecode/plans/drivecode-sdk/${entry.name}`;
+	for (const entry of await list(join(nest, "plans", "drivecode-sdk"))) {
+		const rel = report(`plans/drivecode-sdk/${entry.name}`);
 		if (entry.isDir) {
 			if (!HARNESS_ROOT_DIRS.has(entry.name)) {
-				fail(rel, `unknown harness directory (allowed: ${[...HARNESS_ROOT_DIRS].join(", ")})`);
+				fail(
+					rel,
+					`unknown harness directory (allowed: ${[...HARNESS_ROOT_DIRS].join(", ")})`,
+				);
 			}
 		} else if (!HARNESS_ROOT_FILES.has(entry.name)) {
 			fail(
@@ -200,12 +253,9 @@ async function checkHarnessRoot(): Promise<void> {
 			);
 		}
 	}
-}
 
-async function checkAssets(): Promise<void> {
-	const root = join(nest, "assets");
-	for (const entry of await list(root)) {
-		const rel = `docs/drivecode/assets/${entry.name}`;
+	for (const entry of await list(join(nest, "assets"))) {
+		const rel = report(`assets/${entry.name}`);
 		if (!entry.isDir) {
 			fail(rel, "no loose files in assets/ — use logos/, hub/, tui/, or demos/");
 			continue;
@@ -214,26 +264,23 @@ async function checkAssets(): Promise<void> {
 			fail(rel, `unknown asset bucket (allowed: ${[...ASSET_BUCKETS].join(", ")})`);
 		}
 	}
-}
 
-async function checkDesign(): Promise<void> {
-	const root = join(nest, "design");
-	for (const entry of await list(root)) {
-		const rel = `docs/drivecode/design/${entry.name}`;
+	for (const entry of await list(join(nest, "design"))) {
+		const rel = report(`design/${entry.name}`);
 		if (entry.isDir) {
 			if (!DESIGN_DIRS.has(entry.name)) {
-				fail(rel, `unknown design directory (allowed: ${[...DESIGN_DIRS].join(", ")})`);
+				fail(
+					rel,
+					`unknown design directory (allowed: ${[...DESIGN_DIRS].join(", ")})`,
+				);
 			}
 		} else if (entry.name !== "README.md") {
 			fail(rel, "loose design file — use brand/, wireframes/, or canvases/");
 		}
 	}
-}
 
-async function checkMeta(): Promise<void> {
-	const root = join(nest, "meta");
-	for (const entry of await list(root)) {
-		const rel = `docs/drivecode/meta/${entry.name}`;
+	for (const entry of await list(join(nest, "meta"))) {
+		const rel = report(`meta/${entry.name}`);
 		if (entry.isDir) {
 			if (entry.name !== "reviews") {
 				fail(rel, "unknown meta directory (allowed: reviews/)");
@@ -242,14 +289,13 @@ async function checkMeta(): Promise<void> {
 			fail(rel, "meta root only allows glossary.md (and optional README.md)");
 		}
 	}
-}
 
-async function checkFeatureNames(): Promise<void> {
-	const root = join(nest, "plans", "cline-drivemode", "features");
-	for (const entry of await list(root)) {
+	for (const entry of await list(
+		join(nest, "plans", "cline-drivemode", "features"),
+	)) {
 		if (entry.isDir) {
 			fail(
-				`docs/drivecode/plans/cline-drivemode/features/${entry.name}`,
+				report(`plans/cline-drivemode/features/${entry.name}`),
 				"features/ holds DRV-*.md one-pagers only — multi-file plans go in initiatives/",
 			);
 			continue;
@@ -257,19 +303,16 @@ async function checkFeatureNames(): Promise<void> {
 		if (entry.name === "README.md") continue;
 		if (!/^DRV-[A-Z0-9-]+\.md$/.test(entry.name)) {
 			fail(
-				`docs/drivecode/plans/cline-drivemode/features/${entry.name}`,
+				report(`plans/cline-drivemode/features/${entry.name}`),
 				"feature files must match DRV-*.md",
 			);
 		}
 	}
-}
 
-async function checkArdNames(): Promise<void> {
-	const root = join(nest, "plans", "cline-drivemode", "ard");
-	for (const entry of await list(root)) {
+	for (const entry of await list(join(nest, "plans", "cline-drivemode", "ard"))) {
 		if (entry.isDir) {
 			fail(
-				`docs/drivecode/plans/cline-drivemode/ard/${entry.name}`,
+				report(`plans/cline-drivemode/ard/${entry.name}`),
 				"ard/ holds ARD-*.md files only",
 			);
 			continue;
@@ -277,80 +320,66 @@ async function checkArdNames(): Promise<void> {
 		if (entry.name === "README.md") continue;
 		if (!/^ARD-\d{4}-[a-z0-9-]+\.md$/.test(entry.name)) {
 			fail(
-				`docs/drivecode/plans/cline-drivemode/ard/${entry.name}`,
+				report(`plans/cline-drivemode/ard/${entry.name}`),
 				"ARD files must match ARD-NNNN-slug.md",
 			);
 		}
 	}
-}
 
-async function checkInitiativesHaveReadme(): Promise<void> {
-	const root = join(nest, "plans", "cline-drivemode", "initiatives");
-	for (const entry of await list(root)) {
+	for (const entry of await list(
+		join(nest, "plans", "cline-drivemode", "initiatives"),
+	)) {
 		if (!entry.isDir) {
 			if (entry.name !== "README.md") {
 				fail(
-					`docs/drivecode/plans/cline-drivemode/initiatives/${entry.name}`,
+					report(`plans/cline-drivemode/initiatives/${entry.name}`),
 					"initiatives/ root only allows README.md and slug directories",
 				);
 			}
 			continue;
 		}
-		const readme = join(root, entry.name, "README.md");
+		const readme = join(
+			nest,
+			"plans",
+			"cline-drivemode",
+			"initiatives",
+			entry.name,
+			"README.md",
+		);
 		if (!(await exists(readme))) {
 			fail(
-				`docs/drivecode/plans/cline-drivemode/initiatives/${entry.name}`,
+				report(`plans/cline-drivemode/initiatives/${entry.name}`),
 				"each initiative must have a README.md (purpose, DRV links, status)",
 			);
 		}
 	}
-}
 
-async function checkPlansIndex(): Promise<void> {
-	const root = join(nest, "plans");
-	for (const entry of await list(root)) {
-		const rel = `docs/drivecode/plans/${entry.name}`;
-		if (entry.isDir) {
-			if (entry.name !== "cline-drivemode" && entry.name !== "drivecode-sdk") {
-				fail(rel, "plans/ only hosts cline-drivemode/ and drivecode-sdk/");
-			}
-		} else if (entry.name !== "README.md") {
-			fail(rel, "plans/ root only allows README.md");
-		}
-	}
+	return issues;
 }
 
 async function main(): Promise<void> {
-	if (!(await exists(nest))) {
-		console.error("docs/drivecode/ is missing");
-		process.exit(1);
-	}
-
-	await checkRequiredDirs();
-	await checkForbidden();
-	await checkNestRoot();
-	await checkPlansIndex();
-	await checkProductPlanRoot();
-	await checkHarnessRoot();
-	await checkAssets();
-	await checkDesign();
-	await checkMeta();
-	await checkFeatureNames();
-	await checkArdNames();
-	await checkInitiativesHaveReadme();
+	const repoRoot = resolve(import.meta.dirname, "..", "..");
+	const nest = join(repoRoot, "docs", "drivecode");
+	const issues = await checkDrivecodeStructure({ nestPath: nest });
 
 	if (issues.length === 0) {
 		console.log("docs/drivecode structure OK");
 		return;
 	}
 
-	console.error(`docs/drivecode structure check failed (${issues.length} issue${issues.length === 1 ? "" : "s"}):\n`);
+	console.error(
+		`docs/drivecode structure check failed (${issues.length} issue${issues.length === 1 ? "" : "s"}):\n`,
+	);
 	for (const issue of issues) {
 		console.error(`  ${issue.path}`);
 		console.error(`    ${issue.message}\n`);
 	}
-	console.error("See docs/drivecode/STRUCTURE.md placement matrix and docs/drivecode/AGENTS.md.");
+	console.error(
+		"See docs/drivecode/STRUCTURE.md placement matrix and docs/drivecode/AGENTS.md.",
+	);
 	process.exit(1);
 }
 
-await main();
+if (import.meta.main) {
+	await main();
+}

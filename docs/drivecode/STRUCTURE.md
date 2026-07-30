@@ -110,6 +110,7 @@ plans/cline-drivemode/initiatives/<slug>/
 
 ```sh
 bun run check:drivecode-docs
+bun run test:drivecode-docs
 ```
 
 The checker (`sdk/scripts/check-drivecode-structure.ts`) fails on:
@@ -120,8 +121,11 @@ The checker (`sdk/scripts/check-drivecode-structure.ts`) fails on:
 - Loose files in `assets/` or unknown asset/design buckets
 - Revived legacy paths (`design/drive-wireframes/`, nest `reviews/`, old initiative siblings)
 - `features/` / `ard/` naming violations
+- Missing required role directories or migrated front-door files
 
-CI runs this alongside internal link checks in `.github/workflows/docs-link-check.yml`.
+Unit tests (`sdk/scripts/check-drivecode-structure.test.ts`) cover valid/invalid fixtures
+plus live-nest migration invariants. CI runs both the checker and the tests in
+`.github/workflows/docs-link-check.yml`.
 
 ## Success criteria
 

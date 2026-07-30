@@ -55,6 +55,9 @@ jobs:
             - name: Check docs/drivecode structure
               run: bun sdk/scripts/check-drivecode-structure.ts
 
+            - name: Test docs/drivecode structure gate
+              run: bun test sdk/scripts/check-drivecode-structure.test.ts
+
     # Non-blocking: crawls cline.bot and checks external URLs, both of which depend
     # on availability outside this repo. Runs weekly and on demand.
     external:

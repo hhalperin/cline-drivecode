@@ -55,7 +55,7 @@ this nest. Brand source files under repo-root `assets/drive/` are not docs.
 5. New wireframes: `design/wireframes/`; brand tokens → `design/brand/`; canvases → `design/canvases/`.
 6. Closed PR handoffs → `archive/`. Keep nest `HANDOFF.md` as the only cold-start front door.
 7. Link new docs from the nearest index (`plans/.../README.md`, nest `README.md`, or `HANDOFF.md` when it changes the front door).
-8. Run `bun run check:drivecode-docs` before finishing.
+8. Run `bun run check:drivecode-docs` (and `bun run test:drivecode-docs` after changing the gate) before finishing.
 
 ## Editing
 
