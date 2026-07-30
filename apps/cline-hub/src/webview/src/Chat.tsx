@@ -235,15 +235,15 @@ export default function Chat({
 		) {
 			return;
 		}
-		handledDriveLaunchRequestIdRef.current = driveLaunchRequest.id;
-		if (
+		const launched =
 			driveLaunchRequest.action === "join" ||
 			connectionPhase !== "on"
-		) {
-			joinDrive(driveLaunchRequest.roomId);
-		} else {
-			refreshDriveRoom(driveLaunchRequest.roomId);
+				? joinDrive(driveLaunchRequest.roomId)
+				: refreshDriveRoom(driveLaunchRequest.roomId);
+		if (!launched) {
+			return;
 		}
+		handledDriveLaunchRequestIdRef.current = driveLaunchRequest.id;
 		onDriveLaunchHandled?.(driveLaunchRequest.id);
 	}, [
 		connectionPhase,

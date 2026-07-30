@@ -314,9 +314,9 @@ export type UseDriveSessionResult = {
 	driveVoiceResolved: ReturnType<typeof resolveDriveVoiceTopology>;
 	/** Workspace root for durable bank / agent-home hub ops. */
 	workspaceRoot?: string;
-	joinDrive: (roomId?: string) => void;
+	joinDrive: (roomId?: string) => boolean;
 	leaveDrive: () => void;
-	refreshDriveRoom: (roomId?: string) => void;
+	refreshDriveRoom: (roomId?: string) => boolean;
 	toggleDrive: () => void;
 	toggleStage: () => void;
 	presentedShow: {
@@ -507,7 +507,7 @@ export function useDriveSession(
 	const joinDrive = useCallback(
 		(targetRoomId?: string) => {
 			if (connectionPhaseRef.current === "joining") {
-				return;
+				return false;
 			}
 			const current = driveRef.current;
 			const roomId = resolveDriveTargetRoomId({
@@ -539,6 +539,7 @@ export function useDriveSession(
 				failedAttachedSessionIdRef.current = null;
 			}
 			sendDriveJoin(current, sessionId, roomId);
+			return true;
 		},
 		[sendDriveJoin],
 	);
@@ -557,7 +558,7 @@ export function useDriveSession(
 		(targetRoomId?: string) => {
 			const explicitlyTargeted = Boolean(targetRoomId?.trim());
 			if (connectionPhaseRef.current !== "on" && !explicitlyTargeted) {
-				return;
+				return false;
 			}
 			const current = driveRef.current;
 			const roomId = resolveDriveTargetRoomId({
@@ -570,7 +571,7 @@ export function useDriveSession(
 					note: "The Drive call is no longer available.",
 					phase: "off",
 				});
-				return;
+				return true;
 			}
 			if (expectedRoomIdRef.current !== roomId) {
 				expectedRoomIdRef.current = roomId;
@@ -594,6 +595,7 @@ export function useDriveSession(
 				payload.sessionId = sessionId;
 			}
 			postToHost(payload);
+			return true;
 		},
 		[resetDriveConnection],
 	);
