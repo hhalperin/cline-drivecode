@@ -443,6 +443,7 @@ export function useDriveSession(
 			pendingJoinRef.current = false;
 			driveIntentRef.current = false;
 			roomSnapshotRef.current = null;
+			roomSeqRef.current = 0;
 			confirmedAttachedSessionIdRef.current = null;
 			pendingAttachedSessionIdRef.current = null;
 			failedAttachedSessionIdRef.current = null;
@@ -474,6 +475,7 @@ export function useDriveSession(
 			if (expectedRoomIdRef.current !== roomId) {
 				expectedRoomIdRef.current = roomId;
 				roomSnapshotRef.current = null;
+				roomSeqRef.current = 0;
 			}
 			const payload: {
 				type: "call_join";
@@ -482,6 +484,7 @@ export function useDriveSession(
 				agent: { id: string; displayName: string };
 				activateDrive: boolean;
 				sessionId?: string;
+				workspaceRoot?: string;
 			} = {
 				type: "call_join",
 				roomId,
@@ -499,6 +502,10 @@ export function useDriveSession(
 			if (normalizedSessionId) {
 				payload.sessionId = normalizedSessionId;
 				pendingAttachedSessionIdRef.current = normalizedSessionId;
+			}
+			const workspaceRoot = workspaceRootRef.current?.trim();
+			if (workspaceRoot) {
+				payload.workspaceRoot = workspaceRoot;
 			}
 			postToHost(payload);
 		},
@@ -519,6 +526,7 @@ export function useDriveSession(
 			if (expectedRoomIdRef.current !== roomId) {
 				expectedRoomIdRef.current = roomId;
 				roomSnapshotRef.current = null;
+				roomSeqRef.current = 0;
 			}
 			driveIntentRef.current = true;
 			const joiningDifferentRoom =
@@ -530,6 +538,7 @@ export function useDriveSession(
 			) {
 				pendingJoinRef.current = true;
 				roomSnapshotRef.current = null;
+				roomSeqRef.current = 0;
 				connectionPhaseRef.current = "joining";
 				setConnectionPhase("joining");
 				setDriveJoinNote("Joining Drive call…");
@@ -577,6 +586,7 @@ export function useDriveSession(
 			if (expectedRoomIdRef.current !== roomId) {
 				expectedRoomIdRef.current = roomId;
 				roomSnapshotRef.current = null;
+				roomSeqRef.current = 0;
 			}
 			if (explicitlyTargeted) {
 				// A Drive-home "Return" is an assertion that this room is the local
@@ -587,6 +597,8 @@ export function useDriveSession(
 				type: "call_get_room";
 				roomId: string;
 				sessionId?: string;
+				afterSeq?: number;
+				workspaceRoot?: string;
 			} = {
 				type: "call_get_room",
 				roomId,
@@ -594,6 +606,13 @@ export function useDriveSession(
 			const sessionId = sessionIdRef.current?.trim();
 			if (sessionId) {
 				payload.sessionId = sessionId;
+			}
+			if (roomSeqRef.current > 0) {
+				payload.afterSeq = roomSeqRef.current;
+			}
+			const workspaceRoot = workspaceRootRef.current?.trim();
+			if (workspaceRoot) {
+				payload.workspaceRoot = workspaceRoot;
 			}
 			postToHost(payload);
 			return true;
