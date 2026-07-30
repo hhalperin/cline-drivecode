@@ -9,6 +9,8 @@ on:
             - "**/*.mdx"
             - "docs/docs.json"
             - "sdk/scripts/check-links.ts"
+            - "sdk/scripts/check-drivecode-structure.ts"
+            - "docs/drivecode/**"
             - ".github/workflows/docs-link-check.yml"
     pull_request:
         branches:
@@ -18,6 +20,8 @@ on:
             - "**/*.mdx"
             - "docs/docs.json"
             - "sdk/scripts/check-links.ts"
+            - "sdk/scripts/check-drivecode-structure.ts"
+            - "docs/drivecode/**"
             - ".github/workflows/docs-link-check.yml"
     schedule:
         # External links rot on their own schedule, so sweep them weekly.
@@ -47,6 +51,9 @@ jobs:
             # the scheduled job, where an outage cannot block anyone's merge.
             - name: Check internal links
               run: bun sdk/scripts/check-links.ts --no-site
+
+            - name: Check docs/drivecode structure
+              run: bun sdk/scripts/check-drivecode-structure.ts
 
     # Non-blocking: crawls cline.bot and checks external URLs, both of which depend
     # on availability outside this repo. Runs weekly and on demand.
