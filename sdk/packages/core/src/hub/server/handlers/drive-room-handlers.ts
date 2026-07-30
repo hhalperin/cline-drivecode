@@ -31,7 +31,6 @@ import {
 } from "../../driveHarnessBinding";
 import { errorReply, type HubTransportContext, okReply } from "./context";
 import { runChatForkDirectorTick } from "./drive-fork-tick";
-import { runShowPlannerFromWork } from "./drive-handlers";
 
 function linkedSessionIds(
 	store: ReturnType<typeof getDriveRoomStore>,
