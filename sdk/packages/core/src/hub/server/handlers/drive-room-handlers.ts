@@ -283,9 +283,12 @@ function ensureEventLog(
 	store: ReturnType<typeof getDriveRoomStore>,
 	workspaceRoot: string | undefined,
 ): void {
-	if (!workspaceRoot || store.getEventLog()) {
+	if (!workspaceRoot) {
 		return;
 	}
+	// Always prefer the explicit workspace root. An earlier harness bind may
+	// have attached a JsonlRoomEventLog under tmpdir() before workspaceRoot
+	// was known; skipping would leave durable events on the wrong parent.
 	store.attachEventLog(new JsonlRoomEventLog(workspaceRoot));
 }
 
