@@ -72,10 +72,27 @@ export {
 	type DriveFacetValue,
 } from "./facets/catalog.js";
 export {
+	capPreset,
+	expandRosterPack,
+	type ExpandRosterPackResult,
+	type KnownAgent,
+	type SeatProposal,
+} from "./facets/expand.js";
+export {
 	createFacetStore,
 	type FacetStore,
 	type FacetStoreSnapshot,
 } from "./facets/store.js";
+export {
+	resolveAddress,
+	type ResolveAddressInput,
+	type ResolveAddressResult,
+} from "./address/resolveAddress.js";
+export {
+	applySeatSourceDelta,
+	seatSourcesEqual,
+	type SeatSourceDelta,
+} from "./room/seatSources.js";
 export {
 	AdaptiveConcurrency,
 	DEFAULT_ADAPTIVE_CONCURRENCY,

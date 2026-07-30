@@ -19,9 +19,9 @@ Do **not** reopen Show backlog product design (slices 1–7 + S are done on main
 
 1. ~~Hub `call_join` / raise-hand via harness~~ — **done on this branch** (`1b7236bb0`)
 2. ~~**Thin `drive.show.*` handlers** onto `harness.shows` / `commitDirectorOp`~~ — **done** (`driveShowRuntime.ts` + thin handlers)
-3. **Phase-2 pure helpers** — `expandRosterPack`, `applySeatSourceDelta`, `capPreset`, `resolveAddress` + durable `addRosterPack`
+3. ~~**Phase-2 pure helpers**~~ — **done** (`expandRosterPack`, `applySeatSourceDelta`, `capPreset`, `resolveAddress` + harness `addRosterPack` wire)
 
-Ship slice 2 green before starting slice 3 unless the human redirects.
+Follow-ons outside this PR track: durable pack IO, hub remove-pack cascade, script/planner DirectorOps.
 
 ---
 

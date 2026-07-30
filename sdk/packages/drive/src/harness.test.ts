@@ -81,8 +81,32 @@ describe("createDriveHarness", () => {
 		expect(reviewer).toMatchObject({
 			kind: "agent",
 			role: "specialist",
-			seatSources: ["review-crew"],
+			seatSources: [{ kind: "pack", packId: "review-crew" }],
 		});
+	});
+
+	it("addRosterPack adds a pack source when the member is already seated", async () => {
+		const host = memoryDriveHost();
+		const drive = createDriveHarness({
+			host,
+			resolveRosterPack: () => [
+				{ id: "partner", displayName: "Partner", role: "partner" },
+			],
+		});
+		await drive.rooms.createOrAttach({
+			roomId: "r4",
+			humanId: "h1",
+			partner: { id: "partner", displayName: "Partner" },
+		});
+		const next = await drive.rooms.addRosterPack("r4", "pair-pack");
+		const partner = next.participants.find((p) => p.id === "partner");
+		expect(partner?.kind).toBe("agent");
+		if (partner?.kind === "agent") {
+			expect(partner.seatSources).toEqual([
+				{ kind: "manual" },
+				{ kind: "pack", packId: "pair-pack" },
+			]);
+		}
 	});
 
 	it("exposes pure director helpers without host IO", async () => {

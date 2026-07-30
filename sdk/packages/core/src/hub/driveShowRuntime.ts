@@ -3,8 +3,8 @@
  * Shared by hub wire handlers and driveDirectorOps so neither imports the other.
  */
 
-import { pickNextShowToPresent } from "@cline/drive";
-import type { AddressSet, ShowBacklogItem } from "@cline/shared";
+import { pickNextShowToPresent, resolveAddress } from "@cline/drive";
+import type { AddressSet, Participant, ShowBacklogItem } from "@cline/shared";
 import {
 	getDriveRoomStore,
 	type DriveRoomStore,
@@ -208,11 +208,23 @@ export function applyPresentedShow(
 
 export function addressedParticipantIdsFromAddressSet(
 	addressSet: AddressSet | undefined | null,
+	participants?: readonly Participant[],
 ): Set<string> {
-	if (!addressSet || addressSet.mode !== "agents") {
+	if (!addressSet) {
 		return new Set();
 	}
-	return new Set(addressSet.agentIds);
+	if (addressSet.mode === "everyone") {
+		// Legacy show ranking: everyone means no address filter.
+		return new Set();
+	}
+	if (addressSet.mode === "agents") {
+		return new Set(addressSet.agentIds);
+	}
+	if (!participants) {
+		return new Set();
+	}
+	const resolved = resolveAddress({ addressSet, participants });
+	return resolved.ok ? new Set(resolved.participantIds) : new Set();
 }
 
 /**
@@ -233,7 +245,10 @@ export function runShowDirectorTick(input: {
 		input.room.spotlightParticipantId;
 	const addressedParticipantIds =
 		input.addressedParticipantIds ??
-		addressedParticipantIdsFromAddressSet(snapshot?.addressSet);
+		addressedParticipantIdsFromAddressSet(
+			snapshot?.addressSet,
+			snapshot?.participants,
+		);
 	const ranked = pickNextShowToPresent({
 		items: input.room.director.showBacklog,
 		spotlightParticipantId,

@@ -6,10 +6,13 @@
 import type {
 	AddressSet,
 	AgentParticipant,
+	AgentProfile,
 	DriveEvent,
 	DriveSubMode,
 	HumanParticipant,
+	PermissionPreset,
 	RoomSnapshot,
+	RosterPack,
 	ShowBacklogItem,
 	StagePin,
 	StageSharer,
@@ -17,14 +20,22 @@ import type {
 import { advanceScriptBeat } from "./director/rankBacklogs.js";
 import { pickNextShowToPresent } from "./director/pickNextShow.js";
 import { planShowIntents } from "./director/planShowIntents.js";
+import { expandRosterPack } from "./facets/expand.js";
 import type { DirectorOpResult, DriveHostPort } from "./hostPort.js";
 import { assertRouteLegal, planRoute } from "./router/planRoute.js";
 import { setSpotlight } from "./room/participantControls.js";
+import { applySeatSourceDelta } from "./room/seatSources.js";
 
 export const DRIVE_HARNESS_DEFAULT_ROOM_ID = "default" as const;
 export const DRIVE_HARNESS_HUMAN_ID = "drive:human" as const;
 export const DRIVE_HARNESS_PARTNER_ID = "drive:partner" as const;
 
+const DEFAULT_INK = {
+	kind: "token" as const,
+	token: "foreground" as const,
+};
+
+/** Stub member list until durable RosterPack IO lands. */
 export type RosterPackMember = {
 	readonly id: string;
 	readonly displayName: string;
@@ -49,12 +60,25 @@ export type CreateDriveHarnessOptions = {
 	/**
 	 * Resolves roster pack seats until durable RosterPack IO lands.
 	 * Required for `rooms.addRosterPack`.
+	 * Accepts either a full `RosterPack` or a stub member list.
 	 */
 	resolveRosterPack?: (
 		packId: string,
 	) =>
-		| Promise<readonly RosterPackMember[]>
-		| readonly RosterPackMember[];
+		| Promise<RosterPack | readonly RosterPackMember[] | null>
+		| RosterPack
+		| readonly RosterPackMember[]
+		| null;
+	/** Parent permission ceiling when expanding packs (default full). */
+	parentPreset?: PermissionPreset;
+	/** Max new seats from a single pack expand (default unlimited). */
+	seatCap?: number;
+	/** Optional profile map for expand; stubs are synthesized from members when omitted. */
+	resolveProfiles?: (
+		profileIds: readonly string[],
+	) =>
+		| Promise<ReadonlyMap<string, AgentProfile>>
+		| ReadonlyMap<string, AgentProfile>;
 };
 
 export type DriveHarnessRooms = {
@@ -118,10 +142,66 @@ export type DriveHarness = {
 	readonly shows: DriveHarnessShows;
 };
 
+function isRosterPack(value: unknown): value is RosterPack {
+	return (
+		typeof value === "object" &&
+		value !== null &&
+		"members" in value &&
+		"id" in value &&
+		"slug" in value &&
+		"addressable" in value &&
+		Array.isArray((value as RosterPack).members) &&
+		typeof (value as RosterPack).id === "string"
+	);
+}
+
+function stubPackFromMembers(
+	packId: string,
+	members: readonly RosterPackMember[],
+): RosterPack {
+	return {
+		id: packId,
+		slug: packId,
+		displayName: packId,
+		members: members.map((member) => ({
+			profileId: member.id,
+			role: member.role === "partner" ? "pair_partner" : "specialist",
+			override: { displayName: member.displayName },
+		})),
+		addressable: true,
+	};
+}
+
+function stubProfilesFromPack(pack: RosterPack): Map<string, AgentProfile> {
+	const profiles = new Map<string, AgentProfile>();
+	for (const member of pack.members) {
+		profiles.set(member.profileId, {
+			id: member.profileId,
+			ref: { kind: "builtin", id: member.profileId },
+			displayName: member.override?.displayName ?? member.profileId,
+			nameInk: member.override?.nameInk ?? DEFAULT_INK,
+			bodyInk: member.override?.bodyInk ?? DEFAULT_INK,
+		});
+	}
+	return profiles;
+}
+
+function agentRoleFromPack(
+	role: RosterPack["members"][number]["role"],
+): AgentParticipant["role"] {
+	return role === "pair_partner" ? "partner" : "specialist";
+}
+
 export function createDriveHarness(
 	options: CreateDriveHarnessOptions,
 ): DriveHarness {
-	const { host, resolveRosterPack } = options;
+	const {
+		host,
+		resolveRosterPack,
+		parentPreset = "full",
+		seatCap = Number.POSITIVE_INFINITY,
+		resolveProfiles,
+	} = options;
 
 	const requireRoom = async (roomId: string): Promise<RoomSnapshot> => {
 		if (!host.getRoom) {
@@ -173,7 +253,7 @@ export function createDriveHarness(
 					displayName: partner.displayName?.trim() || "Partner",
 					role: "partner",
 					status: "idle",
-					seatSources: [],
+					seatSources: [{ kind: "manual" }],
 				};
 				snapshot = await host.commitRoomOp({
 					type: "join",
@@ -208,32 +288,85 @@ export function createDriveHarness(
 					"addRosterPack requires createDriveHarness({ resolveRosterPack }) until durable packs land",
 				);
 			}
-			const members = await resolveRosterPack(packId);
-			if (!members.length) {
+			const resolved = await resolveRosterPack(packId);
+			if (!resolved) {
 				return requireRoom(roomId);
 			}
 
-			let snapshot = await requireRoom(roomId);
-			const seated = new Set(snapshot.participants.map((p) => p.id));
+			const pack = isRosterPack(resolved)
+				? resolved
+				: stubPackFromMembers(packId, resolved);
+			if (!pack.members.length) {
+				return requireRoom(roomId);
+			}
 
-			for (const member of members) {
-				if (seated.has(member.id)) {
+			const profileIds = pack.members.map((member) => member.profileId);
+			const profiles =
+				(await resolveProfiles?.(profileIds)) ?? stubProfilesFromPack(pack);
+			const known = await host.resolveKnownAgents();
+			const expanded = expandRosterPack({
+				pack,
+				profiles,
+				known,
+				parentPreset,
+				seatCap,
+			});
+
+			let snapshot = await requireRoom(roomId);
+			const packSource = { kind: "pack" as const, packId: pack.id };
+
+			for (const proposal of expanded.proposals) {
+				const existing = snapshot.participants.find(
+					(participant) => participant.id === proposal.profileId,
+				);
+				if (existing?.kind === "agent") {
+					const delta = applySeatSourceDelta(existing.seatSources, {
+						type: "add",
+						source: packSource,
+					});
+					const unchanged =
+						delta.next.length === existing.seatSources.length &&
+						delta.next.every((source, index) => {
+							const prior = existing.seatSources[index];
+							return (
+								prior !== undefined &&
+								source.kind === prior.kind &&
+								(source.kind !== "pack" ||
+									(prior.kind === "pack" && source.packId === prior.packId)) &&
+								(source.kind !== "spawn" ||
+									(prior.kind === "spawn" && source.parentId === prior.parentId))
+							);
+						});
+					if (unchanged) {
+						continue;
+					}
+					const updated: AgentParticipant = {
+						...existing,
+						seatSources: delta.next,
+					};
+					snapshot = await host.commitRoomOp({
+						type: "join",
+						roomId,
+						participant: updated,
+					});
+					continue;
+				}
+				if (existing) {
 					continue;
 				}
 				const agent: AgentParticipant = {
-					id: member.id,
+					id: proposal.profileId,
 					kind: "agent",
-					displayName: member.displayName,
-					role: member.role ?? "specialist",
+					displayName: proposal.displayName,
+					role: agentRoleFromPack(proposal.role),
 					status: "idle",
-					seatSources: [packId],
+					seatSources: [packSource],
 				};
 				snapshot = await host.commitRoomOp({
 					type: "join",
 					roomId,
 					participant: agent,
 				});
-				seated.add(member.id);
 			}
 			return snapshot;
 		},

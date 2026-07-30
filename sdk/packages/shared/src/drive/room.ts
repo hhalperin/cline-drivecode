@@ -27,6 +27,45 @@ export const ParticipantStatusSchema = z.enum([
 ]);
 export type ParticipantStatus = z.infer<typeof ParticipantStatusSchema>;
 
+/** Why an agent is seated (DRV-ROSTER-PACK). Never empty while seated. */
+export const SeatSourceSchema = z.discriminatedUnion("kind", [
+	z
+		.object({
+			kind: z.literal("manual"),
+		})
+		.strict(),
+	z
+		.object({
+			kind: z.literal("pack"),
+			packId: z.string().min(1),
+		})
+		.strict(),
+	z
+		.object({
+			kind: z.literal("spawn"),
+			parentId: z.string().min(1),
+		})
+		.strict(),
+]);
+export type SeatSource = z.infer<typeof SeatSourceSchema>;
+
+/** Coerce legacy pack-id strings into structured SeatSource values. */
+export function coerceSeatSources(input: unknown): SeatSource[] {
+	if (!Array.isArray(input)) {
+		return [];
+	}
+	return input.map((entry) => {
+		if (typeof entry === "string" && entry.trim()) {
+			return { kind: "pack" as const, packId: entry.trim() };
+		}
+		return SeatSourceSchema.parse(entry);
+	});
+}
+
+export function parseSeatSource(input: unknown): SeatSource {
+	return SeatSourceSchema.parse(input);
+}
+
 export const HumanParticipantSchema = z
 	.object({
 		id: z.string().min(1),
@@ -44,8 +83,8 @@ export const AgentParticipantSchema = z
 		displayName: z.string().min(1),
 		role: DriveAgentRoleSchema,
 		status: ParticipantStatusSchema.default("idle"),
-		/** Roster-pack ids that seated this agent (DRV-ROSTER-PACK). */
-		seatSources: z.array(z.string().min(1)).default([]),
+		/** Seat provenance (DRV-ROSTER-PACK). Never empty while seated. */
+		seatSources: z.array(SeatSourceSchema).default([]),
 	})
 	.strict();
 

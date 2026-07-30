@@ -3,6 +3,19 @@ export {
 	mergeFacetScopes,
 } from "./merge";
 export {
+	parseRosterPack,
+	PermissionPresetSchema,
+	RosterPackMemberOverrideSchema,
+	RosterPackMemberRoleSchema,
+	RosterPackMemberSchema,
+	RosterPackSchema,
+	type PermissionPreset,
+	type RosterPack,
+	type RosterPackMember,
+	type RosterPackMemberOverride,
+	type RosterPackMemberRole,
+} from "./rosterPack";
+export {
 	AgentAppearanceSchema,
 	AgentProfileSchema,
 	DRIVE_FACET_FORBIDDEN_PROMPT_KEYS,
