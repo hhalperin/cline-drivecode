@@ -26,7 +26,7 @@ function makeCtx(): HubTransportContext & { published: unknown[] } {
 }
 
 describe("handleDriveRoomCommand", () => {
-	it("joins via joinCall and publishes room.snapshot", async () => {
+	it("joins via createOrAttach harness and publishes room.snapshot", async () => {
 		resetDriveRoomStoreForTests();
 		const ctx = makeCtx();
 		const reply = await handleDriveRoomCommand(ctx, {

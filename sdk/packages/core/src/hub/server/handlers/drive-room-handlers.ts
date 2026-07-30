@@ -19,9 +19,7 @@ import { z } from "zod";
 import {
 	clearDrivePauseAfterToolForSessions,
 	getDriveRoomStore,
-	type JoinCallResult,
 	JsonlRoomEventLog,
-	joinCall,
 	syncDrivePauseAfterToolForRoom,
 	type WorkRecordPayload,
 	workRecordFromToolEvent,
@@ -69,7 +67,7 @@ const CallJoinPayloadSchema = z
 		sessionId: z.string().min(1).optional(),
 		/** Workspace root for durable room event log (ARD-0013). */
 		workspaceRoot: z.string().min(1).optional(),
-		/** Optional raw participant join without joinCall façade. */
+		/** Optional raw participant join without createOrAttach façade. */
 		participant: ParticipantSchema.optional(),
 	})
 	.strict();
@@ -296,7 +294,7 @@ export async function handleDriveRoomCommand(
 				if (!store.get(payload.roomId) && store.getEventLog()) {
 					store.hydrateFromLogSync(payload.roomId);
 				}
-				let result: JoinCallResult | { snapshot: RoomSnapshot; seq: number };
+				let result: { snapshot: RoomSnapshot; seq: number };
 				if (payload.participant) {
 					store.create(payload.roomId);
 					const committed = store.join({
@@ -313,19 +311,23 @@ export async function handleDriveRoomCommand(
 						committed.seq,
 					);
 				} else {
-					result = joinCall(
-						{
-							roomId: payload.roomId,
-							human: payload.human,
-							agent: payload.agent,
-							activateDrive: payload.activateDrive,
-							sessionId: payload.sessionId,
-						},
+					const { harness } = getHubDriveHarness({
 						store,
-					);
+						configParent: payload.workspaceRoot,
+					});
+					const snapshot = await harness.rooms.createOrAttach({
+						roomId: payload.roomId,
+						humanId: payload.human.id,
+						humanDisplayName: payload.human.displayName,
+						partner: {
+							id: payload.agent.id,
+							displayName: payload.agent.displayName,
+						},
+						activateDrive: payload.activateDrive,
+					});
 					const seq = store.lastSeq(payload.roomId);
-					publishRoomSnapshot(ctx, payload.roomId, result.snapshot, seq);
-					result = { snapshot: result.snapshot, seq };
+					publishRoomSnapshot(ctx, payload.roomId, snapshot, seq);
+					result = { snapshot, seq };
 				}
 				if (payload.sessionId) {
 					store.linkSession(payload.sessionId, payload.roomId);
@@ -373,7 +375,20 @@ export async function handleDriveRoomCommand(
 				const payload = CallRaiseHandPayloadSchema.parse(
 					envelope.payload ?? {},
 				);
-				const committed = store.raiseHand(payload);
+				const { harness } = getHubDriveHarness({ store });
+				await harness.rooms.raiseHand(
+					payload.roomId,
+					payload.participantId,
+					payload.raised,
+				);
+				const committed = takeHubRoomCommit(store);
+				if (!committed) {
+					return errorReply(
+						envelope,
+						"commit_failed",
+						"raiseHand did not produce a room commit",
+					);
+				}
 				syncDrivePauseAfterToolForRoom(
 					committed.snapshot,
 					linkedSessionIds(store, payload.roomId),
