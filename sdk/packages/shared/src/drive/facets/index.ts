@@ -3,6 +3,14 @@ export {
 	mergeFacetScopes,
 } from "./merge";
 export {
+	emptyDriveRegistry,
+	lookupRosterPack,
+	parseDriveRegistry,
+	DRIVE_REGISTRY_SCHEMA_VERSION,
+	DriveRegistrySchema,
+	type DriveRegistry,
+} from "./registry";
+export {
 	parseRosterPack,
 	PermissionPresetSchema,
 	RosterPackMemberOverrideSchema,

@@ -10,6 +10,7 @@ import {
 	type DriveRoomStore,
 	getDriveRoomStore,
 } from "./collaboration";
+import { resolvePackFromRegistry } from "./drive-config/driveRegistryStore";
 
 export type HubRoomCommit = {
 	event: DriveEvent;
@@ -20,6 +21,7 @@ export type HubRoomCommit = {
 type HubHarnessBinding = {
 	harness: DriveHarness;
 	lastCommit: HubRoomCommit | null;
+	configParent: string;
 };
 
 const bindings = new WeakMap<DriveRoomStore, HubHarnessBinding>();
@@ -27,6 +29,7 @@ const bindings = new WeakMap<DriveRoomStore, HubHarnessBinding>();
 /**
  * DriveHarness over the process-wide room store (and optional config parent).
  * Room commits update `lastCommit` for hub publishRoomEvent.
+ * `resolveRosterPack` reads durable `registry.v1.json` under configParent.
  */
 export function getHubDriveHarness(input?: {
 	store?: DriveRoomStore;
@@ -35,16 +38,21 @@ export function getHubDriveHarness(input?: {
 	const store = input?.store ?? getDriveRoomStore();
 	const existing = bindings.get(store);
 	if (existing) {
+		const nextParent = input?.configParent?.trim();
+		if (nextParent) {
+			existing.configParent = nextParent;
+		}
 		return existing;
 	}
 
 	const binding: HubHarnessBinding = {
 		harness: null as unknown as DriveHarness,
 		lastCommit: null,
+		configParent: input?.configParent?.trim() || tmpdir(),
 	};
 
 	const host = createClineDriveHost({
-		configParent: input?.configParent?.trim() || tmpdir(),
+		configParent: binding.configParent,
 		store,
 		broadcastFn: (event) => {
 			const snapshot = store.get(event.roomId);
@@ -59,7 +67,11 @@ export function getHubDriveHarness(input?: {
 		},
 	});
 
-	binding.harness = createDriveHarness({ host });
+	binding.harness = createDriveHarness({
+		host,
+		resolveRosterPack: (packId) =>
+			resolvePackFromRegistry(binding.configParent, packId),
+	});
 	bindings.set(store, binding);
 	return binding;
 }

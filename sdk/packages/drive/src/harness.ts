@@ -7,6 +7,7 @@ import type {
 	AddressSet,
 	AgentParticipant,
 	AgentProfile,
+	DirectorScript,
 	DriveEvent,
 	DriveSubMode,
 	HumanParticipant,
@@ -24,7 +25,7 @@ import { expandRosterPack } from "./facets/expand.js";
 import type { DirectorOpResult, DriveHostPort } from "./hostPort.js";
 import { assertRouteLegal, planRoute } from "./router/planRoute.js";
 import { setSpotlight } from "./room/participantControls.js";
-import { applySeatSourceDelta } from "./room/seatSources.js";
+import { applySeatSourceDelta, planRemoveRosterPack } from "./room/seatSources.js";
 
 export const DRIVE_HARNESS_DEFAULT_ROOM_ID = "default" as const;
 export const DRIVE_HARNESS_HUMAN_ID = "drive:human" as const;
@@ -84,6 +85,7 @@ export type CreateDriveHarnessOptions = {
 export type DriveHarnessRooms = {
 	createOrAttach(input: CreateOrAttachInput): Promise<RoomSnapshot>;
 	addRosterPack(roomId: string, packId: string): Promise<RoomSnapshot>;
+	removeRosterPack(roomId: string, packId: string): Promise<RoomSnapshot>;
 	setAddress(roomId: string, addressSet: AddressSet): Promise<RoomSnapshot>;
 	raiseHand(
 		roomId: string,
@@ -125,6 +127,21 @@ export type DriveHarnessShows = {
 		roomId: string,
 		opts?: { preferShowId?: string | null },
 	): Promise<DirectorOpResult>;
+	planFromWork(
+		roomId: string,
+		workKind: "edit" | "command" | "test_result",
+		ownerParticipantId: string,
+		opts?: { nowMs?: number },
+	): Promise<DirectorOpResult>;
+};
+
+export type DriveHarnessScripts = {
+	attach(
+		roomId: string,
+		script: DirectorScript,
+		opts?: { showItems?: ShowBacklogItem[] },
+	): Promise<DirectorOpResult>;
+	advance(roomId: string): Promise<DirectorOpResult>;
 };
 
 export type DriveHarness = {
@@ -140,6 +157,10 @@ export type DriveHarness = {
 	 * Live Show backlog commits via DriveHostPort.commitDirectorOp.
 	 */
 	readonly shows: DriveHarnessShows;
+	/**
+	 * Script attach/advance commits via DriveHostPort.commitDirectorOp.
+	 */
+	readonly scripts: DriveHarnessScripts;
 };
 
 function isRosterPack(value: unknown): value is RosterPack {
@@ -371,6 +392,36 @@ export function createDriveHarness(
 			return snapshot;
 		},
 
+		async removeRosterPack(roomId, packId) {
+			let snapshot = await requireRoom(roomId);
+			const actions = planRemoveRosterPack(snapshot.participants, packId);
+			for (const action of actions) {
+				if (action.action === "leave") {
+					snapshot = await host.commitRoomOp({
+						type: "leave",
+						roomId,
+						participantId: action.participantId,
+					});
+					continue;
+				}
+				const existing = snapshot.participants.find(
+					(participant) => participant.id === action.participantId,
+				);
+				if (!existing || existing.kind !== "agent") {
+					continue;
+				}
+				snapshot = await host.commitRoomOp({
+					type: "join",
+					roomId,
+					participant: {
+						...existing,
+						seatSources: action.seatSources,
+					},
+				});
+			}
+			return snapshot;
+		},
+
 		async setAddress(roomId, addressSet) {
 			return host.commitRoomOp({
 				type: "setAddress",
@@ -434,7 +485,7 @@ export function createDriveHarness(
 	const requireDirector = () => {
 		if (!host.commitDirectorOp) {
 			throw new Error(
-				"DriveHostPort.commitDirectorOp is required for DriveHarness.shows",
+				"DriveHostPort.commitDirectorOp is required for DriveHarness.shows/scripts",
 			);
 		}
 		return host.commitDirectorOp;
@@ -463,6 +514,32 @@ export function createDriveHarness(
 				preferShowId: opts?.preferShowId,
 			});
 		},
+		async planFromWork(roomId, workKind, ownerParticipantId, opts) {
+			return requireDirector()({
+				type: "planFromWork",
+				roomId,
+				workKind,
+				ownerParticipantId,
+				nowMs: opts?.nowMs,
+			});
+		},
+	};
+
+	const scripts: DriveHarnessScripts = {
+		async attach(roomId, script, opts) {
+			return requireDirector()({
+				type: "attachScript",
+				roomId,
+				script,
+				showItems: opts?.showItems,
+			});
+		},
+		async advance(roomId) {
+			return requireDirector()({
+				type: "advanceScript",
+				roomId,
+			});
+		},
 	};
 
 	return {
@@ -487,5 +564,6 @@ export function createDriveHarness(
 			advanceScriptBeat,
 		},
 		shows,
+		scripts,
 	};
 }

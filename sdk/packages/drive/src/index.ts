@@ -37,6 +37,7 @@ export {
 	type DriveHarness,
 	type DriveHarnessDirector,
 	type DriveHarnessRooms,
+	type DriveHarnessScripts,
 	type DriveHarnessShows,
 	type RosterPackMember,
 } from "./harness.js";
@@ -90,7 +91,10 @@ export {
 } from "./address/resolveAddress.js";
 export {
 	applySeatSourceDelta,
+	planDismissParticipant,
+	planRemoveRosterPack,
 	seatSourcesEqual,
+	type SeatPlanAction,
 	type SeatSourceDelta,
 } from "./room/seatSources.js";
 export {

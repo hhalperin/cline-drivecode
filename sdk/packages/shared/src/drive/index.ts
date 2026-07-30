@@ -195,6 +195,7 @@ export {
 	resolveDriveFacetsPath,
 	resolveDriveProviderManifestPath,
 	resolveDriveProvidersDir,
+	resolveDriveRegistryPath,
 	resolveDriveRoomDir,
 	resolveDriveRoomEventsPath,
 	resolveDriveRoomMetaPath,

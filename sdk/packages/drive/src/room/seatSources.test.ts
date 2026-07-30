@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { applySeatSourceDelta, seatSourcesEqual } from "./seatSources.js";
+import type { Participant } from "@cline/shared";
+import {
+	applySeatSourceDelta,
+	planDismissParticipant,
+	planRemoveRosterPack,
+	seatSourcesEqual,
+} from "./seatSources.js";
 
 describe("applySeatSourceDelta", () => {
 	it("adds a pack source once", () => {
@@ -63,5 +69,83 @@ describe("seatSourcesEqual", () => {
 		expect(seatSourcesEqual({ kind: "manual" }, { kind: "manual" })).toBe(
 			true,
 		);
+	});
+});
+
+describe("planRemoveRosterPack", () => {
+	const participants: Participant[] = [
+		{
+			id: "shared",
+			kind: "agent",
+			displayName: "Shared",
+			role: "specialist",
+			status: "idle",
+			seatSources: [
+				{ kind: "pack", packId: "p1" },
+				{ kind: "pack", packId: "p2" },
+			],
+		},
+		{
+			id: "only-p1",
+			kind: "agent",
+			displayName: "Only",
+			role: "specialist",
+			status: "idle",
+			seatSources: [{ kind: "pack", packId: "p1" }],
+		},
+	];
+
+	it("keeps overlapping members and leaves last-source agents", () => {
+		expect(planRemoveRosterPack(participants, "p1")).toEqual([
+			{
+				action: "update",
+				participantId: "shared",
+				seatSources: [{ kind: "pack", packId: "p2" }],
+			},
+			{ action: "leave", participantId: "only-p1" },
+		]);
+	});
+});
+
+describe("planDismissParticipant", () => {
+	it("clears the target and cascades spawn children", () => {
+		const participants: Participant[] = [
+			{
+				id: "parent",
+				kind: "agent",
+				displayName: "Parent",
+				role: "partner",
+				status: "idle",
+				seatSources: [{ kind: "manual" }],
+			},
+			{
+				id: "child",
+				kind: "agent",
+				displayName: "Child",
+				role: "specialist",
+				status: "idle",
+				seatSources: [{ kind: "spawn", parentId: "parent" }],
+			},
+			{
+				id: "kept",
+				kind: "agent",
+				displayName: "Kept",
+				role: "specialist",
+				status: "idle",
+				seatSources: [
+					{ kind: "spawn", parentId: "parent" },
+					{ kind: "pack", packId: "p1" },
+				],
+			},
+		];
+		expect(planDismissParticipant(participants, "parent")).toEqual([
+			{ action: "leave", participantId: "parent" },
+			{ action: "leave", participantId: "child" },
+			{
+				action: "update",
+				participantId: "kept",
+				seatSources: [{ kind: "pack", packId: "p1" }],
+			},
+		]);
 	});
 });

@@ -58,12 +58,12 @@ Apps still **project** with `reduceRoom` / `projectStage` / `projectRoster` from
 
 ## Remaining leverage (this PR track)
 
-Ordered slices for follow-on work after the harness MVP:
+See [08-followon-tasks.md](08-followon-tasks.md) for the fleshed F1–F3 task graph.
 
-1. ~~**Hub join via harness**~~ — Done (`call_join` → `rooms.createOrAttach`; raise-hand too).
-2. ~~**Thin `drive.show.*` handlers**~~ — Done: `driveShowRuntime.ts` breaks the cycle; handlers publish only; mutate via `harness.shows.*` / `commitDirectorOp`. Still open: script attach as DirectorOp; planner full harness migration.
-3. ~~**Phase-2 pure helpers**~~ — Done: `expandRosterPack`, `applySeatSourceDelta`, `capPreset`, `resolveAddress` in `@cline/drive`; `RosterPack` / `SeatSource` in `@cline/shared`; `addRosterPack` uses expand + seat-source deltas. Still open: durable pack IO / hub `room_add_roster_pack` product path; hub remove-pack refcount cascade.
-4. **Do not** dump all of `@cline/drive` into `@cline/sdk` root — keep agent vs room packages separate; optional future subpath `@cline/sdk/drive` only if publishing needs one install name.
+1. ~~**Hub join via harness**~~ — Done.
+2. ~~**Thin `drive.show.*` handlers**~~ — Done (script/planner DirectorOps tracked in F3).
+3. ~~**Phase-2 pure helpers**~~ — Done (durable registry + hub remove tracked in F1/F2).
+4. **Do not** dump all of `@cline/drive` into `@cline/sdk` root.
 
 `joinCall` remains exported for unit tests / gradual callers; product hub path is the harness.
 
@@ -76,4 +76,7 @@ Ordered slices for follow-on work after the harness MVP:
 | Product hub migration onto harness | **Done** for join / raise-hand / address / stage / mode |
 | DirectorPort / show commit on harness | **Done** for enqueue / present / tick wire path; script attach + planner still handler-local |
 | Webview single fold | **Done** — `foldIncomingDriveEvent` + tool→`work.*`→`reduceRoom` in `stageReducer` |
-| Phase-2 pack/address/preset helpers | **Done** (pure helpers + harness wire); durable pack registry / UI still open |
+| Phase-2 pack/address/preset helpers | **Done** (pure helpers + harness wire) |
+| Durable registry + hub add/remove pack | **Done** — `registry.v1.json`, `call_add_roster_pack` / `call_remove_roster_pack` |
+| Script/planner DirectorOps | **Done** — `attachScript` / `advanceScript` / `planFromWork` |
+| Pack library UI / `/pack` | Out of scope (see 08-followon-tasks) |

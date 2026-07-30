@@ -1,13 +1,7 @@
 import {
-	advanceScriptBeat,
 	assertDeliveryAllowed,
-	DEFAULT_SHOW_PLANNER_COOLDOWN_MS,
-	normalizeEnqueuedShowStatus,
-	planShowIntents,
 	setParticipantDeafened,
 	setParticipantMuted,
-	type ShowPlannerMode,
-	workCategoryFromKind,
 } from "@cline/drive";
 import type {
 	HubCommandEnvelope,
@@ -17,7 +11,6 @@ import type {
 import {
 	DirectorScriptSchema,
 	DoBacklogItemSchema,
-	type ShowBacklogItem,
 	ShowBacklogItemSchema,
 } from "@cline/shared";
 import {
@@ -26,9 +19,7 @@ import {
 } from "../../collaboration";
 import { getHubDriveHarness } from "../../driveHarnessBinding";
 import {
-	applyPresentedShow,
 	type DriveLiveRoom,
-	runShowDirectorTick,
 } from "../../driveShowRuntime";
 import { errorReply, type HubTransportContext, okReply } from "./context";
 
@@ -36,6 +27,7 @@ export {
 	addressedParticipantIdsFromAddressSet,
 	materializeShowItem,
 	runShowDirectorTick,
+	runShowPlannerFromWork,
 	type MaterializeShowOptions,
 } from "../../driveShowRuntime";
 
@@ -92,136 +84,6 @@ function asLiveRoom(liveRoom: unknown): DriveLiveRoom {
 	return liveRoom as DriveLiveRoom;
 }
 
-/**
- * Heuristic show planner: enqueue template intents from a work signal.
- * Optionally ticks the show director when tickOnWork is enabled (default).
- */
-export function runShowPlannerFromWork(input: {
-	room: DriveLiveRoom;
-	workKind: "edit" | "command" | "test_result";
-	ownerParticipantId: string;
-	nowMs?: number;
-}): {
-	room: DriveLiveRoom;
-	planned: ShowBacklogItem[];
-	reasons: string[];
-	presented: ShowBacklogItem | null;
-} {
-	const mode: ShowPlannerMode =
-		input.room.director.showPlannerMode === "off" ? "off" : "heuristic";
-	const cooldownMs =
-		input.room.director.showPlannerCooldownMs ??
-		DEFAULT_SHOW_PLANNER_COOLDOWN_MS;
-	const nowMs = input.nowMs ?? Date.now();
-	const plannedResult = planShowIntents({
-		signal: {
-			kind: "work",
-			category: workCategoryFromKind(input.workKind),
-		},
-		ownerParticipantId: input.ownerParticipantId,
-		existingShowBacklog: input.room.director.showBacklog,
-		nowMs,
-		lastEnqueuedAtByTemplate:
-			input.room.director.showPlannerLastAtByTemplate ?? {},
-		cooldownMs,
-		mode,
-	});
-	if (plannedResult.items.length === 0) {
-		return {
-			room: input.room,
-			planned: [],
-			reasons: plannedResult.reasons,
-			presented: null,
-		};
-	}
-
-	const enqueuedAt = new Date(nowMs).toISOString();
-	const lastAt = {
-		...(input.room.director.showPlannerLastAtByTemplate ?? {}),
-	};
-	for (const item of plannedResult.items) {
-		const templateId = item.produce.templateId;
-		if (templateId) {
-			lastAt[templateId] = enqueuedAt;
-		}
-	}
-
-	const showBacklog = [
-		...plannedResult.items,
-		...input.room.director.showBacklog.filter(
-			(existing) =>
-				!plannedResult.items.some((item) => item.id === existing.id),
-		),
-	];
-	let room: DriveLiveRoom = {
-		...input.room,
-		director: {
-			...input.room.director,
-			showBacklog,
-			showPlannerLastAtByTemplate: lastAt,
-		},
-	};
-
-	const archItem = plannedResult.items.find(
-		(item) => item.produce.templateId === "arch.overview",
-	);
-	if (archItem && !room.director.activeScript) {
-		const script = {
-			scriptId: `planner_${archItem.id}`,
-			ownerParticipantId: input.ownerParticipantId,
-			title: "Architecture walkthrough",
-			stickyShowIds: [archItem.id],
-			beats: [
-				{
-					beatId: "planner-arch-1",
-					say: "Here is the architecture overview.",
-					showItemId: archItem.id,
-					sticky: { mode: "hold" as const },
-					advance: "on_human" as const,
-				},
-				{
-					beatId: "planner-arch-2",
-					say: "Still on the architecture diagram — advance when ready.",
-					showItemId: archItem.id,
-					sticky: { mode: "hold" as const },
-					advance: "on_human" as const,
-				},
-			],
-		};
-		room = {
-			...room,
-			director: {
-				...room.director,
-				activeScript: script,
-				activeBeatId: "planner-arch-1",
-				activeShowId: archItem.id,
-				stickyShowIds: [
-					archItem.id,
-					...room.director.stickyShowIds.filter((id) => id !== archItem.id),
-				],
-			},
-		};
-	}
-
-	const tickOnWork = input.room.director.tickOnWork !== false;
-	let presented: ShowBacklogItem | null = null;
-	if (tickOnWork) {
-		const tick = runShowDirectorTick({
-			room,
-			preferShowId: plannedResult.items[0]?.id,
-		});
-		room = tick.room;
-		presented = tick.presented;
-	}
-
-	return {
-		room,
-		planned: plannedResult.items,
-		reasons: plannedResult.reasons,
-		presented,
-	};
-}
-
 export async function handleDriveCommand(
 	ctx: HubTransportContext,
 	envelope: HubCommandEnvelope,
@@ -246,9 +108,9 @@ export async function handleDriveCommand(
 		case "drive.planner.set":
 			return handlePlannerSet(ctx, envelope);
 		case "drive.script.attach":
-			return handleScriptAttach(ctx, envelope);
+			return await handleScriptAttach(ctx, envelope);
 		case "drive.script.advance":
-			return handleScriptAdvance(ctx, envelope);
+			return await handleScriptAdvance(ctx, envelope);
 		default:
 			return errorReply(envelope, "not_implemented", "Unknown drive command");
 	}
@@ -617,27 +479,10 @@ function publishBeat(
 	});
 }
 
-function presentDirectorActiveShow(
-	room: DriveLiveRoom,
-): { room: DriveLiveRoom; presented: ShowBacklogItem | null } {
-	const showId = room.director.activeShowId;
-	if (!showId) {
-		return { room, presented: null };
-	}
-	const item = room.director.showBacklog.find((entry) => entry.id === showId);
-	if (!item) {
-		return { room, presented: null };
-	}
-	const next = applyPresentedShow(room, item);
-	const presented =
-		next.director.showBacklog.find((entry) => entry.id === showId) ?? null;
-	return { room: next, presented };
-}
-
-function handleScriptAttach(
+async function handleScriptAttach(
 	ctx: HubTransportContext,
 	envelope: HubCommandEnvelope,
-): HubReplyEnvelope {
+): Promise<HubReplyEnvelope> {
 	const roomId = readString(envelope.payload, "roomId") ?? "default";
 	const parsedScript = DirectorScriptSchema.safeParse(envelope.payload?.script);
 	if (!parsedScript.success) {
@@ -656,45 +501,22 @@ function handleScriptAttach(
 		: [];
 
 	const store = getDriveRoomStore();
-	store.create(roomId);
-	const room = store.getOrCreateLive(roomId);
-	let showBacklog = [...room.director.showBacklog];
-	for (const show of extraShows) {
-		showBacklog = [
-			{ ...show, status: normalizeEnqueuedShowStatus(show.status) },
-			...showBacklog.filter((item) => item.id !== show.id),
-		];
-	}
-
-	const seeded = advanceScriptBeat({
-		state: {
-			...room.director,
-			showBacklog,
-			activeScript: script,
-			activeBeatId: null,
-			activeShowId: null,
-			stickyShowIds: [],
-		},
-		script,
+	const { harness } = getHubDriveHarness({ store });
+	const result = await harness.scripts.attach(roomId, script, {
+		showItems: extraShows,
 	});
-	let next = store.setLive({
-		...room,
-		director: seeded,
-		spotlightParticipantId:
-			room.spotlightParticipantId ?? seeded.spotlightParticipantId,
-	});
-	const presented = presentDirectorActiveShow(next);
-	next = store.setLive(presented.room);
-	const beat = script.beats.find((entry) => entry.beatId === seeded.activeBeatId);
-	if (presented.presented) {
+	const next = asLiveRoom(result.liveRoom);
+	const beatId = result.beatId ?? null;
+	const beat = script.beats.find((entry) => entry.beatId === beatId);
+	if (result.presented) {
 		publishRoom(ctx, next, {
 			event: "drive.show.presented",
 			payload: {
-				showItemId: presented.presented.id,
-				ownerParticipantId: presented.presented.ownerParticipantId,
-				uri: presented.presented.uri,
-				caption: beat?.say ?? presented.presented.caption,
-				title: presented.presented.title,
+				showItemId: result.presented.id,
+				ownerParticipantId: result.presented.ownerParticipantId,
+				uri: result.presented.uri,
+				caption: beat?.say ?? result.presented.caption,
+				title: result.presented.title,
 			},
 		});
 	} else {
@@ -703,73 +525,51 @@ function handleScriptAttach(
 	publishBeat(
 		ctx,
 		next,
-		seeded.activeBeatId,
-		beat?.say ?? "",
-		seeded.activeShowId,
+		beatId,
+		beat?.say ?? result.say ?? "",
+		next.director.activeShowId,
 	);
-	return okReply(envelope, { room: next, beatId: seeded.activeBeatId });
+	return okReply(envelope, { room: next, beatId });
 }
 
-function handleScriptAdvance(
+async function handleScriptAdvance(
 	ctx: HubTransportContext,
 	envelope: HubCommandEnvelope,
-): HubReplyEnvelope {
+): Promise<HubReplyEnvelope> {
 	const roomId = readString(envelope.payload, "roomId") ?? "default";
 	const store = getDriveRoomStore();
-	store.create(roomId);
-	const room = store.getOrCreateLive(roomId);
-	const script = room.director.activeScript;
-	if (!script) {
+	const { harness } = getHubDriveHarness({ store });
+	const result = await harness.scripts.advance(roomId);
+	if (result.errorCode) {
 		return errorReply(
 			envelope,
-			"no_active_script",
-			"No active DirectorScript on this room",
+			result.errorCode,
+			result.errorMessage ?? "Script advance failed",
 		);
 	}
-	const previousShowId = room.director.activeShowId;
-	const advanced = advanceScriptBeat({
-		state: room.director,
-		script,
-	});
-	let next = store.setLive({
-		...room,
-		director: advanced,
-	});
-	const beat = script.beats.find(
-		(entry) => entry.beatId === advanced.activeBeatId,
-	);
-	const showChanged = advanced.activeShowId !== previousShowId;
-	if (showChanged && advanced.activeShowId) {
-		const presented = presentDirectorActiveShow(next);
-		next = store.setLive(presented.room);
-		if (presented.presented) {
-			publishRoom(ctx, next, {
-				event: "drive.show.presented",
-				payload: {
-					showItemId: presented.presented.id,
-					ownerParticipantId: presented.presented.ownerParticipantId,
-					uri: presented.presented.uri,
-					caption: beat?.say ?? presented.presented.caption,
-					title: presented.presented.title,
-				},
-			});
-		} else {
-			publishRoom(ctx, next);
-		}
+	const next = asLiveRoom(result.liveRoom);
+	const beatId = result.beatId ?? null;
+	const say = result.say ?? "";
+	const showChanged = result.showChanged === true;
+	if (showChanged && result.presented) {
+		publishRoom(ctx, next, {
+			event: "drive.show.presented",
+			payload: {
+				showItemId: result.presented.id,
+				ownerParticipantId: result.presented.ownerParticipantId,
+				uri: result.presented.uri,
+				caption: say || result.presented.caption,
+				title: result.presented.title,
+			},
+		});
 	} else {
 		publishRoom(ctx, next);
 	}
-	publishBeat(
-		ctx,
-		next,
-		advanced.activeBeatId,
-		beat?.say ?? "",
-		advanced.activeShowId,
-	);
+	publishBeat(ctx, next, beatId, say, next.director.activeShowId);
 	return okReply(envelope, {
 		room: next,
-		beatId: advanced.activeBeatId,
-		say: beat?.say ?? "",
+		beatId,
+		say,
 	});
 }
 

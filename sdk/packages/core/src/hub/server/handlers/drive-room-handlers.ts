@@ -28,10 +28,8 @@ import {
 	getHubDriveHarness,
 	takeHubRoomCommit,
 } from "../../driveHarnessBinding";
+import { resolvePackFromRegistry } from "../../drive-config/driveRegistryStore";
 import { runChatForkDirectorTick } from "./drive-fork-tick";
-import {
-	runShowPlannerFromWork,
-} from "./drive-handlers";
 import { errorReply, type HubTransportContext, okReply } from "./context";
 
 function linkedSessionIds(
@@ -112,6 +110,16 @@ const CallSetAddressPayloadSchema = RoomIdSchema.extend({
 const CallSetModePayloadSchema = RoomIdSchema.extend({
 	subMode: DriveSubModeSchema,
 	driveActive: z.boolean().optional(),
+}).strict();
+
+const CallAddRosterPackPayloadSchema = RoomIdSchema.extend({
+	packId: z.string().min(1),
+	workspaceRoot: z.string().min(1).optional(),
+}).strict();
+
+const CallRemoveRosterPackPayloadSchema = RoomIdSchema.extend({
+	packId: z.string().min(1),
+	workspaceRoot: z.string().min(1).optional(),
 }).strict();
 
 const WorkEditSchema = z
@@ -532,19 +540,21 @@ export async function handleDriveRoomCommand(
 					live.seatedParticipantIds[0] ??
 					payload.actorId ??
 					"system";
-				const planner = runShowPlannerFromWork({
-					room: live,
-					workKind: work.kind,
+				const { harness } = getHubDriveHarness({ store });
+				const planner = await harness.shows.planFromWork(
+					roomId,
+					work.kind,
 					ownerParticipantId,
-				});
-				if (planner.planned.length > 0) {
-					const nextLive = store.setLive(planner.room);
+				);
+				const planned = planner.plannedShows ?? [];
+				if (planned.length > 0) {
+					const nextLive = planner.liveRoom as Record<string, unknown>;
 					ctx.publish(
 						ctx.buildEvent("drive.room.changed", {
-							room: nextLive as unknown as Record<string, unknown>,
+							room: nextLive,
 						}),
 					);
-					for (const item of planner.planned) {
+					for (const item of planned) {
 						ctx.publish(
 							ctx.buildEvent("drive.show.planned", {
 								showItemId: item.id,
@@ -553,7 +563,7 @@ export async function handleDriveRoomCommand(
 								title: item.title,
 								priority: item.priority,
 								scoreReasons: item.scoreReasons,
-								plannerReasons: planner.reasons,
+								plannerReasons: planner.plannerReasons,
 							}),
 						);
 					}
@@ -579,6 +589,75 @@ export async function handleDriveRoomCommand(
 					envelope,
 					snapshotPayload(committed.snapshot, committed.seq),
 				);
+			}
+			case "call_add_roster_pack": {
+				const payload = CallAddRosterPackPayloadSchema.parse(
+					envelope.payload ?? {},
+				);
+				ensureEventLog(store, payload.workspaceRoot);
+				store.create(payload.roomId);
+				const configParent = payload.workspaceRoot;
+				const resolved = configParent
+					? resolvePackFromRegistry(configParent, payload.packId)
+					: null;
+				const packId = resolved?.id ?? payload.packId;
+				const beforeIds = new Set(
+					(store.get(payload.roomId)?.participants ?? []).map((p) => p.id),
+				);
+				const { harness } = getHubDriveHarness({
+					store,
+					configParent,
+				});
+				const snapshot = await harness.rooms.addRosterPack(
+					payload.roomId,
+					payload.packId,
+				);
+				const seq = store.lastSeq(payload.roomId);
+				publishRoomSnapshot(ctx, payload.roomId, snapshot, seq);
+				const seated = snapshot.participants
+					.filter((p) => p.kind === "agent" && !beforeIds.has(p.id))
+					.map((p) => p.id);
+				const alreadyPresent = snapshot.participants
+					.filter(
+						(p) =>
+							p.kind === "agent" &&
+							beforeIds.has(p.id) &&
+							p.seatSources.some(
+								(source) =>
+									source.kind === "pack" && source.packId === packId,
+							),
+					)
+					.map((p) => p.id);
+				return okReply(envelope, {
+					...snapshotPayload(snapshot, seq),
+					seated,
+					alreadyPresent,
+					missing: [],
+					truncated: false,
+				});
+			}
+			case "call_remove_roster_pack": {
+				const payload = CallRemoveRosterPackPayloadSchema.parse(
+					envelope.payload ?? {},
+				);
+				ensureEventLog(store, payload.workspaceRoot);
+				store.create(payload.roomId);
+				const configParent = payload.workspaceRoot;
+				const resolved = configParent
+					? resolvePackFromRegistry(configParent, payload.packId)
+					: null;
+				const packId = resolved?.id ?? payload.packId;
+				const { harness } = getHubDriveHarness({
+					store,
+					configParent,
+				});
+				const snapshot = await harness.rooms.removeRosterPack(
+					payload.roomId,
+					packId,
+				);
+				const seq = store.lastSeq(payload.roomId);
+				publishRoomSnapshot(ctx, payload.roomId, snapshot, seq);
+				return okReply(envelope, snapshotPayload(snapshot, seq));
 			}
 			case "call_get_room": {
 				const payload = CallGetRoomPayloadSchema.parse(envelope.payload ?? {});
