@@ -33,7 +33,7 @@ docs/drivecode/
 │   ├── cline-drivemode/      # product plan track
 │   │   ├── README.md
 │   │   ├── foundation/       # 00, 01, 05–08
-│   │   ├── research/         # 02–04, 12–14
+│   │   ├── research/         # 02–04, 12–15
 │   │   ├── leadership/       # briefs, systems analysis, gates
 │   │   ├── delivery/         # TASK-GRAPH, runbook, active handoff
 │   │   ├── decisions/        # DEC-*

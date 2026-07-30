@@ -22,7 +22,7 @@ Fix failures before merging Drive doc changes.
 | Nest root process files above | Indexes and contracts only — no feature notes |
 | `reference/` | Long shipped reference pages (`architecture`, `native-vs-drivecode`, `skills-inventory`) |
 | `plans/cline-drivemode/foundation/` | Vision, architecture, workflows, platform, runtime, provider |
-| `plans/cline-drivemode/research/` | Prior art, inventory, audits, futures |
+| `plans/cline-drivemode/research/` | Prior art, inventory, audits, futures (incl. `15-drive-mode-mcp`) |
 | `plans/cline-drivemode/leadership/` | SE/PM briefs, systems analysis, entry gates |
 | `plans/cline-drivemode/delivery/` | TASK-GRAPH, AGENT-RUNBOOK, active track handoff |
 | `plans/cline-drivemode/decisions/` | `DEC-*` |
