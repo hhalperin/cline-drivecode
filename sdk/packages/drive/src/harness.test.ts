@@ -30,6 +30,29 @@ describe("createDriveHarness", () => {
 		});
 	});
 
+	it("createOrAttach honors optional human and partner roles", async () => {
+		const host = memoryDriveHost();
+		const drive = createDriveHarness({ host });
+		const room = await drive.rooms.createOrAttach({
+			roomId: "r_roles",
+			humanId: "h_obs",
+			humanDisplayName: "Observer",
+			humanRole: "observer",
+			partner: {
+				id: "a_rec",
+				displayName: "Recorder",
+				role: "recorder",
+			},
+			activateDrive: false,
+		});
+		expect(room.participants.find((p) => p.id === "h_obs")?.role).toBe(
+			"observer",
+		);
+		expect(room.participants.find((p) => p.id === "a_rec")?.role).toBe(
+			"recorder",
+		);
+	});
+
 	it("setAddress and setSpotlight go through the host", async () => {
 		const host = memoryDriveHost();
 		const drive = createDriveHarness({ host });

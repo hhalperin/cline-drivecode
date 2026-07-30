@@ -24,13 +24,14 @@ import {
 	type WorkRecordPayload,
 	workRecordFromToolEvent,
 } from "../../collaboration";
-import {
-	getHubDriveHarness,
-	takeHubRoomCommit,
-} from "../../driveHarnessBinding";
 import { resolvePackFromRegistry } from "../../drive-config/driveRegistryStore";
-import { runChatForkDirectorTick } from "./drive-fork-tick";
+import {
+	captureHubRoomCommit,
+	getHubDriveHarness,
+} from "../../driveHarnessBinding";
 import { errorReply, type HubTransportContext, okReply } from "./context";
+import { runChatForkDirectorTick } from "./drive-fork-tick";
+import { runShowPlannerFromWork } from "./drive-handlers";
 
 function linkedSessionIds(
 	store: ReturnType<typeof getDriveRoomStore>,
@@ -330,9 +331,11 @@ export async function handleDriveRoomCommand(
 						roomId: payload.roomId,
 						humanId: payload.human.id,
 						humanDisplayName: payload.human.displayName,
+						humanRole: payload.human.role,
 						partner: {
 							id: payload.agent.id,
 							displayName: payload.agent.displayName,
+							role: payload.agent.role,
 						},
 						activateDrive: payload.activateDrive,
 					});
@@ -387,12 +390,13 @@ export async function handleDriveRoomCommand(
 					envelope.payload ?? {},
 				);
 				const { harness } = getHubDriveHarness({ store });
-				await harness.rooms.raiseHand(
-					payload.roomId,
-					payload.participantId,
-					payload.raised,
+				const committed = await captureHubRoomCommit(store, () =>
+					harness.rooms.raiseHand(
+						payload.roomId,
+						payload.participantId,
+						payload.raised,
+					),
 				);
-				const committed = takeHubRoomCommit(store);
 				if (!committed) {
 					return errorReply(
 						envelope,
@@ -436,12 +440,13 @@ export async function handleDriveRoomCommand(
 			case "call_set_stage": {
 				const payload = CallSetStagePayloadSchema.parse(envelope.payload ?? {});
 				const { harness } = getHubDriveHarness({ store });
-				await harness.rooms.setSharer(
-					payload.roomId,
-					payload.sharer as StageSharer | null,
-					payload.pin,
+				const committed = await captureHubRoomCommit(store, () =>
+					harness.rooms.setSharer(
+						payload.roomId,
+						payload.sharer as StageSharer | null,
+						payload.pin,
+					),
 				);
-				const committed = takeHubRoomCommit(store);
 				if (!committed) {
 					return errorReply(
 						envelope,
@@ -467,8 +472,9 @@ export async function handleDriveRoomCommand(
 				);
 				store.create(payload.roomId);
 				const { harness } = getHubDriveHarness({ store });
-				await harness.rooms.setAddress(payload.roomId, payload.addressSet);
-				const committed = takeHubRoomCommit(store);
+				const committed = await captureHubRoomCommit(store, () =>
+					harness.rooms.setAddress(payload.roomId, payload.addressSet),
+				);
 				if (!committed) {
 					return errorReply(
 						envelope,
@@ -491,12 +497,13 @@ export async function handleDriveRoomCommand(
 			case "call_set_mode": {
 				const payload = CallSetModePayloadSchema.parse(envelope.payload ?? {});
 				const { harness } = getHubDriveHarness({ store });
-				await harness.rooms.setSubMode(
-					payload.roomId,
-					payload.subMode,
-					payload.driveActive,
+				const committed = await captureHubRoomCommit(store, () =>
+					harness.rooms.setSubMode(
+						payload.roomId,
+						payload.subMode,
+						payload.driveActive,
+					),
 				);
-				const committed = takeHubRoomCommit(store);
 				if (!committed) {
 					return errorReply(
 						envelope,
@@ -626,8 +633,7 @@ export async function handleDriveRoomCommand(
 							p.kind === "agent" &&
 							beforeIds.has(p.id) &&
 							p.seatSources.some(
-								(source) =>
-									source.kind === "pack" && source.packId === packId,
+								(source) => source.kind === "pack" && source.packId === packId,
 							),
 					)
 					.map((p) => p.id);

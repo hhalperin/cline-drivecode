@@ -2,9 +2,10 @@
  * Hub-side DriveHarness binding — single writer via createClineDriveHost.
  */
 
+import { AsyncLocalStorage } from "node:async_hooks";
+import { tmpdir } from "node:os";
 import { createDriveHarness, type DriveHarness } from "@cline/drive";
 import type { DriveEvent, RoomSnapshot } from "@cline/shared";
-import { tmpdir } from "node:os";
 import { createClineDriveHost } from "./clineDriveHost";
 import {
 	type DriveRoomStore,
@@ -21,15 +22,21 @@ export type HubRoomCommit = {
 
 type HubHarnessBinding = {
 	harness: DriveHarness;
-	lastCommit: HubRoomCommit | null;
 	configParent: string;
 };
+
+type HubCommitCapture = {
+	commits: HubRoomCommit[];
+};
+
+/** Per-async-context commit buffer so concurrent room ops cannot steal each other's commits. */
+const hubCommitCapture = new AsyncLocalStorage<HubCommitCapture>();
 
 const bindings = new WeakMap<DriveRoomStore, HubHarnessBinding>();
 
 /**
  * DriveHarness over the process-wide room store (and optional config parent).
- * Room commits update `lastCommit` for hub publishRoomEvent.
+ * Room commits during `captureHubRoomCommit` are recorded for hub publishRoomEvent.
  * `resolveRosterPack` reads durable `registry.v1.json` under configParent.
  */
 export function getHubDriveHarness(input?: {
@@ -51,7 +58,6 @@ export function getHubDriveHarness(input?: {
 
 	const binding: HubHarnessBinding = {
 		harness: null as unknown as DriveHarness,
-		lastCommit: null,
 		configParent: input?.configParent?.trim() || tmpdir(),
 	};
 
@@ -59,15 +65,19 @@ export function getHubDriveHarness(input?: {
 		configParent: binding.configParent,
 		store,
 		broadcastFn: (event) => {
+			const capture = hubCommitCapture.getStore();
+			if (!capture) {
+				return;
+			}
 			const snapshot = store.get(event.roomId);
 			if (!snapshot) {
 				return;
 			}
-			binding.lastCommit = {
+			capture.commits.push({
 				event,
 				snapshot,
 				seq: store.lastSeq(event.roomId),
-			};
+			});
 		},
 	});
 
@@ -80,12 +90,16 @@ export function getHubDriveHarness(input?: {
 	return binding;
 }
 
-export function takeHubRoomCommit(store: DriveRoomStore = getDriveRoomStore()): HubRoomCommit | null {
-	const binding = bindings.get(store);
-	if (!binding?.lastCommit) {
-		return null;
-	}
-	const commit = binding.lastCommit;
-	binding.lastCommit = null;
-	return commit;
+/**
+ * Run a harness room op and return the last commit it produced.
+ * Concurrent captures isolate commits via AsyncLocalStorage.
+ */
+export async function captureHubRoomCommit(
+	store: DriveRoomStore,
+	run: () => Promise<unknown>,
+): Promise<HubRoomCommit | null> {
+	getHubDriveHarness({ store });
+	const box: HubCommitCapture = { commits: [] };
+	await hubCommitCapture.run(box, run);
+	return box.commits.at(-1) ?? null;
 }

@@ -18,14 +18,17 @@ import type {
 	StagePin,
 	StageSharer,
 } from "@cline/shared";
-import { advanceScriptBeat } from "./director/rankBacklogs.js";
 import { pickNextShowToPresent } from "./director/pickNextShow.js";
 import { planShowIntents } from "./director/planShowIntents.js";
+import { advanceScriptBeat } from "./director/rankBacklogs.js";
 import { expandRosterPack } from "./facets/expand.js";
 import type { DirectorOpResult, DriveHostPort } from "./hostPort.js";
-import { assertRouteLegal, planRoute } from "./router/planRoute.js";
 import { setSpotlight } from "./room/participantControls.js";
-import { applySeatSourceDelta, planRemoveRosterPack } from "./room/seatSources.js";
+import {
+	applySeatSourceDelta,
+	planRemoveRosterPack,
+} from "./room/seatSources.js";
+import { assertRouteLegal, planRoute } from "./router/planRoute.js";
 
 export const DRIVE_HARNESS_DEFAULT_ROOM_ID = "default" as const;
 export const DRIVE_HARNESS_HUMAN_ID = "drive:human" as const;
@@ -47,10 +50,14 @@ export type CreateOrAttachInput = {
 	roomId?: string;
 	humanId: string;
 	humanDisplayName?: string;
+	/** Human roster role (default "host"). */
+	humanRole?: HumanParticipant["role"];
 	/** When set, seats a pair_partner agent (default display "Partner"). */
 	partner?: {
 		id?: string;
 		displayName?: string;
+		/** Agent roster role (default "partner"). */
+		role?: AgentParticipant["role"];
 	} | null;
 	/** Activate Drive + stage sharer on the partner (default true when partner seated). */
 	activateDrive?: boolean;
@@ -255,7 +262,7 @@ export function createDriveHarness(
 				id: humanId,
 				kind: "human",
 				displayName: input.humanDisplayName?.trim() || "You",
-				role: "host",
+				role: input.humanRole ?? "host",
 				status: "idle",
 			};
 			let snapshot = await host.commitRoomOp({
@@ -272,7 +279,7 @@ export function createDriveHarness(
 					id: partnerId,
 					kind: "agent",
 					displayName: partner.displayName?.trim() || "Partner",
-					role: "partner",
+					role: partner.role ?? "partner",
 					status: "idle",
 					seatSources: [{ kind: "manual" }],
 				};
@@ -283,8 +290,7 @@ export function createDriveHarness(
 				});
 			}
 
-			const activate =
-				input.activateDrive !== false && partnerId != null;
+			const activate = input.activateDrive !== false && partnerId != null;
 			if (activate && partnerId) {
 				snapshot = await host.commitRoomOp({
 					type: "setMode",
@@ -355,7 +361,8 @@ export function createDriveHarness(
 								(source.kind !== "pack" ||
 									(prior.kind === "pack" && source.packId === prior.packId)) &&
 								(source.kind !== "spawn" ||
-									(prior.kind === "spawn" && source.parentId === prior.parentId))
+									(prior.kind === "spawn" &&
+										source.parentId === prior.parentId))
 							);
 						});
 					if (unchanged) {
@@ -549,7 +556,9 @@ export function createDriveHarness(
 				throw new Error("DriveHarness requires HostCapabilities.roomOps");
 			}
 			if (!host.capabilities.writerEndpoint.trim()) {
-				throw new Error("DriveHarness requires HostCapabilities.writerEndpoint");
+				throw new Error(
+					"DriveHarness requires HostCapabilities.writerEndpoint",
+				);
 			}
 		},
 		onEvent(handler) {

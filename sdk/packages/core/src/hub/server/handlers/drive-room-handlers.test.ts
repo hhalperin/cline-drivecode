@@ -45,9 +45,11 @@ describe("handleDriveRoomCommand", () => {
 		});
 		expect(reply.ok).toBe(true);
 		expect(reply.payload?.roomId).toBe("room_h1");
-		expect(ctx.published.some((e) => (e as { event: string }).event === "room.snapshot")).toBe(
-			true,
-		);
+		expect(
+			ctx.published.some(
+				(e) => (e as { event: string }).event === "room.snapshot",
+			),
+		).toBe(true);
 
 		const leave = await handleDriveRoomCommand(ctx, {
 			version: "v1",
@@ -68,6 +70,40 @@ describe("handleDriveRoomCommand", () => {
 		});
 		expect(stage.ok).toBe(true);
 		expect(okReply({ version: "v1", requestId: "x" }).ok).toBe(true);
+	});
+
+	it("forwards optional human and agent roles on call_join", async () => {
+		resetDriveRoomStoreForTests();
+		const ctx = makeCtx();
+		const reply = await handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_join",
+			requestId: "r_roles",
+			payload: {
+				roomId: "room_roles",
+				human: {
+					id: "observer_you",
+					displayName: "You",
+					role: "observer",
+				},
+				agent: {
+					id: "recorder_adam",
+					displayName: "Adam",
+					role: "recorder",
+				},
+				activateDrive: false,
+			},
+		});
+		expect(reply.ok).toBe(true);
+		const snap = reply.payload?.snapshot as {
+			participants: Array<{ id: string; role: string }>;
+		};
+		expect(snap.participants.find((p) => p.id === "observer_you")?.role).toBe(
+			"observer",
+		);
+		expect(snap.participants.find((p) => p.id === "recorder_adam")?.role).toBe(
+			"recorder",
+		);
 	});
 
 	it("returns room_not_found for leave on missing room", async () => {
@@ -146,7 +182,9 @@ describe("handleDriveRoomCommand", () => {
 		};
 		expect(handSnap.raisedHandByParticipantId.you).toBe(true);
 		expect(
-			ctx.published.some((e) => (e as { event: string }).event === "room.event"),
+			ctx.published.some(
+				(e) => (e as { event: string }).event === "room.event",
+			),
 		).toBe(true);
 
 		const lowered = await handleDriveRoomCommand(ctx, {
@@ -195,11 +233,13 @@ describe("handleDriveRoomCommand", () => {
 		const snap = renamed.payload?.snapshot as {
 			participants: Array<{ id: string; displayName: string }>;
 		};
+		expect(snap.participants.find((p) => p.id === "adam")?.displayName).toBe(
+			"Nova",
+		);
 		expect(
-			snap.participants.find((p) => p.id === "adam")?.displayName,
-		).toBe("Nova");
-		expect(
-			ctx.published.some((e) => (e as { event: string }).event === "room.event"),
+			ctx.published.some(
+				(e) => (e as { event: string }).event === "room.event",
+			),
 		).toBe(true);
 
 		const missing = await handleDriveRoomCommand(ctx, {
@@ -441,7 +481,9 @@ describe("handleDriveRoomCommand", () => {
 		};
 		expect(snapshot.stage.cards.some((c) => c.category === "edit")).toBe(true);
 		expect(
-			ctx.published.some((e) => (e as { event: string }).event === "room.event"),
+			ctx.published.some(
+				(e) => (e as { event: string }).event === "room.event",
+			),
 		).toBe(true);
 
 		const cmd = await handleDriveRoomCommand(ctx, {
@@ -504,9 +546,9 @@ describe("handleDriveRoomCommand", () => {
 		) as {
 			payload?: { scoreReasons?: string[]; title?: string };
 		};
-		expect(planned.payload?.scoreReasons?.some((r) => r.includes("planner:"))).toBe(
-			true,
-		);
+		expect(
+			planned.payload?.scoreReasons?.some((r) => r.includes("planner:")),
+		).toBe(true);
 
 		const live = getDriveRoomStore().getOrCreateLive("room_plan");
 		expect(
@@ -726,9 +768,7 @@ describe("handleDriveRoomCommand", () => {
 						id: "review",
 						slug: "review-crew",
 						displayName: "Review",
-						members: [
-							{ profileId: "reviewer", role: "specialist" },
-						],
+						members: [{ profileId: "reviewer", role: "specialist" }],
 						addressable: true,
 					},
 				},

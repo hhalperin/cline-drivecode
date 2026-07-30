@@ -16,7 +16,11 @@ export type DriveSubMode = z.infer<typeof DriveSubModeSchema>;
 export const DriveHumanRoleSchema = z.enum(["host", "participant", "observer"]);
 export type DriveHumanRole = z.infer<typeof DriveHumanRoleSchema>;
 
-export const DriveAgentRoleSchema = z.enum(["partner", "specialist", "recorder"]);
+export const DriveAgentRoleSchema = z.enum([
+	"partner",
+	"specialist",
+	"recorder",
+]);
 export type DriveAgentRole = z.infer<typeof DriveAgentRoleSchema>;
 
 export const ParticipantStatusSchema = z.enum([
@@ -120,14 +124,7 @@ export type StagePin = z.infer<typeof StagePinSchema>;
 export const StageCardSchema = z
 	.object({
 		id: z.string().min(1),
-		category: z.enum([
-			"edit",
-			"command",
-			"test",
-			"plan",
-			"decision",
-			"other",
-		]),
+		category: z.enum(["edit", "command", "test", "plan", "decision", "other"]),
 		title: z.string().min(1),
 		summary: z.string().optional(),
 		workEventId: z.string().min(1).optional(),
@@ -156,9 +153,7 @@ export const RoomSnapshotSchema = z
 		stage: StageStateSchema,
 		addressSet: AddressSetSchema.default(EVERYONE_ADDRESS),
 		muteByParticipantId: z.record(z.string(), z.boolean()).default({}),
-		raisedHandByParticipantId: z
-			.record(z.string(), z.boolean())
-			.default({}),
+		raisedHandByParticipantId: z.record(z.string(), z.boolean()).default({}),
 		/** Ring of applied event ids for idempotent reduce. */
 		appliedEventIds: z.array(z.string().min(1)).default([]),
 	})
