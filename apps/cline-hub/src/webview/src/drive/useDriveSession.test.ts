@@ -75,8 +75,7 @@ describe("Drive call error transitions", () => {
 			}),
 		).toEqual({
 			kind: "notice",
-			note:
-				"Could not attach this Chat session to Drive: room_not_found:default",
+			note: "Could not attach this Chat session to Drive: room_not_found:default",
 		});
 	});
 });
