@@ -84,7 +84,10 @@ export const AgentParticipantSchema = z
 		role: DriveAgentRoleSchema,
 		status: ParticipantStatusSchema.default("idle"),
 		/** Seat provenance (DRV-ROSTER-PACK). Never empty while seated. */
-		seatSources: z.array(SeatSourceSchema).default([]),
+		seatSources: z.preprocess(
+			(value) => (value === undefined ? undefined : coerceSeatSources(value)),
+			z.array(SeatSourceSchema).default([]),
+		),
 	})
 	.strict();
 

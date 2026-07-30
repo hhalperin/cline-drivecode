@@ -334,7 +334,7 @@ export function createDriveHarness(
 			});
 
 			let snapshot = await requireRoom(roomId);
-			const packSource = { kind: "pack" as const, packId: pack.id };
+			const packSource = { kind: "pack" as const, packId };
 
 			for (const proposal of expanded.proposals) {
 				const existing = snapshot.participants.find(
