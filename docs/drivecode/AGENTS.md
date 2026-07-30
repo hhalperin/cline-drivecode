@@ -7,13 +7,18 @@ or `docs/assets/drivecode/`.
 Human-facing product reference: [README.md](README.md).
 Cold-start handoff: [HANDOFF.md](HANDOFF.md).
 CI contract (path filters, gate, labels): [CI.md](CI.md).
+Target directory skeleton (not fully migrated): [STRUCTURE.md](STRUCTURE.md).
 
 ## Layout
+
+Current on-disk layout (use until a migration lands). For the target tree and
+placement matrix, see [STRUCTURE.md](STRUCTURE.md).
 
 | Path | Put here |
 |---|---|
 | `README.md`, `architecture.md`, `native-vs-drivecode.md`, `skills-inventory.md`, `CI.md` | Implemented product reference (cite live code / workflows) |
 | `HANDOFF.md` | Repo-level continuation brief |
+| `STRUCTURE.md` | Directory skeleton + “where does X go?” matrix |
 | `plans/cline-drivemode/` | Product plans: ARDs, DRV features, PRDs, workflows, task graph |
 | `plans/drivecode-sdk/` | Portable `@cline/drive` harness plan |
 | `design/drive-wireframes/` | HTML wireframes, brand tokens, canvases, DEMO runbook |
