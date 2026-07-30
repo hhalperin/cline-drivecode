@@ -29,6 +29,7 @@ Product Drive surfaces (`apps/cline-hub`, CLI Drive chrome) should compose **`cr
 - **`director.*`** on the harness exposes pure Show helpers (`pickNextShow`, `planRoute`, `planShowIntents`, `advanceScriptBeat`) — live backlog commit remains `drive.show.*` until a DirectorPort exists
 - **Webview single fold** — `useDriveSession` folds `drive_event` via `foldIncomingDriveEvent` → `reduceRoom`; demo `stageReducer` maps tools → `work.*` → same fold
 - **Hub room ops via harness** — `call_join` → `createOrAttach`; `call_raise_hand` / `call_set_address` / `call_set_stage` / `call_set_mode` via `getHubDriveHarness`
+- **Hub show ops via harness** — `drive.show.enqueue|present|tick` → `harness.shows.*` / `commitDirectorOp`; show runtime extracted to `driveShowRuntime.ts` (no handlers ↔ directorOps cycle)
 
 ## How to use it
 
@@ -60,7 +61,7 @@ Apps still **project** with `reduceRoom` / `projectStage` / `projectRoster` from
 Ordered slices for follow-on work after the harness MVP:
 
 1. ~~**Hub join via harness**~~ — Done (`call_join` → `rooms.createOrAttach`; raise-hand too).
-2. **Thin `drive.show.*` handlers** — extract show runtime out of `drive-handlers.ts` so handlers can call `harness.shows.*` / `commitDirectorOp` without a circular import (`driveDirectorOps` ↔ handlers). Keep publish in handlers.
+2. ~~**Thin `drive.show.*` handlers**~~ — Done: `driveShowRuntime.ts` breaks the cycle; handlers publish only; mutate via `harness.shows.*` / `commitDirectorOp`. Still open: script attach as DirectorOp; planner full harness migration.
 3. **Phase-2 pure helpers** — land `expandRosterPack`, `applySeatSourceDelta`, `capPreset`, `resolveAddress` in `@cline/drive`; wire `addRosterPack` to durable packs (not skip-if-seated stubs).
 4. **Do not** dump all of `@cline/drive` into `@cline/sdk` root — keep agent vs room packages separate; optional future subpath `@cline/sdk/drive` only if publishing needs one install name.
 
@@ -73,6 +74,6 @@ Ordered slices for follow-on work after the harness MVP:
 | `createDriveHarness` rooms MVP | Done |
 | Host `getRoom` + roomId on `RoomOp` | Done |
 | Product hub migration onto harness | **Done** for join / raise-hand / address / stage / mode |
-| DirectorPort / show commit on harness | **Partial** — `commitDirectorOp` + `DriveHarness.shows`; hub `drive.show.*` still duplicates store writes |
+| DirectorPort / show commit on harness | **Done** for enqueue / present / tick wire path; script attach + planner still handler-local |
 | Webview single fold | **Done** — `foldIncomingDriveEvent` + tool→`work.*`→`reduceRoom` in `stageReducer` |
 | Phase-2 pack/address/preset helpers | Not started |

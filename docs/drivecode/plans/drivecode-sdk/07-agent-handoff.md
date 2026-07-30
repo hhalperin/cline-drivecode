@@ -18,7 +18,7 @@ Do **not** reopen Show backlog product design (slices 1–7 + S are done on main
 **Next ordered slices on PR #58:**
 
 1. ~~Hub `call_join` / raise-hand via harness~~ — **done on this branch** (`1b7236bb0`)
-2. **Thin `drive.show.*` handlers** onto `harness.shows` / `commitDirectorOp` (break circular import first)
+2. ~~**Thin `drive.show.*` handlers** onto `harness.shows` / `commitDirectorOp`~~ — **done** (`driveShowRuntime.ts` + thin handlers)
 3. **Phase-2 pure helpers** — `expandRosterPack`, `applySeatSourceDelta`, `capPreset`, `resolveAddress` + durable `addRosterPack`
 
 Ship slice 2 green before starting slice 3 unless the human redirects.
@@ -113,11 +113,11 @@ drive-handlers → driveHarnessBinding → clineDriveHost → driveDirectorOps �
 
 ### Acceptance for slice 2
 
-- [ ] No circular import between handlers and directorOps
-- [ ] `drive.show.enqueue|present|tick` mutate via harness/host commit only
-- [ ] Published events and reply payloads unchanged for existing tests
-- [ ] `bun -F @cline/core test:unit -- drive-handlers.test.ts` (and any fork/show tests you touch) pass
-- [ ] Update `06-sdk-leverage.md` DirectorPort row toward Done / note remaining gaps (script attach, planner)
+- [x] No circular import between handlers and directorOps
+- [x] `drive.show.enqueue|present|tick` mutate via harness/host commit only
+- [x] Published events and reply payloads unchanged for existing tests
+- [x] `bun -F @cline/core test:unit -- drive-handlers.test.ts` (and any fork/show tests you touch) pass
+- [x] Update `06-sdk-leverage.md` DirectorPort row toward Done / note remaining gaps (script attach, planner)
 
 ### Out of scope for slice 2
 
@@ -230,15 +230,11 @@ Webview join
   → room_snapshot / drive_event
   → foldIncomingDriveEvent / applyRoomSnapshot
 
-Show enqueue (today — to change)
-  → drive.show.enqueue
-  → drive-handlers handleShowEnqueue (inline store)
-  → publish planned/presented
-
-Show enqueue (target)
+Show enqueue (target — landed)
   → drive.show.enqueue
   → harness.shows.enqueue → commitDirectorOp → driveDirectorOps
   → handlers publish only
+  (runtime: driveShowRuntime.ts; no handlers ↔ directorOps cycle)
 ```
 
 ---

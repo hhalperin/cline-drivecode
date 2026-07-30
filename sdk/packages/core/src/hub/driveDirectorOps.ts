@@ -1,6 +1,6 @@
 /**
  * Director show ops over DriveRoomStore (host commit path).
- * Imports tick/materialize from drive-handlers (handlers must not import this file).
+ * Show runtime lives in driveShowRuntime (handlers must not import this file).
  */
 
 import { normalizeEnqueuedShowStatus } from "@cline/drive";
@@ -10,9 +10,10 @@ import {
 	type DriveRoomStore,
 } from "./collaboration";
 import {
+	applyPresentedShow,
 	materializeShowItem,
 	runShowDirectorTick,
-} from "./server/handlers/drive-handlers";
+} from "./driveShowRuntime";
 
 type DriveLiveRoom = ReturnType<DriveRoomStore["getOrCreateLive"]>;
 
@@ -79,28 +80,15 @@ export function presentShowOnStore(input: {
 	if (!materialized.uri) {
 		return { room, presented: null, planned: null };
 	}
-	const showing = { ...materialized, status: "showing" as const };
-	const showBacklog = [
-		showing,
-		...room.director.showBacklog.filter((item) => item.id !== showing.id),
-	];
-	const next = store.setLive({
-		...room,
-		director: {
-			...room.director,
-			showBacklog,
-			activeShowId: showing.id,
-			stickyShowIds: [showing.id, ...room.director.stickyShowIds].filter(
-				(id, index, all) => all.indexOf(id) === index,
-			),
-			lastPresentedAt: new Date().toISOString(),
-			spotlightParticipantId:
-				room.spotlightParticipantId ?? showing.ownerParticipantId,
-		},
-		spotlightParticipantId:
-			room.spotlightParticipantId ?? showing.ownerParticipantId,
-	});
-	return { room: next, presented: showing, planned: null };
+	const next = store.setLive(
+		applyPresentedShow(room, { ...materialized, status: "showing" }, {
+			demoCapture: input.demoCapture,
+		}),
+	);
+	const presented =
+		next.director.showBacklog.find((item) => item.id === materialized.id) ??
+		null;
+	return { room: next, presented, planned: null };
 }
 
 export function tickShowOnStore(input: {
