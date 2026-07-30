@@ -10,6 +10,8 @@ on:
             - "docs/docs.json"
             - "sdk/scripts/check-links.ts"
             - "sdk/scripts/check-drivecode-structure.ts"
+            - "sdk/scripts/check-drivecode-structure.test.ts"
+            - "package.json"
             - "docs/drivecode/**"
             - ".github/workflows/docs-link-check.yml"
     pull_request:
@@ -21,6 +23,8 @@ on:
             - "docs/docs.json"
             - "sdk/scripts/check-links.ts"
             - "sdk/scripts/check-drivecode-structure.ts"
+            - "sdk/scripts/check-drivecode-structure.test.ts"
+            - "package.json"
             - "docs/drivecode/**"
             - ".github/workflows/docs-link-check.yml"
     schedule:

@@ -266,9 +266,11 @@ describe("migration invariants on live nest", () => {
 	});
 
 	test("assets only use known buckets", async () => {
-		const entries = await readdir(join(liveNest, "assets"), {
-			withFileTypes: true,
-		});
+		const entries = (
+			await readdir(join(liveNest, "assets"), {
+				withFileTypes: true,
+			})
+		).filter((e) => e.name !== ".DS_Store");
 		for (const entry of entries) {
 			expect(entry.isDirectory()).toBe(true);
 			expect(ASSET_BUCKETS.has(entry.name)).toBe(true);
@@ -276,9 +278,11 @@ describe("migration invariants on live nest", () => {
 	});
 
 	test("design only uses brand/wireframes/canvases", async () => {
-		const entries = await readdir(join(liveNest, "design"), {
-			withFileTypes: true,
-		});
+		const entries = (
+			await readdir(join(liveNest, "design"), {
+				withFileTypes: true,
+			})
+		).filter((e) => e.name !== ".DS_Store");
 		for (const entry of entries) {
 			if (!entry.isDirectory()) {
 				expect(entry.name).toBe("README.md");
@@ -289,9 +293,11 @@ describe("migration invariants on live nest", () => {
 	});
 
 	test("product plan root is README + role dirs only", async () => {
-		const entries = await readdir(join(liveNest, "plans", "cline-drivemode"), {
-			withFileTypes: true,
-		});
+		const entries = (
+			await readdir(join(liveNest, "plans", "cline-drivemode"), {
+				withFileTypes: true,
+			})
+		).filter((e) => e.name !== ".DS_Store");
 		for (const entry of entries) {
 			if (entry.isDirectory()) {
 				expect(PRODUCT_ROLE_DIRS.has(entry.name)).toBe(true);
