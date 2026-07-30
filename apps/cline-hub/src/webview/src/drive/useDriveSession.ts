@@ -422,12 +422,6 @@ export function useDriveSession(
 				(message.type === "room_snapshot" || message.type === "drive_event") &&
 				message.snapshot
 			) {
-				if (
-					typeof message.seq === "number" &&
-					message.seq >= roomSeqRef.current
-				) {
-					roomSeqRef.current = message.seq;
-				}
 				const hubSnapshot = message.snapshot;
 				// Fold drive_event through reduceRoom; room_snapshot replaces.
 				// Compute candidate before intent guards — only commit to the ref
@@ -456,6 +450,14 @@ export function useDriveSession(
 				// with no in-flight join for toggleDrive to cancel.
 				if (wasPendingJoin && !seatedOnCall) {
 					return;
+				}
+				// Advance afterSeq cursor only once we will apply this update —
+				// ignored broadcasts must not skip gap-fill on the next get_room.
+				if (
+					typeof message.seq === "number" &&
+					message.seq >= roomSeqRef.current
+				) {
+					roomSeqRef.current = message.seq;
 				}
 				roomSnapshotRef.current = seatedOnCall ? snapshot : null;
 				if (wasPendingJoin) {
