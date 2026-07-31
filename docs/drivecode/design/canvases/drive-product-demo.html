@@ -470,7 +470,8 @@
   }
   .spot-col { flex: 1; min-width: 0; }
   .feed-col {
-    flex: 0 0 340px;
+    flex: 0 0 400px;
+    position: relative;
     border-left: 0.8px solid var(--hair);
     overflow: hidden;
     transition: flex-basis .35s var(--ease), opacity .3s var(--ease);
@@ -481,6 +482,24 @@
     border-left-width: 0;
     pointer-events: none;
   }
+  /* Resize: a 5px live edge on the drawer's left side. Width applies as an
+     inline flex-basis only while the drawer is unfolded; the scripted fold
+     clears it so .feed-hidden's 0 wins, and unfold restores the user width.
+     Double-click resets to 400; persists to localStorage "drive-demo-drawer". */
+  .drawer-resize {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    z-index: 30;
+    touch-action: none;
+  }
+  .drawer-resize:hover, .drawer-resize.active {
+    background: color-mix(in srgb, var(--drive-b) 30%, transparent);
+  }
+  .call-split.drawer-dragging .feed-col { transition: none; }
   .call-split.feed-hidden .spotlight { padding: 16px 22px; }
   .panel-toggle {
     width: 26px;
@@ -574,49 +593,110 @@
   }
   .banner strong { color: var(--hub-t); }
 
-  .roster {
+  /* Drawer body: nested member-status sidebar (left) + the feed (right).
+     Member rows read like small Status-hub tiles: monogram, name, and the
+     agent's current task as its status line. */
+  .drawer-body {
+    flex: 1;
     display: flex;
-    gap: 8px;
-    padding: 10px 14px;
-    border-top: 0.8px solid color-mix(in srgb, var(--live) 20%, transparent);
-    background: color-mix(in srgb, var(--live) 4%, var(--panel));
-    overflow-x: auto;
+    min-height: 0;
   }
-  .seat {
+  .members {
+    flex: 0 0 136px;
     display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
-    border-radius: 999px;
-    border: 0.8px solid color-mix(in srgb, var(--live) 30%, transparent);
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 8px 10px;
+    border-right: 0.8px solid var(--hair);
+    background: color-mix(in srgb, var(--panel) 55%, transparent);
+  }
+  .feed-col.drawer-narrow .members { display: none; }
+  .members-eyebrow {
+    font: 600 10px/1 var(--eyebrow);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    padding: 10px 2px 8px;
+  }
+  .member-list { display: flex; flex-direction: column; gap: 6px; }
+  .member-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    padding: 8px;
+    border-radius: var(--r);
+    border: 0.8px solid var(--line);
     background: var(--raised);
-    white-space: nowrap;
     text-align: left;
   }
-  .seat .av {
-    width: 22px;
-    height: 22px;
+  .member-row:hover { border-color: var(--line-strong); }
+  .member-id { display: flex; align-items: center; gap: 7px; min-width: 0; }
+  .member-av {
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     display: grid;
     place-items: center;
-    font: 700 10px/1 var(--mono);
+    flex: none;
+    font: 700 9px/1 var(--mono);
     background: var(--well);
     border: 0.8px solid var(--line);
   }
-  .seat.agent .av {
-    background: color-mix(in srgb, var(--live) 18%, transparent);
-    border-color: color-mix(in srgb, var(--live) 55%, transparent);
+  .member-row.agent .member-av {
+    background: color-mix(in srgb, var(--live) 14%, transparent);
+    border-color: color-mix(in srgb, var(--live) 50%, transparent);
     color: var(--live-t);
   }
-  .seat.human .av { color: var(--hub-t); }
-  .seat .role {
-    font: 500 10px/1 var(--eyebrow);
-    letter-spacing: .05em;
-    text-transform: uppercase;
-    color: var(--dim);
+  .member-row.human .member-av {
+    background: color-mix(in srgb, var(--hub) 10%, transparent);
+    border-color: color-mix(in srgb, var(--hub) 45%, transparent);
+    color: var(--hub-t);
   }
-  .seat.hand .av {
+  .member-row.hand .member-av {
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--live) 70%, transparent);
+  }
+  .member-name {
+    font: 600 12px/1.2 var(--display);
+    color: var(--text);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .member-status { display: flex; align-items: flex-start; gap: 5px; }
+  .member-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: none;
+    margin-top: 3px;
+    background: var(--dim);
+  }
+  .member-row.working .member-dot { background: var(--ok-soft); }
+  .member-row.blocked .member-dot { background: var(--danger); }
+  .member-row.needs-you .member-dot {
+    background: var(--live);
+    animation: member-pulse 1.6s var(--ease) infinite;
+  }
+  @keyframes member-pulse {
+    50% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 25%, transparent); }
+  }
+  .member-task {
+    font: 500 10px/1.35 var(--mono);
+    color: var(--dim);
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .feed-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   /* Composer — the room's message bar. The input is a mock; Send is real. */
@@ -1065,6 +1145,7 @@
     .ws-caret, .ws-spin { animation: none !important; }
     .ws-cl .type { animation: none !important; width: 100%; border-right-color: transparent; }
     .ws-tl { animation: none !important; opacity: 1; }
+    .member-row.needs-you .member-dot { animation: none !important; }
   }
 
   /* Show backlog rail: the director's queue, made visible */
@@ -1931,8 +2012,7 @@
     .col-head { padding: 8px 12px; }
     .feed, .spotlight { padding: 10px; gap: 8px; }
     .msg { padding: 8px 10px; }
-    .roster { padding: 6px 10px; }
-    .seat { padding: 5px 8px; }
+    .member-row { padding: 6px; }
     .composer { padding: 6px 10px; }
     .rail { padding: 10px 8px; }
     .rail-item { padding: 8px 10px; }
@@ -2083,22 +2163,30 @@
             <div class="spotlight" id="spotlight"></div>
           </div>
           <div class="feed-col">
+            <div class="drawer-resize" id="drawer-resize" title="Drag to resize · double-click to reset" aria-hidden="true"></div>
             <div class="col-head">
               <h2>Feed</h2>
               <span class="sub" id="feed-sub">chat</span>
             </div>
-            <div class="feed" id="feed"></div>
-            <div class="composer" id="composer">
-              <span class="address-chip hide" id="composer-address">@Adam · one</span>
-              <div class="composer-input" aria-hidden="true">Message the room…</div>
-              <span class="mic-glyph" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
-              </span>
-              <button type="button" id="composer-send" title="Send" aria-label="Send message">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-              </button>
+            <div class="drawer-body">
+              <div class="members" id="members">
+                <div class="members-eyebrow">In the room</div>
+                <div class="member-list" id="member-list"></div>
+              </div>
+              <div class="feed-main">
+                <div class="feed" id="feed"></div>
+                <div class="composer" id="composer">
+                  <span class="address-chip hide" id="composer-address">@Adam · one</span>
+                  <div class="composer-input" aria-hidden="true">Message the room…</div>
+                  <span class="mic-glyph" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+                  </span>
+                  <button type="button" id="composer-send" title="Send" aria-label="Send message">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="roster" id="roster"></div>
           </div>
         </div>
       </div>
@@ -2440,7 +2528,12 @@
 (function () {
   "use strict";
 
-  /** @typedef {{ id: string, name: string, role: 'human'|'agent', handRaised: boolean }} Participant */
+  /** Room member. `task` + `wstatus` drive the drawer's member sidebar:
+   *  the current task is the member's status line, the dot maps wstatus →
+   *  working (green) / blocked (red) / needs-you (amber pulse) / paused·idle (dim).
+   *  deepMerge replaces arrays wholesale, so both fields are restated in
+   *  every participants array — inheritance does not apply.
+   * @typedef {{ id: string, name: string, role: 'human'|'agent', handRaised: boolean, wstatus?: 'working'|'blocked'|'needs-you'|'paused'|'idle', task?: string }} Participant */
   /** @typedef {{ id: string, kind: 'edit'|'command'|'test', title: string, summary: string, diff?: Array<{t:'add'|'del',s:string}> }} StageCard */
   /** Director layer: the presented show artifact (StickyStagePane analogue) and
    *  the Show backlog the director is staging from.
@@ -2636,7 +2729,7 @@
         surface: "drive-in-call",
         driveOn: true,
         inCall: true,
-        participants: [{ ...YOU }],
+        participants: [{ ...YOU, wstatus: "idle", task: "on the call" }],
         stage: {
           sharer: "Adam",
           sharerId: "adam",
@@ -2674,9 +2767,12 @@
       hubOp: "call_get_room",
       maturity: "shipped",
       dwellMs: 1400,
-      cursor: { target: "#roster", action: "move" },
+      cursor: { target: "#members", action: "move" },
       patch: {
-        participants: [{ ...YOU }, { ...ADAM }],
+        participants: [
+          { ...YOU, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "working", task: "finding the race" },
+        ],
         mode: "Agent",
         feedMessages: [
           { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
@@ -2692,7 +2788,7 @@
       hubOp: "addressSet",
       maturity: "shipped",
       dwellMs: 1200,
-      cursor: { target: "#roster .seat.agent", action: "click" },
+      cursor: { target: "#member-adam", action: "click" },
       patch: {
         addressSet: ["one"],
         stage: {
@@ -2737,6 +2833,10 @@
         narration: "Found the race. Watch the spotlight — I will walk the pending-flag path.",
         nowLabel: "running router unit tests",
         nextLabel: "explain the race, then commit",
+        participants: [
+          { ...YOU, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "working", task: "running unit tests" },
+        ],
         stage: {
           work: {
             code: [
@@ -3012,8 +3112,8 @@
       cursor: { target: "#strip-hand", action: "click" },
       patch: {
         participants: [
-          { ...YOU, handRaised: true },
-          { ...ADAM },
+          { ...YOU, handRaised: true, wstatus: "working", task: "steering" },
+          { ...ADAM, wstatus: "paused", task: "paused after tool — your turn" },
         ],
       },
     },
@@ -3035,12 +3135,12 @@
     {
       id: "a5-riley",
       act: 5,
-      title: "Riley joins roster",
-      caption: "Roster shows multi-seat shape so multi-agent does not require a chrome rewrite.",
+      title: "Riley joins the room",
+      caption: "Member sidebar shows multi-seat shape so multi-agent does not require a chrome rewrite.",
       hubOp: "seat",
       maturity: "shipped",
       dwellMs: 1400,
-      cursor: { target: "#roster", action: "move" },
+      cursor: { target: "#members", action: "move" },
       patch: {
         posture: null,
         steerQueued: false,
@@ -3068,9 +3168,9 @@
           },
         },
         participants: [
-          { ...YOU, handRaised: false },
-          { ...ADAM },
-          { ...RILEY },
+          { ...YOU, handRaised: false, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "working", task: "explaining the race" },
+          { ...RILEY, wstatus: "working", task: "tightening retry docs" },
         ],
         feedMessages: [
           { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
@@ -3226,7 +3326,10 @@
         inCall: false,
         driveOn: false,
         surface: "drive",
-        participants: [{ ...ADAM }, { ...RILEY }],
+        participants: [
+          { ...ADAM, wstatus: "working", task: "explaining the race" },
+          { ...RILEY, wstatus: "working", task: "tightening retry docs" },
+        ],
         pipVisible: false,
         feedMessages: [],
       },
@@ -3245,7 +3348,11 @@
         driveOn: true,
         handoff: true,
         showLeaveChoice: false,
-        participants: [{ ...YOU }, { ...ADAM }, { ...RILEY }],
+        participants: [
+          { ...YOU, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "working", task: "explaining the race" },
+          { ...RILEY, wstatus: "working", task: "docs review" },
+        ],
         artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
         feedMessages: [
           { id: "m7", from: "system", who: "Hub", text: "call_end · building Tier-0 handoff from typed events." },
@@ -3266,7 +3373,11 @@
         inCall: true,
         driveOn: true,
         surface: "drive-in-call",
-        participants: [{ ...YOU }, { ...ADAM }, { ...RILEY }],
+        participants: [
+          { ...YOU, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "working", task: "explaining the race" },
+          { ...RILEY, wstatus: "working", task: "docs review" },
+        ],
         stage: {
           sharer: "Adam",
           sharerId: "adam",
@@ -3374,6 +3485,11 @@
       dwellMs: 1800,
       patch: {
         showGatesCard: true,
+        participants: [
+          { ...YOU, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "needs-you", task: "waiting on pr_create approval" },
+          { ...RILEY, wstatus: "working", task: "docs review" },
+        ],
       },
     },
     {
@@ -3387,6 +3503,11 @@
       cursor: { target: ".gates-card .approve", action: "click" },
       patch: {
         showGatesCard: false,
+        participants: [
+          { ...YOU, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "working", task: "opening the PR" },
+          { ...RILEY, wstatus: "working", task: "docs review" },
+        ],
         stage: {
           work: {
             term: [
@@ -3697,7 +3818,7 @@
   const R = {
     feedSig: null,
     msgIds: {},
-    rosterSig: null,
+    membersSig: null,
     spotMode: null,
     screenSig: null,
     barHtml: null,
@@ -3823,21 +3944,29 @@
       }
     }
 
-    // Roster — rebuilt only when participants change.
-    const roster = document.getElementById("roster");
-    const rosterSig = JSON.stringify(state.participants);
-    if (rosterSig !== R.rosterSig) {
-      R.rosterSig = rosterSig;
-      roster.innerHTML = "";
-      roster.style.display = state.participants.length ? "flex" : "none";
+    // Member sidebar — rebuilt only when participants (incl. task/wstatus)
+    // change. Stable ids (#member-<id>) keep scripted cursor targets working.
+    const members = document.getElementById("members");
+    const memberList = document.getElementById("member-list");
+    const membersSig = JSON.stringify(state.participants);
+    if (membersSig !== R.membersSig) {
+      R.membersSig = membersSig;
+      memberList.innerHTML = "";
+      members.style.display = state.participants.length ? "" : "none";
       state.participants.forEach(function (p) {
         const el = document.createElement("button");
         el.type = "button";
-        el.className = "seat " + p.role + (p.handRaised ? " hand" : "");
+        el.id = "member-" + p.id;
+        el.className = "member-row " + p.role +
+          (p.handRaised ? " hand" : "") +
+          (p.wstatus ? " " + p.wstatus : "");
+        el.title = p.role === "agent" ? "Address " + p.name : p.name;
         el.innerHTML =
-          '<span class="av">' + escapeHtml(p.name.slice(0, 1)) + "</span>" +
-          "<div><div>" + escapeHtml(p.name) + '</div><div class="role">' + p.role + "</div></div>";
-        roster.appendChild(el);
+          '<span class="member-id"><span class="member-av">' + escapeHtml(p.name.slice(0, 1)) + "</span>" +
+          '<span class="member-name">' + escapeHtml(p.name) + "</span></span>" +
+          '<span class="member-status"><span class="member-dot" aria-hidden="true"></span>' +
+          '<span class="member-task">' + escapeHtml(p.task || (p.role === "agent" ? "idle" : "in the room")) + "</span></span>";
+        memberList.appendChild(el);
       });
     }
 
@@ -4048,8 +4177,10 @@
       document.getElementById("lens-" + lens).classList.toggle("on", state.statusLens === lens);
     });
 
-    // Feed drawer
+    // Feed drawer. The fold clears the inline flex-basis (so .feed-hidden's
+    // 0 wins and the drawer animates shut); unfold restores the user width.
     document.getElementById("call-split").classList.toggle("feed-hidden", !!state.feedCollapsed);
+    applyDrawerWidth();
     const feedToggle = document.getElementById("feed-toggle");
     feedToggle.title = state.feedCollapsed ? "Show chat panel" : "Hide chat panel";
     feedToggle.setAttribute("aria-label", feedToggle.title);
@@ -4444,6 +4575,7 @@
   });
   document.getElementById("feed-toggle").addEventListener("click", function () {
     document.getElementById("call-split").classList.toggle("feed-hidden");
+    applyDrawerWidth();
   });
 
   // Manual previews: a real click flips the UI directly; the next scripted
@@ -4585,6 +4717,77 @@
       saveRailConfig();
     });
   })();
+
+  // Drawer (feed) resize: pointer drag on the drawer's LEFT edge; clamp
+  // 300–520; double-click resets to 400; persists to "drive-demo-drawer".
+  // Width applies as an inline flex-basis only while the drawer is unfolded
+  // — the scripted fold clears it so .feed-hidden's flex-basis: 0 wins, and
+  // unfold restores the user's width (same pattern as the rail fold).
+  const DRAWER_STORE_KEY = "drive-demo-drawer";
+  const DRAWER_DEFAULT_WIDTH = 400;
+  const DRAWER_MIN_WIDTH = 300;
+  const DRAWER_MAX_WIDTH = 520;
+  function clampDrawerWidth(w) {
+    if (typeof w !== "number" || !isFinite(w)) return DRAWER_DEFAULT_WIDTH;
+    return Math.max(DRAWER_MIN_WIDTH, Math.min(DRAWER_MAX_WIDTH, Math.round(w)));
+  }
+  let drawerWidth = (function () {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(DRAWER_STORE_KEY) || "null"); } catch (e) { /* ignore */ }
+    return clampDrawerWidth(raw && typeof raw.width === "number" ? raw.width : DRAWER_DEFAULT_WIDTH);
+  })();
+  function saveDrawerWidth() {
+    try { localStorage.setItem(DRAWER_STORE_KEY, JSON.stringify({ width: drawerWidth })); } catch (e) { /* ignore */ }
+  }
+  function applyDrawerWidth() {
+    const split = document.getElementById("call-split");
+    const col = split.querySelector(".feed-col");
+    if (split.classList.contains("feed-hidden")) {
+      col.style.flexBasis = "";
+    } else {
+      col.style.flexBasis = drawerWidth + "px";
+    }
+    // Below 340px the members column yields its width back to the feed.
+    col.classList.toggle("drawer-narrow", drawerWidth < 340);
+  }
+  (function () {
+    const handle = document.getElementById("drawer-resize");
+    const split = document.getElementById("call-split");
+    let dragging = false;
+    let startX = 0;
+    let startW = 0;
+    handle.addEventListener("pointerdown", function (e) {
+      if (split.classList.contains("feed-hidden")) return;
+      dragging = true;
+      startX = e.clientX;
+      startW = drawerWidth;
+      handle.classList.add("active");
+      split.classList.add("drawer-dragging");
+      if (handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      // Left-edge handle: dragging left widens the drawer.
+      drawerWidth = clampDrawerWidth(startW + (startX - e.clientX));
+      applyDrawerWidth();
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove("active");
+      split.classList.remove("drawer-dragging");
+      saveDrawerWidth();
+    }
+    handle.addEventListener("pointerup", endDrag);
+    handle.addEventListener("pointercancel", endDrag);
+    handle.addEventListener("dblclick", function () {
+      if (split.classList.contains("feed-hidden")) return;
+      drawerWidth = DRAWER_DEFAULT_WIDTH;
+      applyDrawerWidth();
+      saveDrawerWidth();
+    });
+  })();
   document.querySelectorAll("#lens-tabs button").forEach(function (btn) {
     btn.addEventListener("click", function () {
       const lens = btn.getAttribute("data-lens");
@@ -4652,6 +4855,7 @@
   buildScrubber();
   buildRail();
   applyRailWidth();
+  applyDrawerWidth();
   goTo(0, false);
 
   // Expose for smoke / console
