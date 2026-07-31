@@ -7,6 +7,8 @@ import {
 	createConfiguredTelemetryHandle,
 	type ITelemetryService,
 	identifyAccount,
+	PRODUCT_HUB_CHAT_CLINE_TYPE,
+	PRODUCT_HUB_CHAT_PLATFORM,
 	ProviderSettingsManager,
 	setSdkLogger,
 } from "@cline/core";
@@ -95,8 +97,8 @@ export function createHubTelemetry(): HubTelemetry {
 		...createClineTelemetryServiceConfig({
 			metadata: {
 				extension_version: CORE_BUILD_VERSION,
-				cline_type: "hub",
-				platform: "Cline Hub",
+				cline_type: PRODUCT_HUB_CHAT_CLINE_TYPE,
+				platform: PRODUCT_HUB_CHAT_PLATFORM,
 				platform_version: process.version,
 				os_type: os.platform(),
 				os_version: os.version(),

@@ -3,6 +3,7 @@ import {
 	type ClineCoreStartInput,
 	type SessionRecord,
 	buildSessionPluginInjection,
+	resolveHubHostAgentHooksEnabled,
 	resolveProductSessionFeatures,
 	SessionSource,
 } from "@cline/core";
@@ -129,6 +130,12 @@ export function buildSessionStartInput(
 		context.cwd,
 		context.workspaceRoot,
 	);
+	// BL-6.2 — Hub host AgentHooks (CLI createRuntimeHooks) are gated by
+	// resolveHubHostAgentHooksEnabled(). Default off = Desktop parity; file
+	// hooks still run on the hub daemon. When the policy flips on, wire
+	// createRuntimeHooks here (needs ingestHookEvent adapter). Until then,
+	// surface the resolved flag in sessionMetadata only.
+	const attachHostHooks = resolveHubHostAgentHooksEnabled();
 	return {
 		source: options?.source ?? SessionSource.WEB,
 		interactive: true,
@@ -156,8 +163,7 @@ export function buildSessionStartInput(
 			compaction: resolveHubSessionCompaction(),
 			// File-based hooks (.clinerules/hooks) are injected by Core's
 			// local-runtime-bootstrap on the hub daemon for hub-backed sessions.
-			// Host AgentHooks (CLI createRuntimeHooks / VS Code hooks-adapter)
-			// are intentionally omitted — Desktop parity. See SDK-6.3.
+			// Host AgentHooks stay undefined until attachHostHooks wiring lands.
 			pluginPaths: sessionPlugins.pluginPaths,
 			extensionContext: {
 				workspace: sessionPlugins.workspace,
@@ -170,6 +176,7 @@ export function buildSessionStartInput(
 			maxIterations: sessionFeatures.maxIterations,
 			reasonLevel: options?.reasonLevel,
 			autoApproveTools: options?.autoApproveTools,
+			hostAgentHooks: attachHostHooks,
 			...(options?.sessionMetadata ?? {}),
 		},
 		...(options?.initialMessages

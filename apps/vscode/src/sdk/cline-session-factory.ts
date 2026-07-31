@@ -951,10 +951,13 @@ export async function buildSessionConfig(input: SessionConfigInput): Promise<Cor
 		fetch,
 	}
 
-	// No VS Code setting for maxIterations yet — apply product default (D4).
+	const configuredMaxIterations = stateManager.getGlobalSettingsKey("maxIterations")
 	const sessionFeatures = resolveProductSessionFeatures({
 		host: "vscode",
 		applyDefaultMaxIterations: true,
+		...(typeof configuredMaxIterations === "number" && configuredMaxIterations > 0
+			? { maxIterations: configuredMaxIterations }
+			: {}),
 	})
 	const pluginPaths = resolveSessionPluginPaths({ cwd, workspaceRoot })
 	const workspace = buildSessionExtensionWorkspace({

@@ -165,7 +165,7 @@ describe("buildSessionStartInput plugin injection (SDK-4.2)", () => {
 		expect(input.config.compaction).toEqual({ enabled: false });
 	});
 
-	it("omits host AgentHooks — file hooks via Core bootstrap (SDK-6.3)", () => {
+	it("omits host AgentHooks — file hooks via Core bootstrap (SDK-6.3 / BL-6.2)", () => {
 		const root = mkdtempSync(join(tmpdir(), "hub-session-hooks-"));
 
 		const input = buildSessionStartInput({
@@ -177,7 +177,9 @@ describe("buildSessionStartInput plugin injection (SDK-4.2)", () => {
 
 		// Desktop parity: no host AgentHooks on session config. File-based
 		// hooks under .clinerules/hooks are loaded by Core local-runtime-bootstrap
-		// on the hub daemon for hub-backed sessions.
+		// on the hub daemon for hub-backed sessions. Policy flag is surfaced
+		// in metadata (default false via resolveHubHostAgentHooksEnabled).
 		expect(input.config.hooks).toBeUndefined();
+		expect(input.sessionMetadata?.hostAgentHooks).toBe(false);
 	});
 });

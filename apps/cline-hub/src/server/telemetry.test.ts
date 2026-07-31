@@ -65,10 +65,12 @@ describe("createHubTelemetry (SDK-6.1)", () => {
 			const { createHubTelemetry } = await import("./telemetry");
 			const handle = createHubTelemetry();
 
+			const { PRODUCT_HUB_CHAT_CLINE_TYPE, PRODUCT_HUB_CHAT_PLATFORM } =
+				await import("@cline/core");
 			expect(mocks.createClineTelemetryServiceConfig).toHaveBeenCalledWith({
 				metadata: expect.objectContaining({
-					cline_type: "hub",
-					platform: "Cline Hub",
+					cline_type: PRODUCT_HUB_CHAT_CLINE_TYPE,
+					platform: PRODUCT_HUB_CHAT_PLATFORM,
 				}),
 			});
 			expect(mocks.createConfiguredTelemetryHandle).toHaveBeenCalledWith(

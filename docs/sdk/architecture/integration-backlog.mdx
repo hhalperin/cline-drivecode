@@ -6,95 +6,109 @@ description: "Follow-ups from Phase 4–8 review/test agents. Non-blocking unles
 
 # SDK integration backlog
 
-Items filed by post-task review and test-coverage agents. Address after the current phase strip unless severity rises.
+Items filed by post-task review and test-coverage agents. Product decisions live in `@cline/core` [`product-host-policy.ts`](https://github.com/cline/cline/blob/main/sdk/packages/core/src/session/product-host-policy.ts) so hosts can flip defaults without rewiring call sites.
+
+## Product policy defaults
+
+| Decision | Default | Flip |
+|----------|---------|------|
+| Plugin injection | Pass `pluginPaths` + workspace (D3) | `PRODUCT_HOST_WORKSPACE_ONLY_PLUGIN_INJECTION` |
+| Hub host `AgentHooks` | Off (Desktop parity; file hooks on daemon) | `CLINE_HUB_HOST_AGENT_HOOKS=1` or `PRODUCT_HUB_HOST_AGENT_HOOKS_DEFAULT` |
+| Hub Chat `cline_type` | `hub-chat` (daemon stays `hub`) | `PRODUCT_HUB_CHAT_CLINE_TYPE` |
+| Telemetry opt-out | Recreate + `restartHub` | `PRODUCT_HUB_RECREATE_TELEMETRY_ON_OPT_OUT` |
+| PreCompact | On; cancel aborts compaction | `PRODUCT_VSCODE_PRECOMPACT_HOOKS` / `PRODUCT_PRECOMPACT_CANCEL_ABORTS` |
+| Notification hooks | On (approval site) | `PRODUCT_VSCODE_NOTIFICATION_HOOKS` |
+| TaskError / SessionShutdown | Notification stand-ins (`task_error` / `session_shutdown`) until HookFactory proto kinds exist | `PRODUCT_VSCODE_TASK_ERROR_AS_NOTIFICATION` / `PRODUCT_VSCODE_SESSION_SHUTDOWN_AS_NOTIFICATION` |
+| Legacy VS Code OTEL | Shared env fallback under BUILD_CONSTANTS | `PRODUCT_VSCODE_LEGACY_OTEL_USE_SHARED_ENV` |
+| USD session budget | Opt-in `CLINE_MAX_SESSION_COST` (+ VS Code `maxSessionCostUsd` setting) | env / setting |
 
 ## From Phase 4 (plugins on session)
 
 | ID | Title | Source | Notes |
 |----|-------|--------|-------|
-| BL-4.1 | Prefer thin test helpers over exporting full Hub/Desktop session builders | review | **Done** — `buildHubSessionPluginInjection` / `buildDesktopSessionPluginInjection` (ACP pattern) |
-| BL-4.2 | Fix Phase 1 vs Phase 4 attribution for `buildSessionPluginInjection` | review | **Done** — SDK-1.2 / Phase 4 intro wording in integration-build |
-| BL-4.3 | Optional `mode` on `buildSessionExtensionWorkspace` | review | **Done** — optional `mode`; VS Code uses shared workspace helper |
-| BL-4.4 | Consider host-side workspace-only injection | review | **Deferred** — product still passes `pluginPaths` + workspace for hub/remote/`setup()` consistency (D3) |
-| BL-4.5 | YOLO path assertion for plugin injection | test | **Done** — CLI main YOLO compose asserts plugins/workspace |
-| BL-4.6 | Disabled-plugin filtering asserted at host layer | test | **Done** — `buildSessionPluginInjection` omits disabled global-settings plugins |
-| BL-4.7 | Explicit `pluginPaths` override passthrough tests | test | **Done** — core injection override assert |
-| BL-4.8 | `resolveSessionPluginLoad` fixture success path | test | **Done** — in-process fixture load success |
-| BL-4.9 | Desktop pathless start plugin injection assert | test | **Done** — pathless start still injects via cwd fallback |
+| BL-4.1 | Prefer thin test helpers over exporting full Hub/Desktop session builders | review | **Done** — `buildHubSessionPluginInjection` / `buildDesktopSessionPluginInjection` |
+| BL-4.2 | Fix Phase 1 vs Phase 4 attribution for `buildSessionPluginInjection` | review | **Done** |
+| BL-4.3 | Optional `mode` on `buildSessionExtensionWorkspace` | review | **Done** |
+| BL-4.4 | Consider host-side workspace-only injection | review | **Done (policy)** — default keep D3 dual injection; flip `PRODUCT_HOST_WORKSPACE_ONLY_PLUGIN_INJECTION` if product trusts bootstrap alone |
+| BL-4.5 | YOLO path assertion for plugin injection | test | **Done** |
+| BL-4.6 | Disabled-plugin filtering asserted at host layer | test | **Done** |
+| BL-4.7 | Explicit `pluginPaths` override passthrough tests | test | **Done** |
+| BL-4.8 | `resolveSessionPluginLoad` fixture success path | test | **Done** |
+| BL-4.9 | Desktop pathless start plugin injection assert | test | **Done** |
 
 ## From Phase 5 (budgets)
 
 | ID | Title | Source | Notes |
 |----|-------|--------|-------|
-| BL-5.1 | Wire usage-budget abort on Hub Chat sessions | SDK-5.2 | **Done (env)** — `CLINE_MAX_SESSION_COST` on Hub agent-events; USD UI field still product follow-up |
-| BL-5.2 | Wire usage-budget abort on Desktop sidecar | SDK-5.2 | **Done (env)** — same env on sidecar `agent_event` path |
-| BL-5.3 | Wire usage-budget abort on VS Code | SDK-5.2 | **Open** — needs `cline.maxSessionCostUsd` (or env) + settings/UI decision |
-| BL-5.4 | CLI interactive TUI usage-budget abort | SDK-5.2 | **Done** — interactive `onAgentEvent` honors `CLINE_MAX_SESSION_COST` |
-| BL-5.5 | VS Code `maxIterations` setting | SDK-5.1 | **Open** — product default applied; settings UI override not shipped |
-| BL-5.6 | CLI `--max-iterations` / config override | SDK-5.1 | **Done** — `--max-iterations <n>` → `resolveProductSessionFeatures` |
-| BL-5.7 | ACP host-level `maxIterations` session-config assert | test | **Done** — `buildAcpSessionFeatures` + assert |
-| BL-5.8 | CLI abort-during-start race | review R1 | **Done** — `abortAll` uses `activeSessionId ?? plannedSessionId`; re-issues after `start()`; timeout armed before first turn |
-| BL-5.9 | Schedule/routine `maxIterations` product default | review | **Done** — cron runner applies `PRODUCT_DEFAULT_MAX_ITERATIONS` when unset |
-| BL-5.10 | Align/remove unused `DEFAULT_USAGE_BUDGET_ABORT_REASON` | review | **Done** — constant is the evaluate default reason prefix (`Cost limit exceeded ($N.NN)`) |
-| BL-5.11 | Document `CLINE_MAX_SESSION_COST` in CLI README | docs | **Done** — listed under Environment variables (CLI + Hub/Desktop) |
-| BL-5.12 | VS Code Phase 5 tests run via `test:vitest`, not `test:unit` | test | **Done** — noted under Phase 7 verify / contributor checklist; CI dual-runs vitest + bun:test |
+| BL-5.1 | Wire usage-budget abort on Hub Chat sessions | SDK-5.2 | **Done** — env via product policy |
+| BL-5.2 | Wire usage-budget abort on Desktop sidecar | SDK-5.2 | **Done** |
+| BL-5.3 | Wire usage-budget abort on VS Code | SDK-5.2 | **Done** — env + optional `maxSessionCostUsd` setting (setting wins) |
+| BL-5.4 | CLI interactive TUI usage-budget abort | SDK-5.2 | **Done** |
+| BL-5.5 | VS Code `maxIterations` setting | SDK-5.1 | **Done** — StateManager `maxIterations` (undefined → product default 50) |
+| BL-5.6 | CLI `--max-iterations` / config override | SDK-5.1 | **Done** |
+| BL-5.7 | ACP host-level `maxIterations` session-config assert | test | **Done** |
+| BL-5.8 | CLI abort-during-start race | review R1 | **Done** |
+| BL-5.9 | Schedule/routine `maxIterations` product default | review | **Done** |
+| BL-5.10 | Align/remove unused `DEFAULT_USAGE_BUDGET_ABORT_REASON` | review | **Done** |
+| BL-5.11 | Document `CLINE_MAX_SESSION_COST` in CLI README | docs | **Done** |
+| BL-5.12 | VS Code Phase 5 tests run via `test:vitest`, not `test:unit` | test | **Done** |
 
 ## From Phase 6 (Hub ClineCore depth)
 
 | ID | Title | Source | Notes |
 |----|-------|--------|-------|
-| BL-6.1 | Hub Chat compaction UI / per-session override | SDK-6.2 | **Open** — session start honors global mode; Hub settings control still product |
-| BL-6.2 | Optional Hub host `AgentHooks` bridge | SDK-6.3 | **Deferred** — file hooks on hub daemon; host bridge only if product wants CLI-style lifecycle UX |
-| BL-6.3 | Hub logger + `setSdkLogger` on create | SDK-6.1 | **Done** — Hub BasicLogger + `setSdkLogger` + telemetry logger |
-| BL-6.4 | Distinguish Hub Chat vs hub-daemon `cline_type` | review | **Deferred** — soft split via `platform` today; hard `hub-chat` rename needs analytics continuity plan |
-| BL-6.5 | Desktop session compaction on start (parity) | SDK-6.2 | **Done** — Desktop `buildCoreSessionConfig` sets compaction like Hub |
-| BL-6.6 | `detachHub` disposes Hub Chat telemetry | test | **Deferred** — unit coverage hits dispose idempotency; attach/detach wiring needs heavy hub mocks |
-| BL-6.7 | ProviderSettingsManager throw path in `createHubTelemetry` | test | **Open** — missing-account covered; throw-from-settings manager optional |
-| BL-6.8 | Recreate Hub telemetry on opt-out toggle | review | **Deferred** — live handle has no hot-swap; recreate-core / next-attach product choice |
-| BL-6.9 | Refresh usage-analysis Hub rows | docs | **Done** — usage-analysis + integration-build refreshed for SDK-6.* landings |
-| BL-6.10 | `attachHub` try/finally + dispose previous telemetry before recreate | review | **Done** — dispose previous handle before recreate; dispose on attach failure |
-| BL-6.11 | Hub↔CLI hooks gap matrix | docs | **Done** — see [Hooks coverage matrix](#hooks-coverage-matrix) below |
+| BL-6.1 | Hub Chat compaction UI / per-session override | SDK-6.2 | **Done** — General settings compaction mode + `set_compaction_mode` |
+| BL-6.2 | Optional Hub host `AgentHooks` bridge | SDK-6.3 | **Done (policy)** — default off; `sessionMetadata.hostAgentHooks` + env gate; wire `createRuntimeHooks` when flipping on |
+| BL-6.3 | Hub logger + `setSdkLogger` on create | SDK-6.1 | **Done** |
+| BL-6.4 | Distinguish Hub Chat vs hub-daemon `cline_type` | review | **Done** — Chat `hub-chat`, daemon `hub` via policy constants |
+| BL-6.5 | Desktop session compaction on start (parity) | SDK-6.2 | **Done** |
+| BL-6.6 | `detachHub` disposes Hub Chat telemetry | test | **Deferred** — dispose covered; heavy attach/detach mock optional |
+| BL-6.7 | ProviderSettingsManager throw path in `createHubTelemetry` | test | **Open** — optional |
+| BL-6.8 | Recreate Hub telemetry on opt-out toggle | review | **Done** — `restartHub` when `PRODUCT_HUB_RECREATE_TELEMETRY_ON_OPT_OUT` |
+| BL-6.9 | Refresh usage-analysis Hub rows | docs | **Done** |
+| BL-6.10 | `attachHub` try/finally + dispose previous telemetry before recreate | review | **Done** |
+| BL-6.11 | Hub↔CLI hooks gap matrix | docs | **Done** |
 
 ## From Phase 7 (VS Code honesty)
 
 | ID | Title | Source | Notes |
 |----|-------|--------|-------|
-| BL-7.1 | Host-side PreCompact before VS Code compaction | SDK-7.1 | **Open** — HookFactory has kind; needs coordinator call + cancel→abort product decision |
-| BL-7.2 | Host-side Notification hook emissions | SDK-7.1 | **Open** — multi-site UX wiring (approval / long-running / OS notifications) |
-| BL-7.3 | Optional TaskError kind on VS Code HookFactory | SDK-7.1 | **Wontfix** unless product wants parity — Core-only file name; no VS Code proto kind |
-| BL-7.4 | SessionShutdown on VS Code session dispose | SDK-7.1 | **Wontfix** unless product wants parity — not on AgentHooks; HookFactory lacks kind |
-| BL-7.5 | Unify VS Code MCP onto Core settings tools | SDK-7.2 | **Deferred** — spike recommends keep `McpHub` adapter; see [vscode-mcp-spike](/sdk/architecture/vscode-mcp-spike) |
-| BL-7.6 | TaskResume `cancel` → AgentStopControl mapping | test | **Done** — explicit TaskResume cancel assert in hooks-adapter tests |
-| BL-7.7 | `historyItem` implies `isResume` in session config builder | test | **Done** — factory already sets `isResume` from `historyItem`; covered via resume path |
-| BL-7.8 | HookFactory TaskResume bun:test in CI with vitest Phase 7 filter | test | **Done** — contributor note: run `test:vitest` (sdk/**) and `test:unit` (bun:test, e.g. Core TaskResume) — CI dual-runs both |
-| BL-7.9 | Preserve `isResume` across mode/provider/MCP rebuilds | review | **Done** — mid-task coordinators pass `isResume: true` |
-| BL-7.10 | VS Code must not rely on process-wide `CLINE_HOOK_AGENT_RESUME` | review | **Done** — hooks-adapter documents product `isResume` vs CLI/test env |
+| BL-7.1 | Host-side PreCompact before VS Code compaction | SDK-7.1 | **Done** — coordinator + cancel aborts (policy) |
+| BL-7.2 | Host-side Notification hook emissions | SDK-7.1 | **Done** — approval wait site; OS/long-running can reuse `emitHostNotificationHook` |
+| BL-7.3 | Optional TaskError kind on VS Code HookFactory | SDK-7.1 | **Done (stand-in)** — Notification `task_error` until proto kind; flip policy or add HookFactory kind later |
+| BL-7.4 | SessionShutdown on VS Code session dispose | SDK-7.1 | **Done (stand-in)** — Notification `session_shutdown` on dispose |
+| BL-7.5 | Unify VS Code MCP onto Core settings tools | SDK-7.2 | **Deferred** — spike keep adapter; see [vscode-mcp-spike](/sdk/architecture/vscode-mcp-spike) |
+| BL-7.6 | TaskResume `cancel` → AgentStopControl mapping | test | **Done** |
+| BL-7.7 | `historyItem` implies `isResume` in session config builder | test | **Done** |
+| BL-7.8 | HookFactory TaskResume bun:test in CI with vitest Phase 7 filter | test | **Done** |
+| BL-7.9 | Preserve `isResume` across mode/provider/MCP rebuilds | review | **Done** |
+| BL-7.10 | VS Code must not rely on process-wide `CLINE_HOOK_AGENT_RESUME` | review | **Done** |
 
 ## From Phase 8 (optional observability)
 
 | ID | Title | Source | Notes |
 |----|-------|--------|-------|
-| BL-8.1 | Optionally align VS Code legacy OTEL stack with shared env helper | SDK-8.1 | **Deferred** — dual stack remains; SDK path shares `createClineTelemetryServiceConfig` |
-| BL-8.2 | Shared host event-projection layer | SDK-8.2 | **Deferred** — hub `projectSessionEvent` is WS transport only; needs product protocol decision |
-| BL-8.3 | Document `OTEL_*` vs `CLINE_OTEL_*` in going-to-production | docs | **Done** — production guide Observability section |
-| BL-8.4 | Hub Chat / Desktop opt-in OTEL enabled-by-env smoke | test | **Deferred** — shared telemetry-config covered; unmocked host process-env smoke optional |
-| BL-8.5 | Non-finite `CLINE_OTEL_*` / `OTEL_*` numeric parsing | test | **Done** — non-finite / ≤0 → undefined defaults |
-| BL-8.6 | Clamp OTEL batch/interval ints like VS Code legacy (`Math.max(1, …)`) | review | **Done** — `parsePositiveInt` requires `parsed >= 1` |
-| BL-8.7 | Note `CLINE_OTEL_TELEMETRY_ENABLED=1` enables SDK path, not VS Code legacy | docs | **Done** — folded into going-to-production (BL-8.3) |
-| BL-8.8 | Optional traces-specific OTLP env keys (`OTEL_EXPORTER_OTLP_TRACES_*`) | review | **Done** — shared reader maps traces protocol/endpoint/headers (+ `CLINE_OTEL_*`) |
+| BL-8.1 | Optionally align VS Code legacy OTEL stack with shared env helper | SDK-8.1 | **Done (policy)** — legacy reader falls back to shared env under BUILD_CONSTANTS |
+| BL-8.2 | Shared host event-projection layer | SDK-8.2 | **Deferred** — needs product UI-protocol decision; hub projector stays transport-only |
+| BL-8.3 | Document `OTEL_*` vs `CLINE_OTEL_*` in going-to-production | docs | **Done** |
+| BL-8.4 | Hub Chat / Desktop opt-in OTEL enabled-by-env smoke | test | **Deferred** — shared config covered |
+| BL-8.5 | Non-finite `CLINE_OTEL_*` / `OTEL_*` numeric parsing | test | **Done** |
+| BL-8.6 | Clamp OTEL batch/interval ints like VS Code legacy | review | **Done** |
+| BL-8.7 | Note `CLINE_OTEL_TELEMETRY_ENABLED=1` enables SDK path, not VS Code legacy | docs | **Done** |
+| BL-8.8 | Optional traces-specific OTLP env keys | review | **Done** |
 
 ## Hooks coverage matrix
 
 | Surface | File hooks (`.clinerules/hooks`) | Host `AgentHooks` |
 |---------|----------------------------------|-------------------|
-| Hub daemon / Hub-backed sessions | Yes — Core `prepareLocalRuntimeBootstrap` → hook config extension | No — intentionally omitted (Desktop parity) |
-| Hub Chat process | Same as daemon when session runs on hub | No |
+| Hub daemon / Hub-backed sessions | Yes — Core bootstrap | Off by default (`CLINE_HUB_HOST_AGENT_HOOKS` to request) |
+| Hub Chat process | Same as daemon when session runs on hub | Same policy gate |
 | CLI | Yes via Core bootstrap | Yes — `createRuntimeHooks` |
 | Desktop sidecar | Yes via Core bootstrap when applicable | No |
-| VS Code | HookFactory file kinds (TaskStart/Resume, UserPromptSubmit, Pre/PostToolUse, TaskComplete/Cancel; PreCompact/Notification host-side backlog) | Yes — `hooks-adapter` → `AgentHooks` |
+| VS Code | HookFactory (+ host PreCompact/Notification) | Yes — `hooks-adapter` |
 
 ## Contributor note — VS Code SDK tests (BL-5.12 / BL-7.8)
 
-- `bun run --cwd apps/vscode test:vitest` — vitest suites under `src/sdk/**` (e.g. `cline-session-factory.test.ts`, `hooks-adapter.test.ts`).
-- `bun run --cwd apps/vscode test:unit` — bun:test files only (`run-bun-unit-tests.ts` skips vitest imports).
-- CI (`ext-vscode-test`) runs both.
+- `bun run --cwd apps/vscode test:vitest` — vitest suites under `src/sdk/**`
+- `bun run --cwd apps/vscode test:unit` — bun:test files only
+- CI (`ext-vscode-test`) runs both
