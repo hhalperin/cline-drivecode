@@ -280,8 +280,12 @@
   .shell.rail-hidden { grid-template-columns: 34px 1fr; }
   .shell.rail-hidden .rail { padding: 10px 4px; }
   .shell.rail-hidden .rail .eyebrow,
+  .shell.rail-hidden .rail .rail-items,
   .shell.rail-hidden .rail .rail-item,
+  .shell.rail-hidden .rail .rail-resize,
   .shell.rail-hidden .rail .rail-foot { display: none; }
+  /* While dragging the resize handle the grid must track the pointer live. */
+  .shell.rail-dragging { transition: none; }
   .rail-head { display: flex; justify-content: flex-end; padding: 0 2px 6px; }
   .shell.rail-hidden .rail-head { justify-content: center; }
   .shell.rail-hidden #rail-toggle {
@@ -290,12 +294,22 @@
     background: color-mix(in srgb, var(--drive) 10%, transparent);
   }
   .rail {
+    position: relative;
     background: var(--panel);
     border-right: 0.8px solid var(--hair);
     padding: 14px 10px;
     display: flex;
     flex-direction: column;
     gap: 4px;
+    overflow: hidden;
+  }
+  /* Items live in a scrollable inner wrapper so the resize handle can pin
+     to the rail's edge without riding the scroll. */
+  .rail-items {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-height: 0;
     overflow-y: auto;
   }
   .rail .eyebrow {
@@ -316,6 +330,22 @@
     border: 0.8px solid transparent;
   }
   .rail-item .rail-ico { color: var(--dim); flex: none; }
+  .rail-item .label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+  }
+  .rail-item .rail-flag {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--live);
+    opacity: .7;
+    flex: none;
+  }
   .rail-item:hover { color: var(--text); background: var(--hover-fill); }
   .rail-item.active {
     background: color-mix(in srgb, var(--drive) 14%, transparent);
@@ -323,12 +353,79 @@
     color: var(--text);
   }
   .rail-item.active .rail-ico { color: var(--drive-t); }
+  /* Edit mode: grip + hide affordances appear (wiggle-free); items drag. */
+  .rail-item .rail-grip, .rail-item .rail-x { display: none; flex: none; color: var(--dim); }
+  .rail-item .rail-grip svg, .rail-item .rail-x svg { width: 12px; height: 12px; display: block; }
+  .rail.editing .rail-item .rail-grip,
+  .rail.editing .rail-item .rail-x { display: grid; place-items: center; }
+  .rail.editing .rail-item { border-color: var(--hair); cursor: grab; }
+  .rail-item .rail-x { width: 18px; height: 18px; border-radius: 5px; }
+  .rail-item .rail-x:hover { color: var(--danger-t); background: var(--hover-fill); }
+  .rail-item.dragging { opacity: .45; }
+  .rail-item.drag-over { border-color: color-mix(in srgb, var(--drive-b) 60%, transparent); }
+  .rail-add { margin-top: 6px; padding-top: 8px; border-top: 0.8px solid var(--hair); }
+  .rail-add-head {
+    font: 500 10px/1 var(--eyebrow);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--dim);
+    padding: 2px 10px 6px;
+  }
+  .rail-add-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: var(--r);
+    border: 1px dashed var(--line);
+    color: var(--dim);
+    text-align: left;
+  }
+  .rail-add-item:hover { color: var(--text); border-color: var(--line-strong); }
+  .rail-add-item .rail-ico { color: var(--dim); flex: none; }
+  /* Resize: a 5px live edge. Width applies as an inline grid template on
+     .shell only while the rail is unfolded; double-click resets to 168. */
+  .rail-resize {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    z-index: 30;
+    touch-action: none;
+  }
+  .rail-resize:hover, .rail-resize.active {
+    background: color-mix(in srgb, var(--drive-b) 30%, transparent);
+  }
+  /* Below ~110px the labels give way to icons. */
+  .rail.rail-narrow .rail-item .label,
+  .rail.rail-narrow .rail-item .rail-flag,
+  .rail.rail-narrow .rail-add-item .label,
+  .rail.rail-narrow .rail-foot-label { display: none; }
+  .rail.rail-narrow .rail-item { justify-content: center; padding: 10px; }
   .rail-foot {
     margin-top: auto;
-    padding: 12px 10px;
+    padding: 8px 6px;
     font-size: 11px;
     color: var(--dim);
     border-top: 0.8px solid var(--hair);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .rail-foot .rail-foot-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rail-foot #rail-edit { margin-left: auto; }
+  #rail-edit.on {
+    color: var(--drive-t);
+    border-color: color-mix(in srgb, var(--drive-b) 40%, transparent);
+    background: color-mix(in srgb, var(--drive) 10%, transparent);
   }
 
   .main {
@@ -1341,6 +1438,81 @@
     padding: 24px;
   }
 
+  /* Rooms surface: resumable sessions (stop ≠ lose) */
+  .rooms-page {
+    flex: 1;
+    padding: 20px 22px;
+    overflow: auto;
+  }
+  .rooms-page h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font: 700 18px/1.2 var(--display);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .rooms-page .lead { color: var(--muted); margin-bottom: 18px; }
+  .sess-grid { display: flex; flex-direction: column; gap: 10px; max-width: 520px; }
+  .sess-card {
+    padding: 12px 14px;
+    border-radius: var(--r-lg);
+    border: 0.8px solid var(--line);
+    background: var(--raised);
+    display: flex;
+    align-items: center;
+    gap: 11px;
+  }
+  .sess-card .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .sess-card.live { border-color: color-mix(in srgb, var(--live) 40%, transparent); }
+  .sess-card.live .dot {
+    background: var(--live);
+    box-shadow: 0 0 0 0.8px color-mix(in srgb, var(--live) 45%, transparent);
+  }
+  .sess-card.paused .dot { background: var(--hub); }
+  .sess-card.ended .dot { background: var(--dim); opacity: .6; }
+  .sess-card .name { font: 600 13px/1.2 var(--mono); }
+  .sess-card.ended .name { color: var(--muted); }
+  .sess-card .meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .sess-actions { margin-left: auto; display: flex; gap: 6px; flex: none; }
+  .sess-btn {
+    padding: 6px 11px;
+    border-radius: var(--r);
+    border: 0.8px solid var(--line);
+    color: var(--muted);
+    background: var(--well);
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .sess-btn:hover { color: var(--text); border-color: var(--line-strong); }
+  .sess-btn.stop {
+    color: var(--danger-t);
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+  }
+  .sess-btn.start {
+    color: var(--ok-soft);
+    border-color: color-mix(in srgb, var(--ok) 40%, transparent);
+    background: color-mix(in srgb, var(--ok) 8%, transparent);
+  }
+
+  /* Inbox stub — exists to demonstrate rail "+ Add item" */
+  .inbox-row {
+    max-width: 420px;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 13px;
+    border-radius: var(--r);
+    border: 0.8px solid var(--line);
+    background: var(--raised);
+    font: 500 11.5px/1 var(--mono);
+  }
+  .inbox-row .ok { color: var(--ok-soft); }
+  .inbox-row .t { color: var(--dim); margin-left: auto; }
+  .inbox-note { margin-top: 12px; color: var(--dim); font-size: 12px; }
+
   /* Call strip */
   .call-strip {
     display: none;
@@ -1640,6 +1812,7 @@
     .rail { padding: 10px 8px; }
     .rail-item { padding: 8px 10px; }
     .rooms { padding: 14px 16px; }
+    .rooms-page { padding: 14px 16px; }
     .arts { padding: 14px 16px; }
     .lens-tabs { padding: 6px 10px; }
     .lens-body { padding: 12px 14px; }
@@ -1755,23 +1928,16 @@
       </button>
     </div>
     <div class="eyebrow">Hub</div>
-    <button type="button" class="rail-item" data-surface="chat" id="rail-chat">
-      <svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span class="label">Chat</span>
-    </button>
-    <button type="button" class="rail-item" data-surface="drive" id="rail-drive">
-      <svg class="rail-ico" width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg>
-      <span class="label">Drive</span>
-    </button>
-    <button type="button" class="rail-item" data-surface="status" id="rail-status">
-      <svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      <span class="label">Status</span>
-    </button>
-    <button type="button" class="rail-item" data-surface="artifacts" id="rail-artifacts">
-      <svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
-      <span class="label">Artifacts</span>
-    </button>
-    <div class="rail-foot">Room <span class="mono">router-fix</span></div>
+    <!-- Items render from the RAIL_ITEMS registry via buildRail(); order /
+         hidden / width persist to localStorage "drive-demo-rail". -->
+    <div class="rail-items" id="rail-items"></div>
+    <div class="rail-foot">
+      <span class="rail-foot-label">Room <span class="mono">router-fix</span></span>
+      <button type="button" class="panel-toggle" id="rail-edit" title="Customize rail" aria-label="Customize rail" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
+      </button>
+    </div>
+    <div class="rail-resize" id="rail-resize" title="Drag to resize · double-click to reset" aria-hidden="true"></div>
   </nav>
 
   <div class="main">
@@ -1898,6 +2064,24 @@
           <h2>Artifacts</h2>
           <p class="lead">Everything the director produced this session — plans, diagrams, walkthroughs, captures, handoffs.</p>
           <div class="art-grid" id="art-grid"></div>
+        </div>
+      </div>
+
+      <!-- Rooms (sessions) -->
+      <div class="surface" id="surface-rooms">
+        <div class="rooms-page">
+          <h2>Rooms <span class="badge planned">planned</span></h2>
+          <p class="lead">Sessions persist their config and history — stop a room, come back later, everything is intact (ARD-0013 durable log).</p>
+          <div class="sess-grid" id="sess-grid"></div>
+        </div>
+      </div>
+
+      <!-- Inbox (stub — demonstrates rail "+ Add item") -->
+      <div class="surface" id="surface-inbox">
+        <div class="rooms-page">
+          <h2>Inbox <span class="badge planned">planned</span></h2>
+          <div class="inbox-row"><span>pr_create</span><span class="ok">approved</span><span class="t">act 9</span></div>
+          <p class="inbox-note">Approvals and needs-you items land here.</p>
         </div>
       </div>
 
@@ -2060,7 +2244,8 @@
    *   handoff: boolean,
    *   privacyDebug: boolean,
    *   artifacts: SessionArtifact[],
-   *   surface: 'chat'|'drive'|'drive-in-call'|'status'|'artifacts',
+   *   rooms: Array<{id:string,name:string,status:'live'|'paused'|'ended',meta:string}>,
+   *   surface: 'chat'|'drive'|'drive-in-call'|'rooms'|'status'|'artifacts'|'inbox',
    *   statusLens: 'board'|'changelog'|'sessions'|'depmap',
    *   pipVisible: boolean,
    *   feedMessages: Array<{id:string,from:string,who:string,text:string,chips?:string[]}>,
@@ -2088,6 +2273,13 @@
     handoff: false,
     privacyDebug: false,
     artifacts: [],
+    // Room sessions (Rooms surface). Stop ≠ lose: a stopped room keeps its
+    // config + history (ARD-0013 durable log) and can be started again.
+    rooms: [
+      { id: "router-fix", name: "router-fix", status: "live", meta: "Adam + Riley · started 16:58" },
+      { id: "bootstrap-flag", name: "bootstrap-flag", status: "paused", meta: "config + history kept" },
+      { id: "payments-audit", name: "payments-audit", status: "ended", meta: "handoff saved" },
+    ],
     surface: "chat",
     statusLens: "board",
     pipVisible: false,
@@ -2974,6 +3166,37 @@
         ],
       },
     },
+    {
+      id: "a10-rooms",
+      act: 10,
+      title: "Rooms · every session, resumable",
+      caption: "Rooms: every session, resumable. Stop ≠ lose.",
+      hubOp: "call_get_room",
+      maturity: "planned",
+      dwellMs: 1600,
+      cursor: { target: "#rail-rooms", action: "click" },
+      patch: { surface: "rooms" },
+    },
+    {
+      id: "a10-stop",
+      act: 10,
+      title: "Stop router-fix · nothing lost",
+      caption: "Session stopped — config and history kept. Start it again tomorrow.",
+      hubOp: "call_end",
+      maturity: "planned",
+      dwellMs: 2000,
+      cursor: { target: "#room-stop-router", action: "click" },
+      patch: {
+        inCall: false,
+        driveOn: false,
+        participants: [],
+        rooms: [
+          { id: "router-fix", name: "router-fix", status: "paused", meta: "paused · config + history kept" },
+          { id: "bootstrap-flag", name: "bootstrap-flag", status: "paused", meta: "config + history kept" },
+          { id: "payments-audit", name: "payments-audit", status: "ended", meta: "handoff saved" },
+        ],
+      },
+    },
   ];
 
   // ---- Player ----
@@ -3228,6 +3451,7 @@
     deckSig: null,
     cardIds: {},
     artsSig: null,
+    roomsSig: null,
     el: null,
   };
 
@@ -3265,12 +3489,11 @@
       btn.classList.toggle("visited", bi < index);
     });
 
-    // Rail: Drive is product home while in call
+    // Rail: Drive is product home while in call. The rail itself rebuilds
+    // only on config change (buildRail signature); render just syncs active.
     const railSurface =
       state.surface === "drive-in-call" ? "drive" : state.surface;
-    document.querySelectorAll(".rail-item").forEach(function (el) {
-      el.classList.toggle("active", el.getAttribute("data-surface") === railSurface);
-    });
+    syncRailActive(railSurface);
 
     // Surfaces
     document.getElementById("surface-call").classList.toggle(
@@ -3278,8 +3501,10 @@
       state.surface === "chat" || state.surface === "drive-in-call",
     );
     document.getElementById("surface-drive").classList.toggle("on", state.surface === "drive");
+    document.getElementById("surface-rooms").classList.toggle("on", state.surface === "rooms");
     document.getElementById("surface-status").classList.toggle("on", state.surface === "status");
     document.getElementById("surface-artifacts").classList.toggle("on", state.surface === "artifacts");
+    document.getElementById("surface-inbox").classList.toggle("on", state.surface === "inbox");
 
     // Artifacts gallery — its own signature (artifact list + surface), so it
     // repaints only when the session's artifacts change or the surface opens.
@@ -3287,6 +3512,13 @@
     if (artsSig !== R.artsSig) {
       R.artsSig = artsSig;
       renderArtifacts(state.artifacts);
+    }
+
+    // Rooms surface — its own signature (sessions + surface), same pattern.
+    const roomsSig = JSON.stringify({ r: state.rooms, on: state.surface === "rooms" });
+    if (roomsSig !== R.roomsSig) {
+      R.roomsSig = roomsSig;
+      renderRooms(state.rooms);
     }
 
     document.getElementById("feed-sub").textContent =
@@ -3649,6 +3881,26 @@
     }).join("");
   }
 
+  // ---- Rooms surface ----
+  // Session cards from state.rooms. Stop ≠ lose: stopping flips the status
+  // dot; config + history stay, so Start resumes where the room left off.
+  function renderRooms(rooms) {
+    const grid = document.getElementById("sess-grid");
+    grid.innerHTML = rooms.map(function (r) {
+      const second = r.status === "live"
+        ? '<button type="button" class="sess-btn stop"' +
+          (r.id === "router-fix" ? ' id="room-stop-router"' : "") + ">Stop</button>"
+        : '<button type="button" class="sess-btn start">Start</button>';
+      return (
+        '<div class="sess-card ' + r.status + '">' +
+          '<span class="dot" aria-hidden="true"></span>' +
+          '<div><div class="name">' + escapeHtml(r.name) + '</div><div class="meta">' + escapeHtml(r.meta) + "</div></div>" +
+          '<div class="sess-actions"><button type="button" class="sess-btn">Open</button>' + second + "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
   // ---- Shared-screen bodies ----
   // The literal cline-drive architecture: clients ← hub daemon (single
   // writer) ← agents' typed events, with the director's show path and the
@@ -3751,10 +4003,144 @@
     );
   }
 
-  // ---- Scrubber (acts 0–9) ----
+  // ---- Customizable rail ----
+  // Registry-driven: adding an entry here (U8: agents, tasks) is all it
+  // takes — the config loader merges stored order/hidden with the registry,
+  // appending new registry ids and dropping unknown ones.
+  function railIco(paths) {
+    return '<svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
+  }
+  /** @type {Array<{id:string,label:string,surface:string,icon:string,planned?:boolean,defaultHidden?:boolean}>} */
+  const RAIL_ITEMS = [
+    { id: "chat", label: "Chat", surface: "chat", icon: railIco('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>') },
+    { id: "drive", label: "Drive", surface: "drive", icon: '<svg class="rail-ico" width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg>' },
+    { id: "rooms", label: "Rooms", surface: "rooms", planned: true, icon: railIco('<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.562Z"/>') },
+    { id: "status", label: "Status", surface: "status", icon: railIco('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>') },
+    { id: "artifacts", label: "Artifacts", surface: "artifacts", icon: railIco('<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>') },
+    { id: "inbox", label: "Inbox", surface: "inbox", planned: true, defaultHidden: true, icon: railIco('<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>') },
+  ];
+  const RAIL_STORE_KEY = "drive-demo-rail";
+  const RAIL_DEFAULT_WIDTH = 168;
+
+  /** Merge a stored (or caller-supplied) config with the registry: unknown
+   *  ids drop, registry ids missing from the stored order append (honoring
+   *  defaultHidden), width clamps to the resize range. */
+  function normalizeRailConfig(raw) {
+    const known = RAIL_ITEMS.map(function (i) { return i.id; });
+    const seen = {};
+    const order = (raw && Array.isArray(raw.order) ? raw.order : []).filter(function (id) {
+      if (known.indexOf(id) < 0 || seen[id]) return false;
+      seen[id] = true;
+      return true;
+    });
+    const hasStoredHidden = !!(raw && Array.isArray(raw.hidden));
+    const hidden = hasStoredHidden
+      ? raw.hidden.filter(function (id) { return known.indexOf(id) >= 0; })
+      : RAIL_ITEMS.filter(function (i) { return i.defaultHidden; }).map(function (i) { return i.id; });
+    RAIL_ITEMS.forEach(function (item) {
+      if (order.indexOf(item.id) < 0) {
+        order.push(item.id);
+        if (hasStoredHidden && item.defaultHidden && hidden.indexOf(item.id) < 0) hidden.push(item.id);
+      }
+    });
+    let width = raw && typeof raw.width === "number" && isFinite(raw.width)
+      ? Math.round(raw.width)
+      : RAIL_DEFAULT_WIDTH;
+    width = Math.max(56, Math.min(260, width));
+    return { order: order, hidden: hidden, width: width };
+  }
+
+  function loadRailConfig() {
+    let raw = null;
+    try { raw = JSON.parse(localStorage.getItem(RAIL_STORE_KEY) || "null"); } catch (e) { /* ignore */ }
+    return normalizeRailConfig(raw || {});
+  }
+
+  function saveRailConfig() {
+    try { localStorage.setItem(RAIL_STORE_KEY, JSON.stringify(railConfig)); } catch (e) { /* ignore */ }
+  }
+
+  let railConfig = loadRailConfig();
+  let railEditMode = false;
+  let railBuiltSig = null;
+  let railSurfaceNow = "chat";
+  let railDragId = null;
+
+  const RAIL_GRIP =
+    '<span class="rail-grip" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg></span>';
+  const RAIL_X =
+    '<span class="rail-x" title="Hide from rail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>';
+
+  /** Rebuilds only when its own config (order / hidden / edit mode) changes
+   *  — never on beat renders — keeping the differential render intact.
+   *  Ids stay stable (#rail-<id>) so scripted cursor targets keep working;
+   *  a hidden item's cursor spec skips gracefully (resolve returns null). */
+  function buildRail() {
+    const sig = JSON.stringify({ o: railConfig.order, h: railConfig.hidden, e: railEditMode });
+    if (sig === railBuiltSig) return;
+    railBuiltSig = sig;
+    const host = document.getElementById("rail-items");
+    host.innerHTML = "";
+    railConfig.order.forEach(function (id) {
+      if (railConfig.hidden.indexOf(id) >= 0) return;
+      const item = RAIL_ITEMS.find(function (i) { return i.id === id; });
+      if (!item) return;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "rail-item";
+      btn.id = "rail-" + item.id;
+      btn.setAttribute("data-surface", item.surface);
+      btn.setAttribute("data-rail-id", item.id);
+      btn.draggable = railEditMode;
+      btn.innerHTML =
+        RAIL_GRIP + item.icon +
+        '<span class="label">' + escapeHtml(item.label) + "</span>" +
+        (item.planned ? '<span class="rail-flag" title="planned"></span>' : "") +
+        RAIL_X;
+      host.appendChild(btn);
+    });
+    if (railEditMode) {
+      const hiddenItems = RAIL_ITEMS.filter(function (i) { return railConfig.hidden.indexOf(i.id) >= 0; });
+      if (hiddenItems.length) {
+        const add = document.createElement("div");
+        add.className = "rail-add";
+        add.innerHTML =
+          '<div class="rail-add-head">+ Add item</div>' +
+          hiddenItems.map(function (i) {
+            return '<button type="button" class="rail-add-item" data-add-id="' + i.id + '">' +
+              i.icon + '<span class="label">' + escapeHtml(i.label) + "</span></button>";
+          }).join("");
+        host.appendChild(add);
+      }
+    }
+    document.querySelector(".rail").classList.toggle("editing", railEditMode);
+    syncRailActive(railSurfaceNow);
+  }
+
+  function syncRailActive(surface) {
+    railSurfaceNow = surface;
+    document.querySelectorAll(".rail-item").forEach(function (el) {
+      el.classList.toggle("active", el.getAttribute("data-surface") === surface);
+    });
+  }
+
+  /** Width applies as an inline grid template only while the rail is
+   *  unfolded; folding removes it so .rail-hidden's 34px sliver wins. */
+  function applyRailWidth() {
+    const shell = document.querySelector(".shell");
+    if (shell.classList.contains("rail-hidden")) {
+      shell.style.gridTemplateColumns = "";
+    } else {
+      shell.style.gridTemplateColumns = railConfig.width + "px 1fr";
+    }
+    document.querySelector(".rail").classList.toggle("rail-narrow", railConfig.width < 110);
+  }
+
+  // ---- Scrubber (acts derived from BEATS) ----
   function buildScrubber() {
     const root = document.getElementById("scrubber");
-    for (let a = 0; a <= 9; a++) {
+    const maxAct = BEATS.reduce(function (m, b) { return Math.max(m, b.act); }, 0);
+    for (let a = 0; a <= maxAct; a++) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.setAttribute("data-act", String(a));
@@ -3792,24 +4178,149 @@
     this.title = hidden ? "Show hub rail" : "Hide hub rail";
     this.setAttribute("aria-label", this.title);
     this.setAttribute("aria-expanded", String(!hidden));
+    applyRailWidth();
   });
   document.getElementById("feed-toggle").addEventListener("click", function () {
     document.getElementById("call-split").classList.toggle("feed-hidden");
   });
+
   // Manual previews: a real click flips the UI directly; the next scripted
   // render re-asserts beat state (same pattern as #feed-toggle above).
-  document.querySelectorAll(".rail-item").forEach(function (item) {
-    item.addEventListener("click", function () {
-      const surface = item.getAttribute("data-surface");
-      document.querySelectorAll(".rail-item").forEach(function (el) {
-        el.classList.toggle("active", el === item);
-      });
-      document.getElementById("surface-call").classList.toggle("on", surface === "chat");
-      document.getElementById("surface-drive").classList.toggle("on", surface === "drive");
-      document.getElementById("surface-status").classList.toggle("on", surface === "status");
-      document.getElementById("surface-artifacts").classList.toggle("on", surface === "artifacts");
+  // Delegated on the rail container so rebuilt items stay wired.
+  const RAIL_SURFACE_IDS = {
+    chat: "surface-call",
+    drive: "surface-drive",
+    rooms: "surface-rooms",
+    status: "surface-status",
+    artifacts: "surface-artifacts",
+    inbox: "surface-inbox",
+  };
+  function previewSurface(surface) {
+    document.querySelectorAll(".rail-item").forEach(function (el) {
+      el.classList.toggle("active", el.getAttribute("data-surface") === surface);
+    });
+    Object.keys(RAIL_SURFACE_IDS).forEach(function (s) {
+      document.getElementById(RAIL_SURFACE_IDS[s]).classList.toggle("on", s === surface);
+    });
+  }
+  const railHost = document.getElementById("rail-items");
+  railHost.addEventListener("click", function (e) {
+    const addBtn = e.target.closest(".rail-add-item");
+    if (addBtn) {
+      const addId = addBtn.getAttribute("data-add-id");
+      railConfig.hidden = railConfig.hidden.filter(function (h) { return h !== addId; });
+      saveRailConfig();
+      buildRail();
+      return;
+    }
+    const item = e.target.closest(".rail-item");
+    if (!item) return;
+    if (railEditMode) {
+      if (e.target.closest(".rail-x")) {
+        const id = item.getAttribute("data-rail-id");
+        if (railConfig.hidden.indexOf(id) < 0) railConfig.hidden.push(id);
+        saveRailConfig();
+        buildRail();
+      }
+      return; // no surface preview while editing
+    }
+    previewSurface(item.getAttribute("data-surface"));
+  });
+
+  // Edit mode: pencil toggles the customize affordances.
+  document.getElementById("rail-edit").addEventListener("click", function () {
+    railEditMode = !railEditMode;
+    this.classList.toggle("on", railEditMode);
+    this.setAttribute("aria-pressed", String(railEditMode));
+    buildRail();
+  });
+
+  // Drag-to-reorder (HTML5 DnD), enabled only in edit mode. dataTransfer is
+  // guarded so synthetic smoke events without one still exercise the paths.
+  railHost.addEventListener("dragstart", function (e) {
+    const item = e.target && e.target.closest ? e.target.closest(".rail-item") : null;
+    if (!railEditMode || !item) {
+      if (e.preventDefault) e.preventDefault();
+      return;
+    }
+    railDragId = item.getAttribute("data-rail-id");
+    item.classList.add("dragging");
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", railDragId); } catch (err) { /* ignore */ }
+    }
+  });
+  railHost.addEventListener("dragover", function (e) {
+    if (!railEditMode || !railDragId) return;
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const over = e.target && e.target.closest ? e.target.closest(".rail-item") : null;
+    railHost.querySelectorAll(".rail-item.drag-over").forEach(function (el) {
+      if (el !== over) el.classList.remove("drag-over");
+    });
+    if (over && over.getAttribute("data-rail-id") !== railDragId) over.classList.add("drag-over");
+  });
+  railHost.addEventListener("drop", function (e) {
+    if (!railEditMode || !railDragId) return;
+    e.preventDefault();
+    const over = e.target && e.target.closest ? e.target.closest(".rail-item") : null;
+    const from = railConfig.order.indexOf(railDragId);
+    if (from >= 0) {
+      railConfig.order.splice(from, 1);
+      const toId = over ? over.getAttribute("data-rail-id") : null;
+      const to = toId && toId !== railDragId ? railConfig.order.indexOf(toId) : -1;
+      if (to >= 0) railConfig.order.splice(to, 0, railDragId);
+      else railConfig.order.push(railDragId);
+      saveRailConfig();
+      buildRail();
+    }
+    railDragId = null;
+  });
+  railHost.addEventListener("dragend", function () {
+    railDragId = null;
+    railHost.querySelectorAll(".rail-item.dragging, .rail-item.drag-over").forEach(function (el) {
+      el.classList.remove("dragging", "drag-over");
     });
   });
+
+  // Rail resize: pointer drag on the 5px edge; double-click resets.
+  (function () {
+    const handle = document.getElementById("rail-resize");
+    const shell = document.querySelector(".shell");
+    let dragging = false;
+    let startX = 0;
+    let startW = 0;
+    handle.addEventListener("pointerdown", function (e) {
+      if (shell.classList.contains("rail-hidden")) return;
+      dragging = true;
+      startX = e.clientX;
+      startW = railConfig.width;
+      handle.classList.add("active");
+      shell.classList.add("rail-dragging");
+      if (handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      railConfig.width = Math.max(56, Math.min(260, Math.round(startW + (e.clientX - startX))));
+      applyRailWidth();
+    });
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove("active");
+      shell.classList.remove("rail-dragging");
+      saveRailConfig();
+    }
+    handle.addEventListener("pointerup", endDrag);
+    handle.addEventListener("pointercancel", endDrag);
+    handle.addEventListener("dblclick", function () {
+      if (shell.classList.contains("rail-hidden")) return;
+      railConfig.width = RAIL_DEFAULT_WIDTH;
+      applyRailWidth();
+      saveRailConfig();
+    });
+  })();
   document.querySelectorAll("#lens-tabs button").forEach(function (btn) {
     btn.addEventListener("click", function () {
       const lens = btn.getAttribute("data-lens");
@@ -3875,6 +4386,8 @@
   })();
 
   buildScrubber();
+  buildRail();
+  applyRailWidth();
   goTo(0, false);
 
   // Expose for smoke / console
@@ -3884,6 +4397,15 @@
     goTo: function (i) { pause(); goTo(i, false); },
     beatCount: BEATS.length,
     cursor: Cursor,
+    rail: {
+      getConfig: function () { return JSON.parse(JSON.stringify(railConfig)); },
+      setConfig: function (cfg) {
+        railConfig = normalizeRailConfig(cfg || {});
+        saveRailConfig();
+        applyRailWidth();
+        buildRail();
+      },
+    },
   };
 })();
 </script>
