@@ -25,6 +25,14 @@
     --ok-soft: #4ADE80;
     --danger: #F53969;
     --hub: #5487C8;
+    /* Live-call chrome (product amber). --live also colors the cursor click ripple. */
+    --live: #F59E0B;
+    --live-t: #FCD34D;
+    --live-soft: #FEF3C7;
+    --spot: #34D399;
+    --term-bg: #1B1D24;
+    --term-line: rgba(75, 85, 99, 0.95);
+    --prompt: #4ADE80;
     --ui: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
     --display: "DM Sans", system-ui, sans-serif;
     --eyebrow: "Space Grotesk", system-ui, sans-serif;
@@ -55,6 +63,10 @@
     border: none;
     background: none;
   }
+  button:focus-visible {
+    outline: 2px solid var(--drive);
+    outline-offset: 2px;
+  }
   code, .mono { font-family: var(--mono); }
 
   @media (prefers-reduced-motion: reduce) {
@@ -78,11 +90,15 @@
     z-index: 40;
   }
   .player .brand {
+    display: flex;
+    align-items: center;
+    gap: 7px;
     font: 700 14px/1 var(--display);
     letter-spacing: -0.02em;
     white-space: nowrap;
     flex: none;
   }
+  .player .brand .brand-mark { color: var(--drive-t); flex: none; }
   .player .brand span { color: var(--drive-t); }
   .player-controls { display: flex; gap: 4px; flex: none; }
   .player-controls button,
@@ -132,7 +148,7 @@
     color: #fff;
   }
   .scrubber button.visited:not(.active) {
-    border-color: color-mix(in srgb, var(--drive) 40%, transparent);
+    border-color: color-mix(in srgb, var(--drive) 55%, transparent);
     color: var(--drive-t);
   }
   .beat-meta {
@@ -195,9 +211,9 @@
     background: color-mix(in srgb, var(--ok) 10%, transparent);
   }
   .badge.planned {
-    color: #FBBF24;
-    border-color: color-mix(in srgb, #FBBF24 45%, transparent);
-    background: color-mix(in srgb, #FBBF24 12%, transparent);
+    color: var(--live-t);
+    border-color: color-mix(in srgb, var(--live) 45%, transparent);
+    background: color-mix(in srgb, var(--live) 12%, transparent);
   }
 
   /* ---- Shell ---- */
@@ -209,7 +225,7 @@
   }
   .rail {
     background: var(--panel);
-    border-right: 1px solid var(--hair);
+    border-right: 0.8px solid var(--hair);
     padding: 14px 10px;
     display: flex;
     flex-direction: column;
@@ -231,35 +247,22 @@
     border-radius: var(--r);
     color: var(--muted);
     text-align: left;
-    border: 1px solid transparent;
+    border: 0.8px solid transparent;
   }
-  .rail-item .ico {
-    width: 18px;
-    height: 18px;
-    border-radius: 5px;
-    background: var(--well);
-    border: 1px solid var(--line);
-    display: grid;
-    place-items: center;
-    font: 700 9px/1 var(--mono);
-    color: var(--dim);
-  }
+  .rail-item .rail-ico { color: var(--dim); flex: none; }
+  .rail-item:hover { color: var(--text); background: color-mix(in srgb, #FFFFFF 5%, transparent); }
   .rail-item.active {
     background: color-mix(in srgb, var(--drive) 14%, transparent);
     border-color: color-mix(in srgb, var(--drive) 40%, transparent);
     color: var(--text);
   }
-  .rail-item.active .ico {
-    background: color-mix(in srgb, var(--drive) 22%, transparent);
-    border-color: var(--drive-b);
-    color: var(--drive-t);
-  }
+  .rail-item.active .rail-ico { color: var(--drive-t); }
   .rail-foot {
     margin-top: auto;
     padding: 12px 10px;
     font-size: 11px;
     color: var(--dim);
-    border-top: 1px solid var(--hair);
+    border-top: 0.8px solid var(--hair);
   }
 
   .main {
@@ -268,7 +271,7 @@
     min-width: 0;
     min-height: 0;
     background:
-      radial-gradient(900px 420px at 88% -10%, color-mix(in srgb, var(--drive) 12%, transparent), transparent 55%),
+      radial-gradient(900px 420px at 88% -10%, color-mix(in srgb, var(--drive) 7%, transparent), transparent 55%),
       var(--bg);
   }
   .main-body {
@@ -302,7 +305,7 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    border-right: 1px solid var(--hair);
+    border-right: 0.8px solid var(--hair);
   }
   .spot-col { border-right: none; }
   .col-head {
@@ -310,7 +313,7 @@
     align-items: center;
     gap: 8px;
     padding: 12px 14px;
-    border-bottom: 1px solid var(--hair);
+    border-bottom: 0.8px solid var(--hair);
     background: color-mix(in srgb, var(--panel) 70%, transparent);
   }
   .col-head h2 {
@@ -335,43 +338,44 @@
   .msg {
     max-width: 92%;
     padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    border: 0.8px solid var(--line);
     background: var(--raised);
     animation: rise .28s var(--ease);
   }
-  .msg.you { align-self: flex-end; border-color: color-mix(in srgb, var(--drive) 35%, transparent); }
-  .msg.agent { align-self: flex-start; }
+  .msg.you { align-self: flex-end; border-color: rgba(255,255,255,.22); }
+  .msg.agent, .msg.system { align-self: flex-start; }
   .msg .who {
     font: 600 11px/1 var(--eyebrow);
     letter-spacing: .04em;
-    color: var(--drive-t);
+    color: var(--live-t);
     margin-bottom: 5px;
   }
   .msg.you .who { color: var(--muted); }
+  .msg.system .who { color: var(--hub); }
   .msg .body { color: var(--text); font-size: 13px; }
   .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .chip {
     font: 500 11px/1 var(--mono);
     padding: 4px 8px;
     border-radius: 999px;
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     color: var(--muted);
     background: var(--well);
   }
   .chip.on {
-    color: var(--drive-t);
-    border-color: var(--drive-b);
-    background: color-mix(in srgb, var(--drive) 14%, transparent);
+    color: #D1D5DB;
+    border-color: rgba(255,255,255,.25);
+    background: var(--well);
   }
   .chip.steer {
-    color: #FBBF24;
-    border-color: color-mix(in srgb, #FBBF24 45%, transparent);
+    color: var(--live-t);
+    border-color: color-mix(in srgb, var(--live) 45%, transparent);
   }
   .banner {
     padding: 10px 12px;
     border-radius: var(--r);
-    border: 1px solid color-mix(in srgb, var(--hub) 40%, transparent);
+    border: 0.8px solid color-mix(in srgb, var(--hub) 40%, transparent);
     background: color-mix(in srgb, var(--hub) 12%, transparent);
     color: var(--text);
     font-size: 12.5px;
@@ -382,8 +386,8 @@
     display: flex;
     gap: 8px;
     padding: 10px 14px;
-    border-top: 1px solid var(--hair);
-    background: var(--panel);
+    border-top: 0.8px solid color-mix(in srgb, var(--live) 20%, transparent);
+    background: color-mix(in srgb, var(--live) 4%, var(--panel));
     overflow-x: auto;
   }
   .seat {
@@ -392,7 +396,7 @@
     gap: 8px;
     padding: 7px 10px;
     border-radius: 999px;
-    border: 1px solid var(--line);
+    border: 0.8px solid color-mix(in srgb, var(--live) 30%, transparent);
     background: var(--raised);
     white-space: nowrap;
   }
@@ -404,14 +408,14 @@
     place-items: center;
     font: 700 10px/1 var(--mono);
     background: var(--well);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
   }
   .seat.agent .av {
-    background: color-mix(in srgb, var(--drive) 18%, transparent);
-    border-color: var(--drive-b);
-    color: var(--drive-t);
+    background: color-mix(in srgb, var(--live) 18%, transparent);
+    border-color: color-mix(in srgb, var(--live) 55%, transparent);
+    color: var(--live-t);
   }
-  .seat.human .av { color: var(--muted); }
+  .seat.human .av { color: var(--hub); }
   .seat .role {
     font: 500 10px/1 var(--eyebrow);
     letter-spacing: .05em;
@@ -419,7 +423,7 @@
     color: var(--dim);
   }
   .seat.hand .av {
-    box-shadow: 0 0 0 2px color-mix(in srgb, #FBBF24 70%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--live) 70%, transparent);
   }
 
   /* Spotlight */
@@ -439,14 +443,19 @@
     align-self: flex-start;
     padding: 6px 10px;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--drive) 40%, transparent);
-    background: color-mix(in srgb, var(--drive) 12%, transparent);
+    border: 0.8px solid color-mix(in srgb, var(--spot) 40%, transparent);
+    background: color-mix(in srgb, var(--spot) 10%, transparent);
     font: 600 12px/1 var(--ui);
   }
   .sharer-pill .dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: var(--drive);
-    box-shadow: 0 0 10px var(--drive);
+    background: var(--spot);
+    box-shadow: 0 0 0 0.8px color-mix(in srgb, var(--spot) 50%, transparent);
+  }
+  .spot-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--spot);
+    flex: none;
   }
   .plan-cursor {
     display: grid;
@@ -455,21 +464,38 @@
     padding: 10px 12px;
     border-radius: var(--r);
     background: var(--raised);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     font-size: 12px;
   }
   .plan-cursor .k {
     font: 600 10px/1.4 var(--eyebrow);
     letter-spacing: .08em;
     text-transform: uppercase;
-    color: var(--dim);
+    color: var(--live-t);
   }
   .plan-cursor .v { color: var(--text); }
   .plan-cursor .v.empty { color: var(--dim); font-style: italic; }
   .narration-line {
+    position: relative;
     font-size: 13px;
-    color: var(--muted);
-    padding: 4px 2px;
+    font-style: italic;
+    color: var(--live-soft);
+    padding: 8px 10px 8px 28px;
+    border-radius: var(--r);
+    border: 0.8px solid color-mix(in srgb, var(--live) 40%, transparent);
+    background: color-mix(in srgb, var(--live) 5%, transparent);
+  }
+  .narration-line::before {
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    margin-top: -5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--live);
+    background: color-mix(in srgb, var(--live) 40%, transparent);
   }
   .narration-line:empty { display: none; }
 
@@ -495,18 +521,19 @@
   }
   .how-flow .box {
     padding: 6px 8px;
-    border-radius: 7px;
-    border: 1px solid var(--line);
+    border-radius: 8px;
+    border: 0.8px solid var(--line);
     background: var(--raised);
     color: var(--text);
   }
+  .how-inset .note { margin-top: 8px; color: var(--muted); font-size: 12px; }
   .how-flow .arrow { color: var(--drive-t); }
 
   .cards { display: flex; flex-direction: column; gap: 8px; }
   .card {
     padding: 11px 12px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--raised);
     transition: opacity .25s, filter .25s;
   }
@@ -517,25 +544,33 @@
     text-transform: uppercase;
     margin-bottom: 6px;
   }
-  .card.edit .kind { color: var(--drive-t); }
+  .card.edit .kind { color: #D1D5DB; }
   .card.command .kind { color: var(--hub); }
   .card.test .kind { color: var(--ok-soft); }
-  .card.edit { border-left: 3px solid var(--drive); }
-  .card.command { border-left: 3px solid var(--hub); }
+  .card.edit { border-left: 3px solid rgba(255,255,255,.28); }
+  .card.command {
+    background: var(--term-bg);
+    border-color: var(--term-line);
+    border-radius: var(--r-lg);
+  }
   .card.test {
     border-left: 3px solid var(--ok);
     background: color-mix(in srgb, var(--ok) 6%, var(--raised));
   }
   .card .title { font: 600 13px/1.2 var(--display); margin-bottom: 3px; }
   .card .summary { color: var(--muted); font-size: 12px; }
+  .card.command .summary {
+    font-family: var(--eyebrow);
+    color: #D1D5DB;
+  }
+  .card.command .summary::before { content: "$ "; color: var(--prompt); font-weight: 700; }
   .pin-card {
     padding: 12px;
     border-radius: var(--r);
-    border: 1px solid color-mix(in srgb, var(--drive) 55%, transparent);
-    background: color-mix(in srgb, var(--drive) 10%, var(--raised));
-    box-shadow: 0 0 0 1px color-mix(in srgb, var(--drive) 20%, transparent);
+    border: 0.8px solid color-mix(in srgb, var(--live) 40%, transparent);
+    background: color-mix(in srgb, var(--live) 5%, var(--raised));
   }
-  .pin-card .kind { color: var(--drive-t); font: 600 10px/1 var(--eyebrow); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+  .pin-card .kind { color: var(--live-t); font: 600 10px/1 var(--eyebrow); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
   .pin-card .title { font: 600 13px/1.2 var(--display); margin-bottom: 4px; }
   .pin-card .summary { color: var(--muted); font-size: 12px; font-family: var(--mono); }
 
@@ -548,6 +583,7 @@
     text-align: center;
     padding: 24px;
   }
+  .empty-spot.empty-feed { min-height: 120px; }
 
   /* Drive tab rooms */
   .rooms {
@@ -556,16 +592,20 @@
     overflow: auto;
   }
   .rooms h2 {
+    display: flex;
+    align-items: center;
+    gap: 9px;
     font: 700 18px/1.2 var(--display);
     letter-spacing: -0.02em;
     margin-bottom: 6px;
   }
+  .rooms-mark { color: var(--drive-t); flex: none; }
   .rooms .lead { color: var(--muted); margin-bottom: 18px; }
   .room-card {
     max-width: 420px;
     padding: 14px 16px;
     border-radius: var(--r-lg);
-    border: 1px solid color-mix(in srgb, var(--drive) 45%, transparent);
+    border: 0.8px solid color-mix(in srgb, var(--drive) 45%, transparent);
     background: linear-gradient(180deg, var(--raised), var(--panel));
     display: flex;
     align-items: center;
@@ -573,8 +613,8 @@
   }
   .room-card .live {
     width: 10px; height: 10px; border-radius: 50%;
-    background: var(--ok);
-    box-shadow: 0 0 12px var(--ok);
+    background: var(--live);
+    box-shadow: 0 0 0 0.8px color-mix(in srgb, var(--live) 45%, transparent);
   }
   .room-card .name { font: 700 15px/1.2 var(--display); }
   .room-card .meta { color: var(--muted); font-size: 12px; margin-top: 3px; }
@@ -598,17 +638,18 @@
     display: flex;
     gap: 4px;
     padding: 10px 14px;
-    border-bottom: 1px solid var(--hair);
+    border-bottom: 0.8px solid var(--hair);
     background: var(--panel);
     flex-wrap: wrap;
   }
   .lens-tabs button {
     padding: 7px 12px;
     border-radius: var(--r);
-    border: 1px solid transparent;
+    border: 0.8px solid transparent;
     color: var(--muted);
     font-weight: 500;
   }
+  .lens-tabs button:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
   .lens-tabs button.on {
     color: var(--text);
     border-color: color-mix(in srgb, var(--hub) 45%, transparent);
@@ -634,12 +675,12 @@
   .board-tile {
     padding: 12px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--raised);
   }
   .board-tile .n {
     font: 700 22px/1 var(--display);
-    color: var(--drive-t);
+    color: var(--text);
     margin-bottom: 4px;
   }
   .board-tile .l { color: var(--muted); font-size: 12px; }
@@ -647,7 +688,7 @@
   .log-item, .sess-item {
     padding: 10px 12px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--raised);
     display: grid;
     grid-template-columns: 72px 1fr;
@@ -666,7 +707,7 @@
   .graph-box, .plans-rail {
     padding: 12px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--raised);
     min-height: 160px;
   }
@@ -680,13 +721,13 @@
   .plan-node {
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     margin-bottom: 6px;
     font-size: 12px;
   }
   .plan-node.on {
-    border-color: var(--drive-b);
-    background: color-mix(in srgb, var(--drive) 10%, transparent);
+    border-color: color-mix(in srgb, var(--live) 45%, transparent);
+    background: color-mix(in srgb, var(--live) 8%, transparent);
   }
   .graph-nodes {
     display: flex;
@@ -698,13 +739,13 @@
   .g-node {
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--well);
     font: 500 11px/1 var(--mono);
   }
   .g-node.hot {
-    border-color: var(--drive);
-    color: var(--drive-t);
+    border-color: var(--live);
+    color: var(--live-t);
   }
   .g-edge { color: var(--dim); }
 
@@ -714,25 +755,24 @@
     align-items: center;
     gap: 8px;
     padding: 7px 12px;
-    border-top: 1px solid var(--hair);
-    background: rgba(16, 16, 19, 0.96);
-    backdrop-filter: blur(6px);
+    border-top: 0.8px solid color-mix(in srgb, var(--live) 30%, transparent);
+    background: color-mix(in srgb, var(--live) 6%, var(--panel));
   }
   .call-strip.on { display: flex; }
   .strip-btn {
     padding: 6px 11px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--raised);
     color: var(--muted);
     font-weight: 600;
   }
   .strip-btn:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
   .strip-btn.hand.on {
-    color: #FBBF24;
-    border-color: color-mix(in srgb, #FBBF24 55%, transparent);
-    background: color-mix(in srgb, #FBBF24 12%, transparent);
-    box-shadow: 0 0 0 1px color-mix(in srgb, #FBBF24 25%, transparent);
+    color: var(--live-t);
+    border-color: color-mix(in srgb, var(--live) 55%, transparent);
+    background: color-mix(in srgb, var(--live) 12%, transparent);
+    box-shadow: 0 0 0 0.8px color-mix(in srgb, var(--live) 25%, transparent);
   }
   .strip-btn.leave {
     color: var(--danger);
@@ -741,18 +781,18 @@
   .mode-pill {
     padding: 6px 11px;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--drive) 45%, transparent);
-    background: color-mix(in srgb, var(--drive) 14%, transparent);
-    color: var(--drive-t);
+    border: 0.8px solid color-mix(in srgb, var(--live) 45%, transparent);
+    background: color-mix(in srgb, var(--live) 14%, transparent);
+    color: var(--live-t);
     font: 600 12px/1 var(--ui);
   }
   .posture-chip {
     font: 500 11px/1 var(--mono);
-    color: #FBBF24;
+    color: var(--live-t);
     padding: 6px 9px;
-    border-radius: 7px;
-    border: 1px solid color-mix(in srgb, #FBBF24 40%, transparent);
-    background: color-mix(in srgb, #FBBF24 10%, transparent);
+    border-radius: 8px;
+    border: 0.8px solid color-mix(in srgb, var(--live) 40%, transparent);
+    background: color-mix(in srgb, var(--live) 10%, transparent);
   }
   .posture-chip:empty, .posture-chip.hide { display: none; }
   .partner-label {
@@ -760,13 +800,13 @@
     color: var(--muted);
     font-size: 12px;
   }
-  .partner-label b { color: var(--text); }
+  .partner-label b { color: var(--live-t); }
   .privacy-chip {
     font: 500 11px/1 var(--mono);
     color: var(--ok-soft);
     padding: 6px 9px;
-    border-radius: 7px;
-    border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
+    border-radius: 8px;
+    border: 0.8px solid color-mix(in srgb, var(--ok) 40%, transparent);
     background: color-mix(in srgb, var(--ok) 10%, transparent);
   }
   .privacy-chip.hide { display: none; }
@@ -779,9 +819,8 @@
     z-index: 20;
     padding: 14px;
     border-radius: var(--r-lg);
-    border: 1px solid var(--line);
-    background: var(--raised);
-    box-shadow: 0 18px 50px -20px rgba(0,0,0,.8);
+    border: 0.8px solid var(--line);
+    background: #171923;
     display: none;
   }
   .overlay-card.on { display: block; animation: rise .25s var(--ease); }
@@ -795,10 +834,11 @@
     flex: 1;
     padding: 10px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--well);
     font-weight: 600;
   }
+  .choice-row button:hover { filter: brightness(1.25); }
   .choice-row button.leave-opt {
     border-color: color-mix(in srgb, var(--hub) 45%, transparent);
     color: var(--hub);
@@ -814,7 +854,7 @@
     display: none;
     padding: 18px;
     border-radius: var(--r-lg);
-    border: 1px solid color-mix(in srgb, var(--hub) 40%, transparent);
+    border: 0.8px solid color-mix(in srgb, var(--hub) 40%, transparent);
     background: color-mix(in srgb, var(--panel) 92%, transparent);
     backdrop-filter: blur(8px);
     overflow: auto;
@@ -838,7 +878,7 @@
   .handoff-col {
     padding: 12px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     background: var(--well);
   }
   .handoff-col h4 {
@@ -852,7 +892,7 @@
   .handoff-col li {
     font-size: 12.5px;
     padding: 4px 0;
-    border-bottom: 1px solid var(--hair);
+    border-bottom: 0.8px solid var(--hair);
     color: var(--muted);
   }
   .handoff-col li:last-child { border-bottom: none; }
@@ -865,10 +905,9 @@
     z-index: 21;
     padding: 14px;
     border-radius: var(--r-lg);
-    border: 1px solid color-mix(in srgb, #FBBF24 45%, transparent);
-    background: var(--raised);
+    border: 0.8px solid color-mix(in srgb, var(--live) 45%, transparent);
+    background: #171923;
     display: none;
-    box-shadow: 0 18px 50px -20px rgba(0,0,0,.8);
   }
   .gates-card.on { display: block; animation: rise .25s var(--ease); }
   .gates-card .head {
@@ -884,9 +923,10 @@
     flex: 1;
     padding: 8px;
     border-radius: var(--r);
-    border: 1px solid var(--line);
+    border: 0.8px solid var(--line);
     font-weight: 600;
   }
+  .gates-actions button:hover { filter: brightness(1.25); }
   .gates-actions .approve {
     background: color-mix(in srgb, var(--ok) 14%, transparent);
     border-color: color-mix(in srgb, var(--ok) 40%, transparent);
@@ -907,9 +947,8 @@
     z-index: 26;
     padding: 12px;
     border-radius: var(--r-lg);
-    border: 1px solid color-mix(in srgb, var(--drive) 40%, transparent);
-    background: rgba(18, 19, 26, 0.96);
-    backdrop-filter: blur(10px);
+    border: 0.8px solid color-mix(in srgb, var(--live) 40%, transparent);
+    background: #171923;
     display: none;
   }
   .pip.on { display: block; animation: rise .28s var(--ease); }
@@ -928,15 +967,16 @@
   .pip .pip-actions button {
     flex: 1;
     padding: 6px;
-    border-radius: 7px;
-    border: 1px solid var(--line);
+    border-radius: 8px;
+    border: 0.8px solid var(--line);
     background: var(--well);
     font: 600 10px/1 var(--ui);
     color: var(--muted);
   }
+  .pip .pip-actions button:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
   .pip .pip-actions button.hand.on {
-    color: #FBBF24;
-    border-color: color-mix(in srgb, #FBBF24 50%, transparent);
+    color: var(--live-t);
+    border-color: color-mix(in srgb, var(--live) 50%, transparent);
   }
   .pip .narr {
     font-size: 11.5px;
@@ -1007,8 +1047,20 @@
 </head>
 <body>
 
+<!-- The Cline Drive mark (robot in a steering wheel), traced path copied
+     verbatim from apps/cline-hub/src/webview/src/components/icons/drive-mark.tsx.
+     Defined once; every placement is a <use> that inherits currentColor. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="drive-mark" viewBox="0 0 24 24">
+    <path fill-rule="evenodd" d="M11.45 0.87C11.15 0.88 10.87 0.92 10.58 0.96C10.30 1.00 10.02 1.05 9.74 1.11C9.46 1.17 9.19 1.24 8.92 1.32C8.65 1.41 8.39 1.50 8.13 1.60C7.87 1.70 7.62 1.81 7.37 1.93C7.11 2.06 6.87 2.19 6.62 2.33C6.38 2.47 6.14 2.61 5.90 2.78C5.67 2.94 5.44 3.12 5.22 3.30C4.99 3.48 4.77 3.68 4.56 3.88C4.34 4.08 4.14 4.29 3.94 4.51C3.74 4.72 3.56 4.95 3.38 5.18C3.21 5.41 3.05 5.64 2.89 5.88C2.74 6.12 2.58 6.36 2.45 6.60C2.31 6.85 2.19 7.10 2.08 7.35C1.97 7.61 1.86 7.87 1.76 8.13C1.67 8.39 1.58 8.66 1.51 8.93C1.43 9.20 1.36 9.47 1.31 9.75C1.25 10.02 1.20 10.31 1.17 10.59C1.13 10.88 1.11 11.17 1.10 11.47C1.08 11.76 1.06 12.07 1.07 12.36C1.08 12.66 1.11 12.95 1.14 13.24C1.17 13.53 1.21 13.81 1.26 14.09C1.31 14.37 1.37 14.65 1.44 14.92C1.51 15.20 1.60 15.46 1.69 15.73C1.78 15.99 1.88 16.25 1.99 16.51C2.10 16.76 2.22 17.01 2.35 17.26C2.48 17.51 2.62 17.75 2.77 17.99C2.92 18.23 3.09 18.46 3.26 18.69C3.43 18.92 3.62 19.15 3.81 19.37C4.00 19.58 4.19 19.77 4.39 19.97C4.60 20.17 4.81 20.37 5.03 20.56C5.25 20.74 5.49 20.92 5.72 21.08C5.95 21.25 6.19 21.41 6.43 21.55C6.67 21.70 6.92 21.84 7.17 21.96C7.41 22.09 7.67 22.21 7.92 22.31C8.18 22.42 8.44 22.52 8.71 22.61C8.97 22.69 9.24 22.77 9.52 22.83C9.79 22.90 10.07 22.96 10.35 23.00C10.64 23.04 10.92 23.08 11.22 23.10C11.51 23.12 11.81 23.13 12.11 23.13C12.41 23.12 12.70 23.10 12.99 23.08C13.28 23.05 13.57 23.02 13.85 22.97C14.14 22.92 14.41 22.86 14.68 22.79C14.96 22.72 15.22 22.64 15.49 22.55C15.75 22.46 16.01 22.35 16.27 22.24C16.52 22.13 16.77 22.01 17.02 21.88C17.27 21.75 17.51 21.61 17.75 21.46C17.99 21.31 18.23 21.15 18.46 20.99C18.69 20.82 18.92 20.64 19.14 20.45C19.36 20.26 19.57 20.06 19.77 19.85C19.98 19.64 20.18 19.43 20.37 19.21C20.56 18.99 20.73 18.76 20.90 18.53C21.07 18.29 21.22 18.06 21.36 17.81C21.51 17.57 21.65 17.33 21.77 17.08C21.90 16.83 22.01 16.57 22.12 16.32C22.22 16.06 22.32 15.80 22.40 15.53C22.49 15.26 22.57 15.00 22.63 14.72C22.70 14.45 22.75 14.17 22.79 13.88C22.84 13.60 22.88 13.31 22.90 13.02C22.92 12.73 22.92 12.43 22.92 12.13C22.92 11.83 22.92 11.53 22.90 11.23C22.88 10.94 22.86 10.65 22.82 10.36C22.77 10.08 22.72 9.80 22.66 9.52C22.59 9.25 22.51 8.98 22.43 8.71C22.35 8.45 22.27 8.18 22.17 7.92C22.07 7.66 21.95 7.40 21.83 7.15C21.71 6.90 21.58 6.65 21.44 6.41C21.30 6.17 21.15 5.93 21.00 5.69C20.84 5.45 20.67 5.22 20.49 5.00C20.31 4.77 20.11 4.54 19.91 4.33C19.71 4.12 19.52 3.92 19.31 3.73C19.10 3.53 18.87 3.33 18.64 3.16C18.41 2.98 18.18 2.81 17.94 2.65C17.71 2.49 17.47 2.34 17.22 2.20C16.98 2.07 16.73 1.94 16.48 1.83C16.22 1.71 15.96 1.61 15.70 1.51C15.44 1.41 15.17 1.33 14.90 1.25C14.63 1.18 14.36 1.11 14.08 1.06C13.80 1.00 13.52 0.96 13.23 0.92C12.94 0.89 12.65 0.88 12.35 0.87C12.05 0.86 11.74 0.85 11.45 0.87ZM11.59 2.93C11.89 2.92 12.19 2.92 12.49 2.94C12.78 2.95 13.07 2.98 13.35 3.03C13.63 3.07 13.91 3.13 14.18 3.20C14.45 3.27 14.72 3.34 14.98 3.44C15.24 3.53 15.50 3.65 15.75 3.77C16.00 3.89 16.24 4.02 16.48 4.16C16.73 4.30 16.96 4.46 17.19 4.63C17.42 4.80 17.65 4.98 17.87 5.17C18.08 5.37 18.29 5.57 18.49 5.79C18.68 6.00 18.87 6.23 19.04 6.46C19.21 6.68 19.37 6.92 19.52 7.16C19.67 7.40 19.80 7.64 19.92 7.89C20.05 8.14 20.16 8.40 20.26 8.65C20.36 8.91 20.47 9.17 20.54 9.44C20.62 9.71 20.74 10.00 20.71 10.27C20.68 10.53 20.56 10.86 20.37 11.03C20.18 11.19 19.85 11.24 19.57 11.27C19.29 11.30 18.99 11.24 18.70 11.21C18.41 11.18 18.13 11.11 17.84 11.10C17.56 11.09 17.13 10.99 16.98 11.15C16.84 11.31 16.99 11.76 16.97 12.05C16.95 12.34 16.85 12.70 16.87 12.91C16.89 13.12 16.91 13.25 17.10 13.32C17.28 13.39 17.70 13.32 18.00 13.32C18.30 13.32 18.60 13.31 18.90 13.32C19.20 13.32 19.52 13.27 19.79 13.35C20.05 13.43 20.35 13.57 20.48 13.78C20.62 14.00 20.60 14.35 20.57 14.62C20.54 14.89 20.41 15.15 20.31 15.41C20.21 15.67 20.09 15.92 19.96 16.16C19.83 16.41 19.69 16.65 19.54 16.89C19.39 17.13 19.24 17.37 19.07 17.60C18.90 17.83 18.72 18.06 18.52 18.27C18.33 18.49 18.12 18.68 17.91 18.87C17.69 19.06 17.46 19.23 17.22 19.39C16.99 19.55 16.75 19.70 16.51 19.84C16.26 19.97 16.02 20.10 15.76 20.22C15.51 20.33 15.25 20.44 14.99 20.53C14.73 20.63 14.47 20.76 14.20 20.78C13.92 20.81 13.57 20.81 13.37 20.67C13.17 20.53 13.04 20.21 12.99 19.94C12.93 19.67 13.01 19.35 13.03 19.06C13.05 18.76 13.08 18.48 13.11 18.19C13.13 17.90 13.16 17.61 13.19 17.32C13.22 17.03 13.40 16.61 13.27 16.45C13.15 16.30 12.71 16.39 12.42 16.38C12.13 16.37 11.80 16.36 11.52 16.38C11.24 16.41 10.85 16.35 10.74 16.52C10.62 16.69 10.80 17.09 10.83 17.38C10.86 17.67 10.88 17.96 10.90 18.25C10.93 18.54 10.96 18.83 10.98 19.12C11.00 19.41 11.07 19.73 11.01 19.99C10.94 20.25 10.79 20.56 10.58 20.69C10.37 20.82 10.02 20.80 9.75 20.77C9.48 20.74 9.21 20.62 8.95 20.52C8.69 20.42 8.44 20.32 8.19 20.20C7.94 20.08 7.69 19.94 7.45 19.79C7.21 19.64 6.98 19.49 6.75 19.32C6.52 19.15 6.28 18.96 6.07 18.77C5.86 18.58 5.68 18.39 5.48 18.18C5.29 17.97 5.09 17.74 4.91 17.52C4.73 17.29 4.56 17.06 4.41 16.82C4.26 16.59 4.12 16.34 3.99 16.10C3.87 15.85 3.75 15.59 3.66 15.33C3.56 15.07 3.42 14.81 3.41 14.54C3.39 14.27 3.41 13.92 3.56 13.72C3.71 13.52 4.03 13.41 4.31 13.34C4.58 13.28 4.90 13.32 5.20 13.32C5.50 13.31 5.80 13.32 6.10 13.32C6.40 13.32 6.83 13.40 7.00 13.32C7.17 13.24 7.10 13.07 7.10 12.84C7.11 12.62 7.05 12.26 7.03 11.97C7.00 11.69 7.12 11.26 6.96 11.11C6.80 10.97 6.37 11.09 6.08 11.11C5.79 11.13 5.51 11.20 5.23 11.23C4.94 11.25 4.63 11.31 4.35 11.27C4.08 11.23 3.75 11.15 3.57 10.97C3.40 10.80 3.31 10.46 3.29 10.20C3.28 9.93 3.40 9.64 3.48 9.37C3.56 9.10 3.65 8.84 3.76 8.59C3.86 8.33 3.98 8.07 4.10 7.83C4.23 7.58 4.37 7.34 4.52 7.10C4.67 6.86 4.83 6.63 5.00 6.40C5.18 6.17 5.37 5.94 5.56 5.73C5.76 5.52 5.98 5.32 6.20 5.13C6.41 4.94 6.64 4.76 6.88 4.60C7.11 4.43 7.34 4.28 7.59 4.13C7.83 3.99 8.07 3.86 8.32 3.74C8.57 3.62 8.83 3.52 9.09 3.43C9.36 3.33 9.62 3.25 9.90 3.19C10.17 3.12 10.45 3.06 10.73 3.02C11.01 2.98 11.30 2.94 11.59 2.93ZM11.99 6.20C11.73 6.21 11.41 6.36 11.22 6.55C11.04 6.73 11.00 7.10 10.88 7.31C10.75 7.52 10.69 7.70 10.47 7.80C10.26 7.90 9.88 7.82 9.61 7.91C9.35 7.99 9.09 8.12 8.87 8.30C8.65 8.47 8.44 8.71 8.29 8.95C8.15 9.19 8.07 9.46 7.99 9.73C7.92 10.00 7.93 10.31 7.84 10.57C7.74 10.83 7.50 11.03 7.43 11.30C7.36 11.57 7.37 11.92 7.41 12.20C7.45 12.49 7.58 12.74 7.67 13.00C7.76 13.27 7.88 13.52 7.96 13.78C8.04 14.05 8.05 14.35 8.17 14.60C8.29 14.86 8.47 15.11 8.67 15.30C8.87 15.49 9.13 15.65 9.39 15.76C9.65 15.87 9.93 15.91 10.22 15.94C10.51 15.97 10.82 15.94 11.13 15.94C11.43 15.94 11.73 15.94 12.03 15.94C12.34 15.94 12.64 15.94 12.94 15.94C13.24 15.94 13.56 15.97 13.85 15.94C14.14 15.91 14.42 15.87 14.68 15.76C14.93 15.65 15.19 15.47 15.38 15.27C15.58 15.07 15.75 14.81 15.86 14.56C15.97 14.30 15.96 13.99 16.04 13.73C16.13 13.46 16.27 13.23 16.36 12.96C16.45 12.70 16.55 12.43 16.58 12.14C16.61 11.86 16.64 11.51 16.56 11.25C16.48 10.98 16.22 10.79 16.12 10.53C16.03 10.27 16.06 9.95 15.99 9.68C15.92 9.40 15.85 9.13 15.70 8.89C15.56 8.65 15.35 8.42 15.13 8.25C14.90 8.08 14.64 7.96 14.37 7.88C14.10 7.80 13.71 7.90 13.50 7.80C13.29 7.70 13.24 7.49 13.11 7.28C12.99 7.06 12.95 6.70 12.76 6.52C12.58 6.34 12.24 6.20 11.99 6.20ZM13.45 10.09C13.69 10.07 14.06 10.25 14.22 10.46C14.37 10.66 14.34 11.03 14.37 11.33C14.40 11.63 14.38 11.96 14.37 12.27C14.35 12.57 14.41 12.93 14.28 13.16C14.15 13.40 13.84 13.64 13.60 13.66C13.35 13.68 12.99 13.50 12.83 13.29C12.68 13.08 12.71 12.72 12.68 12.42C12.66 12.12 12.67 11.79 12.68 11.48C12.70 11.18 12.64 10.81 12.77 10.58C12.90 10.35 13.21 10.11 13.45 10.09ZM10.39 10.09C10.64 10.07 11.01 10.25 11.16 10.46C11.31 10.66 11.29 11.03 11.31 11.33C11.34 11.63 11.33 11.96 11.31 12.27C11.30 12.57 11.36 12.93 11.23 13.17C11.10 13.40 10.78 13.64 10.54 13.66C10.30 13.68 9.93 13.50 9.78 13.29C9.63 13.08 9.65 12.72 9.62 12.42C9.60 12.12 9.61 11.79 9.62 11.48C9.64 11.18 9.58 10.81 9.71 10.58C9.84 10.35 10.15 10.11 10.39 10.09Z"/>
+  </symbol>
+</svg>
+
 <header class="player" id="player">
-  <div class="brand">Drive <span>· product demo</span></div>
+  <div class="brand">
+    <svg class="brand-mark" width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg>
+    Drive <span>· product demo</span>
+  </div>
   <div class="player-controls">
     <button type="button" id="btn-prev" title="Previous (←)" aria-label="Previous">
       <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 2 5 7l6 5M3 2v10"/></svg>
@@ -1034,13 +1086,16 @@
   <nav class="rail" aria-label="Hub navigation">
     <div class="eyebrow">Hub</div>
     <button type="button" class="rail-item" data-surface="chat" id="rail-chat">
-      <span class="ico">C</span><span class="label">Chat</span>
+      <svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="label">Chat</span>
     </button>
     <button type="button" class="rail-item" data-surface="drive" id="rail-drive">
-      <span class="ico">D</span><span class="label">Drive</span>
+      <svg class="rail-ico" width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg>
+      <span class="label">Drive</span>
     </button>
     <button type="button" class="rail-item" data-surface="status" id="rail-status">
-      <span class="ico">S</span><span class="label">Status</span>
+      <svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span class="label">Status</span>
     </button>
     <div class="rail-foot">Room <span class="mono">router-fix</span></div>
   </nav>
@@ -1061,6 +1116,7 @@
           </div>
           <div class="spot-col">
             <div class="col-head">
+              <span class="spot-dot" aria-hidden="true"></span>
               <h2>Spotlight</h2>
               <span class="sub">stage</span>
             </div>
@@ -1072,7 +1128,7 @@
       <!-- Drive tab (rooms) -->
       <div class="surface" id="surface-drive">
         <div class="rooms">
-          <h2>Drive</h2>
+          <h2><svg class="rooms-mark" width="22" height="22" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg> Drive</h2>
           <p class="lead">Call rooms. Opening a room is the product home path.</p>
           <div class="room-card">
             <span class="live" aria-hidden="true"></span>
@@ -1973,7 +2029,7 @@
     }
     state.feedMessages.forEach(function (m) {
       const el = document.createElement("div");
-      el.className = "msg " + (m.from === "you" ? "you" : m.from === "agent" ? "agent" : "agent");
+      el.className = "msg " + (m.from === "you" ? "you" : m.from === "agent" ? "agent" : "system");
       let chips = "";
       if (m.chips && m.chips.length) {
         chips = '<div class="chip-row">' + m.chips.map(function (c) {
@@ -1986,8 +2042,7 @@
     });
     if (state.surface === "chat" && !state.feedMessages.length) {
       const empty = document.createElement("div");
-      empty.className = "empty-spot";
-      empty.style.minHeight = "120px";
+      empty.className = "empty-spot empty-feed";
       empty.textContent = "Empty chat. Join a Drive room from the rail or Chat Join.";
       feed.appendChild(empty);
     }
@@ -2043,7 +2098,7 @@
           '<span class="box">call_record_work</span><span class="arrow">→</span>' +
           '<span class="box">stage.cards</span>' +
           "</div>" +
-          '<p style="margin-top:8px;color:var(--muted);font-size:12px;">Not pixels. Typed cards every participant can read.</p>';
+          '<p class="note">Not pixels. Typed cards every participant can read.</p>';
         spot.appendChild(how);
       }
       if (state.stage.pin) {
@@ -2179,6 +2234,23 @@
       togglePlay();
     }
   });
+
+  // Favicon: reuse the inline #drive-mark path — dark tile, light mark
+  // (official asset palette from assets/drive/README.md). Keeps the file
+  // self-contained without duplicating the 7.8KB path.
+  (function () {
+    var p = document.querySelector("#drive-mark path");
+    if (!p) return;
+    var svg =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+      '<rect width="24" height="24" rx="5" fill="#1F2024"/>' +
+      '<path fill="#FAFAF8" fill-rule="evenodd" d="' + p.getAttribute("d") + '"/></svg>';
+    var link = document.createElement("link");
+    link.rel = "icon";
+    link.type = "image/svg+xml";
+    link.href = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    document.head.appendChild(link);
+  })();
 
   buildScrubber();
   goTo(0, false);
