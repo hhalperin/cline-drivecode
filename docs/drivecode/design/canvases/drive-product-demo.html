@@ -1039,6 +1039,52 @@
     .pip .narr { min-height: 2.2em; }
   }
 
+  /* ---- Simulated cursor ---- */
+  .demo-cursor-layer {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+  }
+  #demo-cursor {
+    position: absolute;
+    left: 0;
+    top: 0;
+    will-change: transform;
+    opacity: 0;
+    transition: opacity .25s var(--ease);
+  }
+  #demo-cursor.visible { opacity: 1; }
+  #demo-cursor svg {
+    display: block;
+    transform-origin: 4px 4px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
+    transition: transform .12s var(--ease);
+  }
+  #demo-cursor.down svg { transform: scale(.82); }
+  .demo-ripple {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    margin: -18px 0 0 -18px;
+    border-radius: 50%;
+    border: 2px solid var(--live);
+    transform: scale(.25);
+    opacity: .9;
+    pointer-events: none;
+    animation: demo-ripple .45s var(--ease) forwards;
+  }
+  @keyframes demo-ripple { to { transform: scale(1.1); opacity: 0; } }
+  .demo-pressed { animation: demo-pressed .18s var(--ease); }
+  @keyframes demo-pressed {
+    0% { transform: scale(1); filter: brightness(1); }
+    40% { transform: scale(.96); filter: brightness(1.4); }
+    100% { transform: scale(1); filter: brightness(1); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .demo-cursor-layer { display: none !important; }
+  }
+
   @keyframes rise {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: none; }
@@ -1289,6 +1335,15 @@
   </nav>
 </div>
 
+<div class="demo-cursor-layer" id="demo-cursor-layer" aria-hidden="true">
+  <div id="demo-cursor">
+    <svg width="22" height="22" viewBox="0 0 24 24">
+      <path d="M4.5 2.2 L4.5 19.8 L8.8 15.6 L11.6 21.6 L14.4 20.3 L11.7 14.4 L17.8 14.2 Z"
+            fill="#fff" stroke="rgba(0,0,0,.55)" stroke-width="1.1" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</div>
+
 <script>
 (function () {
   "use strict";
@@ -1401,7 +1456,10 @@
     summary: "Clarify timeout window in scheduleRetry docs.",
   };
 
-  /** @type {Array<{id:string,act:number,title:string,caption:string,hubOp?:string,maturity?:string,dwellMs:number,patch:object}>} */
+  /** Cursor spec: performed against the PREVIOUS beat's DOM during autoplay
+   *  (or this beat's DOM when `when: "after"`), so targets must be visible there.
+   * @typedef {{ target: string, action: 'click'|'move'|'none', offset?: {dx?:number,dy?:number}, when?: 'before'|'after' }} CursorSpec */
+  /** @type {Array<{id:string,act:number,title:string,caption:string,hubOp?:string,maturity?:string,dwellMs:number,cursor?:CursorSpec,patch:object}>} */
   const BEATS = [
     {
       id: "a0-hub",
@@ -1410,6 +1468,7 @@
       caption: "Instant join. No lobby. Chat Join is a shortcut into the active room.",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#feed", action: "move" },
       patch: { surface: "chat", driveOn: false, inCall: false },
     },
     {
@@ -1419,6 +1478,7 @@
       caption: "Drive tab lists call rooms. Opening a room is the product home path.",
       maturity: "shipped",
       dwellMs: 1200,
+      cursor: { target: "#rail-drive", action: "click" },
       patch: { surface: "drive" },
     },
     {
@@ -1429,6 +1489,7 @@
       hubOp: "call_join",
       maturity: "shipped",
       dwellMs: 1600,
+      cursor: { target: "#surface-drive .room-card .join", action: "click" },
       patch: {
         surface: "drive-in-call",
         driveOn: true,
@@ -1448,6 +1509,7 @@
       hubOp: "call_get_room",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#roster", action: "move" },
       patch: {
         participants: [{ ...YOU }, { ...ADAM }],
         mode: "Agent",
@@ -1465,6 +1527,7 @@
       hubOp: "addressSet",
       maturity: "shipped",
       dwellMs: 1200,
+      cursor: { target: "#roster .seat.agent", action: "click" },
       patch: {
         addressSet: ["one"],
         feedMessages: [
@@ -1481,6 +1544,7 @@
       caption: "Feed stays the default work surface while Drive is on.",
       maturity: "shipped",
       dwellMs: 1200,
+      cursor: { target: "#feed", action: "click", offset: { dy: 100 } },
       patch: {
         feedMessages: [
           { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
@@ -1498,6 +1562,7 @@
       hubOp: "narration",
       maturity: "shipped",
       dwellMs: 1600,
+      cursor: { target: "#spotlight", action: "move" },
       patch: {
         narration: "Found the race. Watch the spotlight — I will walk the pending-flag path.",
         nowLabel: "running router unit tests",
@@ -1518,6 +1583,7 @@
       caption: "Screen share is events-first. Tool results become typed stage cards — not pixels.",
       maturity: "shipped",
       dwellMs: 2000,
+      cursor: { target: "#spotlight", action: "move", offset: { dy: -40 } },
       patch: { showHowInset: true },
     },
     {
@@ -1528,6 +1594,7 @@
       hubOp: "call_record_work",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#spotlight .sharer-pill", action: "move" },
       patch: {
         showHowInset: false,
         stage: {
@@ -1546,6 +1613,7 @@
       hubOp: "call_record_work",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#spotlight .card.edit", action: "move" },
       patch: {
         stage: {
           cards: [CARD_EDIT, CARD_CMD],
@@ -1560,6 +1628,7 @@
       hubOp: "call_record_work",
       maturity: "shipped",
       dwellMs: 1600,
+      cursor: { target: "#spotlight .card.command", action: "move" },
       patch: {
         stage: {
           cards: [CARD_EDIT, CARD_CMD, CARD_TEST],
@@ -1574,6 +1643,7 @@
       hubOp: "steer queue",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#feed", action: "click", offset: { dy: 100 } },
       patch: {
         steerQueued: true,
         feedMessages: [
@@ -1594,6 +1664,7 @@
       hubOp: "raise-hand",
       maturity: "shipped",
       dwellMs: 1200,
+      cursor: { target: "#strip-hand", action: "click" },
       patch: {
         participants: [
           { ...YOU, handRaised: true },
@@ -1622,6 +1693,7 @@
       hubOp: "seat",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#roster", action: "move" },
       patch: {
         posture: null,
         steerQueued: false,
@@ -1649,6 +1721,7 @@
       hubOp: "call_set_stage",
       maturity: "shipped",
       dwellMs: 1600,
+      cursor: { target: "#spotlight .sharer-pill", action: "move" },
       patch: {
         stage: { sharer: "Riley", sharerId: "riley" },
         narration: "Riley taking Spotlight to tighten the docs.",
@@ -1662,6 +1735,7 @@
       hubOp: "call_record_work",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#spotlight .card.test", action: "move" },
       patch: {
         stage: {
           cards: [CARD_EDIT, CARD_CMD, CARD_TEST, CARD_RILEY],
@@ -1676,6 +1750,7 @@
       hubOp: "call_set_stage",
       maturity: "shipped",
       dwellMs: 1800,
+      cursor: { target: "#spotlight .sharer-pill", action: "click" },
       patch: {
         stage: {
           sharer: "You",
@@ -1695,6 +1770,7 @@
       caption: "Still in call. PiP companion (planned) keeps mute, hand, leave, expand.",
       maturity: "planned",
       dwellMs: 1600,
+      cursor: { target: "#rail-status", action: "click" },
       patch: {
         surface: "status",
         statusLens: "board",
@@ -1709,6 +1785,7 @@
       caption: "Board: where is everything, and what needs me?",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: '#lens-tabs button[data-lens="board"]', action: "click" },
       patch: { statusLens: "board" },
     },
     {
@@ -1718,6 +1795,7 @@
       caption: "Changelog: what happened, chronologically.",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: '#lens-tabs button[data-lens="changelog"]', action: "click" },
       patch: { statusLens: "changelog" },
     },
     {
@@ -1727,6 +1805,7 @@
       caption: "Sessions: did Drive sessions get work done?",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: '#lens-tabs button[data-lens="sessions"]', action: "click" },
       patch: { statusLens: "sessions" },
     },
     {
@@ -1736,6 +1815,7 @@
       caption: "Dependency map: task graph + Plans rail (?demoPlans=1 in live hub).",
       maturity: "shipped",
       dwellMs: 1600,
+      cursor: { target: '#lens-tabs button[data-lens="depmap"]', action: "click" },
       patch: { statusLens: "depmap" },
     },
     {
@@ -1745,6 +1825,7 @@
       caption: "Leave ≠ End. Leave persists; End closes with a handoff packet.",
       maturity: "shipped",
       dwellMs: 1600,
+      cursor: { target: "#strip-leave", action: "click" },
       patch: {
         surface: "drive-in-call",
         pipVisible: false,
@@ -1760,6 +1841,7 @@
       hubOp: "call_leave",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#leave-choice .leave-opt", action: "click" },
       patch: {
         showLeaveChoice: false,
         inCall: false,
@@ -1778,6 +1860,7 @@
       hubOp: "call_end",
       maturity: "shipped",
       dwellMs: 2000,
+      cursor: { target: ".main-body", action: "move" },
       patch: {
         surface: "drive-in-call",
         inCall: true,
@@ -1798,6 +1881,7 @@
       hubOp: "call_join",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#rail-drive", action: "click" },
       patch: {
         handoff: false,
         inCall: true,
@@ -1825,6 +1909,7 @@
       hubOp: "catch-up",
       maturity: "shipped",
       dwellMs: 1800,
+      cursor: { target: "#feed", action: "move" },
       patch: {
         sinceYouLeft: "Riley published 1 edit card. Tests still green. Now: explain race.",
         nowLabel: "explain the race, then commit",
@@ -1840,6 +1925,7 @@
       hubOp: "mode overlay",
       maturity: "shipped",
       dwellMs: 1600,
+      cursor: { target: "#mode-pill", action: "click" },
       patch: {
         sinceYouLeft: null,
         mode: "Plan",
@@ -1853,6 +1939,7 @@
       caption: "Privacy-strict by default. No transcript/audio retention without debug opt-in.",
       maturity: "shipped",
       dwellMs: 1400,
+      cursor: { target: "#call-strip", action: "move" },
       patch: {
         mode: "Agent",
         privacyDebug: true,
@@ -1867,6 +1954,7 @@
       hubOp: "approval",
       maturity: "planned",
       dwellMs: 1800,
+      cursor: { target: ".gates-card .approve", action: "click", when: "after" },
       patch: {
         showGatesCard: true,
       },
@@ -1890,6 +1978,114 @@
     if (reducedMotion) return Math.min(400, Math.round(beat.dwellMs * 0.35));
     return beat.dwellMs;
   }
+
+  // ---- Simulated cursor ----
+  // A user's mouse driving the product UI. During autoplay each beat's
+  // cursor spec is performed against the PREVIOUS beat's DOM, so the click
+  // lands first and the state change renders mid-press ("click causes it").
+  const Cursor = (function () {
+    const layer = document.getElementById("demo-cursor-layer");
+    const el = document.getElementById("demo-cursor");
+    let x = window.innerWidth * 0.55;
+    let y = window.innerHeight + 40;
+    let gen = 0;
+    let visible = false;
+
+    function setPos(nx, ny, ms) {
+      el.style.transition = ms
+        ? "transform " + ms + "ms cubic-bezier(0.3, 1.25, 0.35, 1)"
+        : "none";
+      el.style.transform = "translate3d(" + nx + "px," + ny + "px,0)";
+      x = nx;
+      y = ny;
+    }
+
+    function resolve(spec) {
+      const target = document.querySelector(spec.target);
+      if (!target || !target.getClientRects().length) return null;
+      const r = target.getBoundingClientRect();
+      let px = r.left + r.width / 2;
+      let py = r.top + r.height / 2;
+      if (spec.offset) {
+        px += spec.offset.dx || 0;
+        py += spec.offset.dy || 0;
+      }
+      return { el: target, px: px, py: py };
+    }
+
+    function travelMs(px, py) {
+      const dist = Math.hypot(px - x, py - y);
+      return Math.max(220, Math.min(650, 120 + dist * 0.85));
+    }
+
+    function show() {
+      if (visible) return;
+      visible = true;
+      setPos(x, y, 0);
+      void el.offsetWidth; // commit the spawn point so the next move animates
+      el.classList.add("visible");
+    }
+
+    function hide() {
+      visible = false;
+      el.classList.remove("visible");
+    }
+
+    function cancel() {
+      gen++;
+      const t = getComputedStyle(el).transform;
+      el.style.transition = "none";
+      if (t && t !== "none") el.style.transform = t;
+    }
+
+    function moveTo(px, py) {
+      const myGen = gen;
+      const ms = travelMs(px, py);
+      show();
+      setPos(px, py, ms);
+      return new Promise(function (res) {
+        setTimeout(function () { res(myGen === gen); }, ms);
+      });
+    }
+
+    function click(target, px, py) {
+      const myGen = gen;
+      el.classList.add("down");
+      const ripple = document.createElement("div");
+      ripple.className = "demo-ripple";
+      ripple.style.left = px + "px";
+      ripple.style.top = py + "px";
+      layer.appendChild(ripple);
+      ripple.addEventListener("animationend", function () { ripple.remove(); });
+      target.classList.add("demo-pressed");
+      setTimeout(function () { target.classList.remove("demo-pressed"); }, 220);
+      setTimeout(function () { el.classList.remove("down"); }, 210);
+      return new Promise(function (res) {
+        // resolve at press impact so the render lands mid-flash
+        setTimeout(function () { res(myGen === gen); }, 90);
+      });
+    }
+
+    function perform(spec) {
+      if (!spec || spec.action === "none") return Promise.resolve(true);
+      const hit = resolve(spec);
+      if (!hit) return Promise.resolve(true);
+      return moveTo(hit.px, hit.py).then(function (ok) {
+        if (!ok) return false;
+        if (spec.action === "click") return click(hit.el, hit.px, hit.py);
+        return true;
+      });
+    }
+
+    function travelEstimate(spec) {
+      if (!spec || spec.action === "none") return 0;
+      const hit = resolve(spec);
+      if (!hit) return 0;
+      return travelMs(hit.px, hit.py) + (spec.action === "click" ? 200 : 60);
+    }
+
+    return { perform: perform, cancel: cancel, hide: hide, show: show, travelEstimate: travelEstimate };
+  })();
 
   function clearTimer() {
     if (timer != null) {
@@ -1920,16 +2116,47 @@
     if (!playing) return;
     if (index >= BEATS.length - 1) {
       setPlaying(false);
+      restCursorAtEnd();
       return;
     }
     const ms = dwellFor(BEATS[index]);
+    // Start the next beat's cursor leg early so the click impact lands
+    // where the plain render used to happen — total runtime stays ~constant.
+    const next = BEATS[index + 1];
+    const est = (!reducedMotion && next.cursor && next.cursor.when !== "after")
+      ? Cursor.travelEstimate(next.cursor)
+      : 0;
     timer = setTimeout(function () {
       timer = null;
-      goTo(index + 1, true);
-    }, ms);
+      advanceWithCursor(index + 1);
+    }, Math.max(150, ms - est));
+  }
+
+  function advanceWithCursor(i) {
+    const spec = BEATS[i].cursor;
+    if (reducedMotion || !spec || spec.action === "none") {
+      goTo(i, true);
+      return;
+    }
+    if (spec.when === "after") {
+      goTo(i, true);
+      Cursor.perform(spec);
+      return;
+    }
+    Cursor.perform(spec).then(function (ok) {
+      if (!playing || !ok) return;
+      goTo(i, true);
+    });
+  }
+
+  function restCursorAtEnd() {
+    setTimeout(function () {
+      if (!playing) Cursor.hide();
+    }, 1200);
   }
 
   function goTo(i, fromAuto) {
+    if (!fromAuto) Cursor.hide();
     index = Math.max(0, Math.min(BEATS.length - 1, i));
     const state = seek(BEATS, index);
     render(state, BEATS[index]);
@@ -1946,6 +2173,7 @@
 
   function pause() {
     setPlaying(false);
+    Cursor.cancel();
   }
 
   function togglePlay() {
@@ -2261,6 +2489,7 @@
     seek: seek,
     goTo: function (i) { pause(); goTo(i, false); },
     beatCount: BEATS.length,
+    cursor: Cursor,
   };
 })();
 </script>
