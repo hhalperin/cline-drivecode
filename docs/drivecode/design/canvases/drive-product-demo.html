@@ -434,8 +434,10 @@
     border-radius: var(--r-lg);
     border: 0.8px solid var(--line);
     background: var(--raised);
-    animation: rise .28s var(--ease);
   }
+  /* Entrance animation is opt-in: the differential render adds .rise only
+     to nodes that are genuinely new, so unchanged content never replays it. */
+  .msg.rise, .card.rise { animation: rise .28s var(--ease); }
   .msg.you { align-self: flex-end; border-color: var(--line-strong); }
   .msg.agent, .msg.system { align-self: flex-start; }
   .msg .who {
@@ -602,31 +604,33 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    padding: 14px 16px 36px;
+    padding: 14px 16px;
     display: grid;
     place-items: center;
     background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
     background-size: 18px 18px;
   }
-  .screen .subtitle {
-    position: absolute;
-    left: 50%;
-    bottom: 10px;
-    transform: translateX(-50%);
-    max-width: min(82%, 560px);
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(8, 8, 12, 0.78);
-    border: 0.8px solid rgba(255, 255, 255, 0.10);
+  /* Artifact swaps crossfade the body content; the frame itself persists. */
+  .screen-body.swap { animation: body-swap .22s var(--ease); }
+  @keyframes body-swap { from { opacity: 0; } }
+  /* Fixed caption slot — always-present last flex child of the frame, so
+     narration never moves or remounts; only its text fades in place. */
+  .screen .caption-slot {
+    flex: none;
+    min-height: 30px;
+    padding: 8px 14px;
+    border-top: 0.8px solid rgba(255, 255, 255, 0.08);
     font-size: 12px;
     font-style: italic;
+    line-height: 1.2;
     color: var(--live-soft);
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    animation: rise .28s var(--ease);
   }
+  .screen .caption-slot.swap { animation: caption-swap .3s var(--ease); }
+  @keyframes caption-swap { from { color: transparent; } }
   .screen-idle {
     display: flex;
     flex-direction: column;
@@ -2740,6 +2744,27 @@
     return !!(you && you.handRaised);
   }
 
+  // Differential-render memo: per-region signatures (cheap JSON of the state
+  // slice each region reads) plus keyed id sets, so a beat only rebuilds the
+  // regions whose state actually changed. Jumps and scrubs still rebuild
+  // automatically because their signatures differ.
+  const R = {
+    feedSig: null,
+    msgIds: {},
+    rosterSig: null,
+    spotMode: null,
+    screenSig: null,
+    barHtml: null,
+    bodyHtml: null,
+    capText: null,
+    railSig: null,
+    planSig: null,
+    howOn: null,
+    deckSig: null,
+    cardIds: {},
+    el: null,
+  };
+
   function render(state, beat) {
     document.getElementById("beat-title").textContent = beat.title;
     const caption = document.getElementById("caption");
@@ -2792,112 +2817,95 @@
     document.getElementById("feed-sub").textContent =
       state.inCall ? "router-fix · live" : "chat";
 
-    // Feed
+    // Feed — rebuilt only when its state slice changes; the entrance
+    // animation plays only for messages that are genuinely new.
     const feed = document.getElementById("feed");
-    feed.innerHTML = "";
-    if (state.sinceYouLeft) {
-      const ban = document.createElement("div");
-      ban.className = "banner";
-      ban.innerHTML = "<strong>Since you left</strong> — " + escapeHtml(state.sinceYouLeft);
-      feed.appendChild(ban);
-    }
-    state.feedMessages.forEach(function (m) {
-      const el = document.createElement("div");
-      el.className = "msg " + (m.from === "you" ? "you" : m.from === "agent" ? "agent" : "system");
-      let chips = "";
-      if (m.chips && m.chips.length) {
-        chips = '<div class="chip-row">' + m.chips.map(function (c) {
-          const cls = c.indexOf("steer") >= 0 ? "chip steer" : "chip on";
-          return '<span class="' + cls + '">' + escapeHtml(c) + "</span>";
-        }).join("") + "</div>";
+    const feedEmpty = state.surface === "chat" && !state.feedMessages.length;
+    const feedSig = JSON.stringify({ m: state.feedMessages, s: state.sinceYouLeft, e: feedEmpty });
+    if (feedSig !== R.feedSig) {
+      R.feedSig = feedSig;
+      const prevMsgIds = R.msgIds;
+      R.msgIds = {};
+      feed.innerHTML = "";
+      if (state.sinceYouLeft) {
+        const ban = document.createElement("div");
+        ban.className = "banner";
+        ban.innerHTML = "<strong>Since you left</strong> — " + escapeHtml(state.sinceYouLeft);
+        feed.appendChild(ban);
       }
-      el.innerHTML = '<div class="who">' + escapeHtml(m.who) + '</div><div class="body">' + escapeHtml(m.text) + "</div>" + chips;
-      feed.appendChild(el);
-    });
-    if (state.surface === "chat" && !state.feedMessages.length) {
-      const empty = document.createElement("div");
-      empty.className = "empty-spot empty-feed";
-      empty.textContent = "Empty chat. Join a Drive room from the rail or Chat Join.";
-      feed.appendChild(empty);
+      state.feedMessages.forEach(function (m) {
+        R.msgIds[m.id] = true;
+        const el = document.createElement("div");
+        el.className = "msg " + (m.from === "you" ? "you" : m.from === "agent" ? "agent" : "system") +
+          (prevMsgIds[m.id] ? "" : " rise");
+        let chips = "";
+        if (m.chips && m.chips.length) {
+          chips = '<div class="chip-row">' + m.chips.map(function (c) {
+            const cls = c.indexOf("steer") >= 0 ? "chip steer" : "chip on";
+            return '<span class="' + cls + '">' + escapeHtml(c) + "</span>";
+          }).join("") + "</div>";
+        }
+        el.innerHTML = '<div class="who">' + escapeHtml(m.who) + '</div><div class="body">' + escapeHtml(m.text) + "</div>" + chips;
+        feed.appendChild(el);
+      });
+      if (feedEmpty) {
+        const empty = document.createElement("div");
+        empty.className = "empty-spot empty-feed";
+        empty.textContent = "Empty chat. Join a Drive room from the rail or Chat Join.";
+        feed.appendChild(empty);
+      }
     }
 
-    // Roster
+    // Roster — rebuilt only when participants change.
     const roster = document.getElementById("roster");
-    roster.innerHTML = "";
-    roster.style.display = state.participants.length ? "flex" : "none";
-    state.participants.forEach(function (p) {
-      const el = document.createElement("div");
-      el.className = "seat " + p.role + (p.handRaised ? " hand" : "");
-      el.innerHTML =
-        '<span class="av">' + escapeHtml(p.name.slice(0, 1)) + "</span>" +
-        "<div><div>" + escapeHtml(p.name) + '</div><div class="role">' + p.role + "</div></div>";
-      roster.appendChild(el);
-    });
+    const rosterSig = JSON.stringify(state.participants);
+    if (rosterSig !== R.rosterSig) {
+      R.rosterSig = rosterSig;
+      roster.innerHTML = "";
+      roster.style.display = state.participants.length ? "flex" : "none";
+      state.participants.forEach(function (p) {
+        const el = document.createElement("div");
+        el.className = "seat " + p.role + (p.handRaised ? " hand" : "");
+        el.innerHTML =
+          '<span class="av">' + escapeHtml(p.name.slice(0, 1)) + "</span>" +
+          "<div><div>" + escapeHtml(p.name) + '</div><div class="role">' + p.role + "</div></div>";
+        roster.appendChild(el);
+      });
+    }
 
-    // Spotlight
+    // Spotlight — persistent scaffold with per-region signatures. The
+    // .screen frame mounts once per spotlight mode and persists across
+    // beats; only regions whose state slice changed are touched.
     const spot = document.getElementById("spotlight");
-    spot.innerHTML = "";
-    if (state.surface === "chat" && !state.inCall) {
-      spot.innerHTML = '<div class="empty-spot">Spotlight mounts when Drive is on.</div>';
-    } else {
-      // The shared screen: human pin > presented artifact > live workspace
-      const screen = document.createElement("div");
-      const human = !!state.stage.pin;
-      screen.className = "screen" + (human ? " human" : "");
-      const presenter = human ? "You" : (state.stage.sharer || "—");
-      let kindLabel = "workspace";
-      let stickyChip = "";
-      let matBadge = "";
-      if (human) {
-        kindLabel = "structured share";
-      } else if (state.stage.show) {
-        kindLabel = state.stage.show.kindLabel;
-        stickyChip = '<span class="sticky-chip">sticky · ' + escapeHtml(state.stage.show.sticky) + "</span>";
-        if (state.stage.show.maturity === "planned") matBadge = '<span class="badge planned">planned</span>';
-      }
-      let screenBody;
-      if (human) {
-        screenBody =
-          '<div class="screen-pin"><div class="kind">Your pin</div>' +
-          '<div class="title">' + escapeHtml(state.stage.pin.label) + "</div>" +
-          '<div class="summary">' + escapeHtml(state.stage.pin.ref) + "</div></div>";
-      } else if (state.stage.show) {
-        screenBody = buildScreenBody(state.stage.show);
+    const spotEmpty = state.surface === "chat" && !state.inCall;
+    const spotMode = spotEmpty ? "empty" : "live";
+    if (spotMode !== R.spotMode) {
+      R.spotMode = spotMode;
+      R.screenSig = R.railSig = R.planSig = R.deckSig = null;
+      R.barHtml = R.bodyHtml = null;
+      R.capText = null;
+      R.howOn = null;
+      R.cardIds = {};
+      spot.innerHTML = "";
+      if (spotEmpty) {
+        spot.innerHTML = '<div class="empty-spot">Spotlight mounts when Drive is on.</div>';
+        R.el = null;
       } else {
-        screenBody =
-          '<div class="screen-idle"><span class="av">' + escapeHtml(presenter.slice(0, 1)) + "</span>" +
-          '<div class="who">' + escapeHtml(presenter) + " is sharing</div>" +
-          '<div class="what">workspace · waiting for the director</div></div>';
-      }
-      screen.innerHTML =
-        '<div class="presenter-bar"><span class="live-dot" aria-hidden="true"></span><b>' +
-        escapeHtml(presenter) + '</b><span>is presenting ·</span><span class="pk">' + escapeHtml(kindLabel) + "</span>" +
-        stickyChip + '<span class="pb-spacer"></span>' + matBadge + "</div>" +
-        '<div class="screen-body">' + screenBody + "</div>" +
-        (state.narration ? '<div class="subtitle">' + escapeHtml(state.narration) + "</div>" : "");
-      spot.appendChild(screen);
-
-      if (state.stage.backlog && state.stage.backlog.length) {
+        const screen = document.createElement("div");
+        screen.className = "screen";
+        screen.innerHTML =
+          '<div class="presenter-bar"></div>' +
+          '<div class="screen-body"></div>' +
+          '<div class="caption-slot"></div>';
         const rail = document.createElement("div");
-        rail.className = "show-rail" + (state.stage.pin ? " dim" : "");
-        rail.innerHTML = '<span class="rail-label">Show backlog</span>' + state.stage.backlog.map(function (b) {
-          return '<span class="show-chip ' + b.status + '">' + escapeHtml(b.label) + "</span>";
-        }).join("");
-        spot.appendChild(rail);
-      }
-      if (state.nowLabel || state.nextLabel) {
+        rail.className = "show-rail";
+        rail.style.display = "none";
         const pc = document.createElement("div");
         pc.className = "plan-cursor";
-        pc.innerHTML =
-          '<span class="k">Now</span><span class="v' + (state.nowLabel ? "" : " empty") + '">' +
-          escapeHtml(state.nowLabel || "—") + "</span>" +
-          '<span class="k">Next</span><span class="v' + (state.nextLabel ? "" : " empty") + '">' +
-          escapeHtml(state.nextLabel || "—") + "</span>";
-        spot.appendChild(pc);
-      }
-      if (state.showHowInset) {
+        pc.style.display = "none";
         const how = document.createElement("div");
         how.className = "how-inset";
+        how.style.display = "none";
         how.innerHTML =
           "<h3>How Spotlight works</h3>" +
           '<div class="how-flow">' +
@@ -2911,24 +2919,148 @@
           '<span class="box">present · sticky</span>' +
           "</div>" +
           '<p class="note">Not pixels. Work folds into the deck; the director presents artifacts on the stage.</p>';
+        const deck = document.createElement("div");
+        deck.className = "cards";
+        deck.style.display = "none";
+        spot.appendChild(screen);
+        spot.appendChild(rail);
+        spot.appendChild(pc);
         spot.appendChild(how);
+        spot.appendChild(deck);
+        R.el = {
+          screen: screen,
+          bar: screen.querySelector(".presenter-bar"),
+          body: screen.querySelector(".screen-body"),
+          cap: screen.querySelector(".caption-slot"),
+          rail: rail,
+          pc: pc,
+          how: how,
+          deck: deck,
+        };
       }
-      const cardsWrap = document.createElement("div");
-      cardsWrap.className = "cards";
-      const dim = !!state.stage.pin;
-      state.stage.cards.forEach(function (c) {
-        const card = document.createElement("div");
-        card.className = "card " + c.kind + (dim ? " dim" : "");
-        card.innerHTML =
-          '<div class="kind">' + escapeHtml(c.kind) + "</div>" +
-          '<div class="title">' + escapeHtml(c.title) + "</div>" +
-          '<div class="summary">' + escapeHtml(c.summary) + "</div>" +
-          (c.diff ? '<div class="diff">' + c.diff.map(function (d) {
-            return '<div class="dl ' + d.t + '">' + (d.t === "add" ? "+ " : "- ") + escapeHtml(d.s) + "</div>";
-          }).join("") + "</div>" : "");
-        cardsWrap.appendChild(card);
-      });
-      if (state.stage.cards.length) spot.appendChild(cardsWrap);
+    }
+    if (!spotEmpty) {
+      const human = !!state.stage.pin;
+
+      // The shared screen: human pin > presented artifact > live workspace.
+      // Narration is excluded — it lives in the fixed caption slot below.
+      const screenSig = JSON.stringify({ sharer: state.stage.sharer, show: state.stage.show, pin: state.stage.pin });
+      if (screenSig !== R.screenSig) {
+        R.screenSig = screenSig;
+        R.el.screen.classList.toggle("human", human);
+        const presenter = human ? "You" : (state.stage.sharer || "—");
+        let kindLabel = "workspace";
+        let stickyChip = "";
+        let matBadge = "";
+        if (human) {
+          kindLabel = "structured share";
+        } else if (state.stage.show) {
+          kindLabel = state.stage.show.kindLabel;
+          stickyChip = '<span class="sticky-chip">sticky · ' + escapeHtml(state.stage.show.sticky) + "</span>";
+          if (state.stage.show.maturity === "planned") matBadge = '<span class="badge planned">planned</span>';
+        }
+        const barHtml =
+          '<span class="live-dot" aria-hidden="true"></span><b>' +
+          escapeHtml(presenter) + '</b><span>is presenting ·</span><span class="pk">' + escapeHtml(kindLabel) + "</span>" +
+          stickyChip + '<span class="pb-spacer"></span>' + matBadge;
+        if (barHtml !== R.barHtml) {
+          R.barHtml = barHtml;
+          R.el.bar.innerHTML = barHtml;
+        }
+        let bodyHtml;
+        if (human) {
+          bodyHtml =
+            '<div class="screen-pin"><div class="kind">Your pin</div>' +
+            '<div class="title">' + escapeHtml(state.stage.pin.label) + "</div>" +
+            '<div class="summary">' + escapeHtml(state.stage.pin.ref) + "</div></div>";
+        } else if (state.stage.show) {
+          bodyHtml = buildScreenBody(state.stage.show);
+        } else {
+          bodyHtml =
+            '<div class="screen-idle"><span class="av">' + escapeHtml(presenter.slice(0, 1)) + "</span>" +
+            '<div class="who">' + escapeHtml(presenter) + " is sharing</div>" +
+            '<div class="what">workspace · waiting for the director</div></div>';
+        }
+        if (bodyHtml !== R.bodyHtml) {
+          R.bodyHtml = bodyHtml;
+          R.el.body.innerHTML = bodyHtml;
+          R.el.body.classList.remove("swap");
+          void R.el.body.offsetWidth;
+          R.el.body.classList.add("swap");
+        }
+      }
+
+      // Fixed caption slot: always reserved; text swaps in place.
+      const narr = state.narration || "";
+      if (narr !== R.capText) {
+        R.capText = narr;
+        R.el.cap.textContent = narr;
+        R.el.cap.classList.remove("swap");
+        void R.el.cap.offsetWidth;
+        R.el.cap.classList.add("swap");
+      }
+
+      // Show backlog rail; dim toggles in place so it fades, not remounts.
+      const backlog = state.stage.backlog || [];
+      const railSig = JSON.stringify(backlog);
+      if (railSig !== R.railSig) {
+        R.railSig = railSig;
+        R.el.rail.style.display = backlog.length ? "" : "none";
+        R.el.rail.innerHTML = backlog.length
+          ? '<span class="rail-label">Show backlog</span>' + backlog.map(function (b) {
+              return '<span class="show-chip ' + b.status + '">' + escapeHtml(b.label) + "</span>";
+            }).join("")
+          : "";
+      }
+      R.el.rail.classList.toggle("dim", human);
+
+      // Now / Next plan cursor
+      const planSig = JSON.stringify([state.nowLabel, state.nextLabel]);
+      if (planSig !== R.planSig) {
+        R.planSig = planSig;
+        const hasPlan = !!(state.nowLabel || state.nextLabel);
+        R.el.pc.style.display = hasPlan ? "" : "none";
+        R.el.pc.innerHTML = hasPlan
+          ? '<span class="k">Now</span><span class="v' + (state.nowLabel ? "" : " empty") + '">' +
+            escapeHtml(state.nowLabel || "—") + "</span>" +
+            '<span class="k">Next</span><span class="v' + (state.nextLabel ? "" : " empty") + '">' +
+            escapeHtml(state.nextLabel || "—") + "</span>"
+          : "";
+      }
+
+      // How-inset (static content, toggled)
+      if (!!state.showHowInset !== R.howOn) {
+        R.howOn = !!state.showHowInset;
+        R.el.how.style.display = R.howOn ? "" : "none";
+      }
+
+      // Deck — keyed by card id: entrance animation only for new cards,
+      // and pin-dim toggles on existing cards so they fade in place.
+      const deckSig = JSON.stringify(state.stage.cards);
+      if (deckSig !== R.deckSig) {
+        R.deckSig = deckSig;
+        const prevCardIds = R.cardIds;
+        R.cardIds = {};
+        R.el.deck.style.display = state.stage.cards.length ? "" : "none";
+        R.el.deck.innerHTML = "";
+        state.stage.cards.forEach(function (c) {
+          R.cardIds[c.id] = true;
+          const card = document.createElement("div");
+          card.className = "card " + c.kind + (human ? " dim" : "") + (prevCardIds[c.id] ? "" : " rise");
+          card.innerHTML =
+            '<div class="kind">' + escapeHtml(c.kind) + "</div>" +
+            '<div class="title">' + escapeHtml(c.title) + "</div>" +
+            '<div class="summary">' + escapeHtml(c.summary) + "</div>" +
+            (c.diff ? '<div class="diff">' + c.diff.map(function (d) {
+              return '<div class="dl ' + d.t + '">' + (d.t === "add" ? "+ " : "- ") + escapeHtml(d.s) + "</div>";
+            }).join("") + "</div>" : "");
+          R.el.deck.appendChild(card);
+        });
+      } else {
+        R.el.deck.querySelectorAll(".card").forEach(function (card) {
+          card.classList.toggle("dim", human);
+        });
+      }
     }
 
     // Status lenses
