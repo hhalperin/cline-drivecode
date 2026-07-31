@@ -24,8 +24,10 @@ import { PROTOCOL_VERSION, RequestError } from "@agentclientprotocol/sdk";
 import {
 	type AgentEvent,
 	type ClineCore,
+	buildSessionPluginInjection,
 	Llms,
 	ProviderSettingsManager,
+	resolveProductSessionFeatures,
 	SessionSource,
 } from "@cline/core";
 import type { Message } from "@cline/shared";
@@ -521,6 +523,15 @@ export class AcpAgent implements Agent {
 			mode: session.currentMode,
 		});
 		const cliBuildInfo = getCliBuildInfo();
+		const sessionFeatures = resolveProductSessionFeatures({
+			host: "acp",
+			applyDefaultMaxIterations: true,
+		});
+		const sessionPlugins = buildSessionPluginInjection({
+			cwd,
+			workspaceRoot,
+			ide: "Terminal Shell",
+		});
 
 		return {
 			providerId,
@@ -535,11 +546,15 @@ export class AcpAgent implements Agent {
 			mode: session.currentMode,
 			defaultToolAutoApprove: false,
 			toolPolicies: { "*": { autoApprove: false } },
-			enableSpawnAgent: true,
-			enableAgentTeams: false,
+			enableSpawnAgent: sessionFeatures.enableSpawnAgent,
+			enableAgentTeams: sessionFeatures.enableAgentTeams,
+			...(sessionFeatures.maxIterations !== undefined
+				? { maxIterations: sessionFeatures.maxIterations }
+				: {}),
 			enableTools: true,
 			cwd,
 			workspaceRoot,
+			pluginPaths: sessionPlugins.pluginPaths,
 			extensionContext: {
 				client: {
 					name: "cline-acp",
@@ -548,16 +563,24 @@ export class AcpAgent implements Agent {
 					platformVersion: cliBuildInfo.version,
 					isMultiRoot: false,
 				},
-				workspace: {
-					rootPath: workspaceRoot,
-					cwd,
-					workspaceName: cwd,
-					ide: "Terminal Shell",
-					platform: process.platform,
-				},
+				workspace: sessionPlugins.workspace,
 			},
 		};
 	}
+}
+
+/**
+ * ACP session plugin + workspace injection (D3 / SDK-4.1). Exported for tests.
+ */
+export function buildAcpSessionPluginInjection(
+	cwd: string,
+	workspaceRoot: string = resolveWorkspaceRoot(cwd),
+) {
+	return buildSessionPluginInjection({
+		cwd,
+		workspaceRoot,
+		ide: "Terminal Shell",
+	});
 }
 
 async function buildProviderConfigOption(

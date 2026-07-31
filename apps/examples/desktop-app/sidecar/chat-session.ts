@@ -3,11 +3,13 @@ import { basename, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import {
 	buildConnectionUpdate,
+	buildSessionPluginInjection,
 	buildWorkspaceMetadata,
 	type ClineCore,
 	type ClineCoreStartConfig,
 	createSessionCompactionState,
 	projectSessionCompactionState,
+	resolveProductSessionFeatures,
 	type SessionCompactionState,
 	type SessionPendingPrompt,
 	SessionSource,
@@ -204,7 +206,7 @@ function readPositiveInteger(value: unknown): number | undefined {
 	return undefined;
 }
 
-function buildCoreSessionConfig(config: JsonRecord): JsonRecord {
+export function buildCoreSessionConfig(config: JsonRecord): JsonRecord {
 	const rawWorkspaceRoot = config.workspaceRoot ?? config.workspace_root;
 	const workspaceRoot =
 		typeof rawWorkspaceRoot === "string" ? rawWorkspaceRoot.trim() : "";
@@ -222,6 +224,32 @@ function buildCoreSessionConfig(config: JsonRecord): JsonRecord {
 			: readPositiveInteger(
 					config.thinkingBudgetTokens ?? config.thinking_budget_tokens,
 				);
+	const explicitMaxIterations = readPositiveInteger(
+		config.maxIterations ?? config.max_iterations,
+	);
+	const sessionFeatures = resolveProductSessionFeatures({
+		host: "desktop",
+		applyDefaultMaxIterations: true,
+		...(explicitMaxIterations !== undefined
+			? { maxIterations: explicitMaxIterations }
+			: {}),
+	});
+	const enableSpawnAgent =
+		config.enableSpawn ??
+		config.enableSpawnAgent ??
+		config.enable_spawn ??
+		sessionFeatures.enableSpawnAgent;
+	const enableAgentTeams =
+		config.enableTeams ??
+		config.enableAgentTeams ??
+		config.enable_teams ??
+		sessionFeatures.enableAgentTeams;
+	const pluginCwd = cwd || workspaceRoot || process.cwd();
+	const sessionPlugins = buildSessionPluginInjection({
+		cwd: pluginCwd,
+		workspaceRoot: workspaceRoot || pluginCwd,
+		ide: "Cline Desktop",
+	});
 	return {
 		sessionId: config.sessionId ?? config.session_id,
 		providerId: config.provider ?? config.providerId ?? "",
@@ -234,22 +262,18 @@ function buildCoreSessionConfig(config: JsonRecord): JsonRecord {
 		...(workspaceRoot ? { workspaceRoot } : {}),
 		...(cwd ? { cwd } : {}),
 		systemPrompt: config.systemPrompt ?? config.system_prompt ?? "",
-		maxIterations: config.maxIterations ?? config.max_iterations,
+		...(sessionFeatures.maxIterations !== undefined
+			? { maxIterations: sessionFeatures.maxIterations }
+			: {}),
 		enableTools: config.enableTools ?? config.enable_tools ?? true,
-		enableSpawnAgent:
-			config.enableSpawn ??
-			config.enableSpawnAgent ??
-			config.enable_spawn ??
-			false,
-		enableAgentTeams:
-			config.enableTeams ??
-			config.enableAgentTeams ??
-			config.enable_teams ??
-			false,
+		enableSpawnAgent,
+		enableAgentTeams,
 		...(thinking !== undefined ? { thinking } : {}),
 		...(reasoningEffort ? { reasoningEffort } : {}),
 		...(thinkingBudgetTokens !== undefined ? { thinkingBudgetTokens } : {}),
-		teamName: config.teamName ?? config.team_name,
+		teamName: enableAgentTeams
+			? (config.teamName ?? config.team_name)
+			: undefined,
 		missionLogIntervalSteps:
 			config.missionStepInterval ?? config.missionLogIntervalSteps,
 		missionLogIntervalMs:
@@ -257,6 +281,10 @@ function buildCoreSessionConfig(config: JsonRecord): JsonRecord {
 		checkpoint: { enabled: true },
 		sessions: config.sessions,
 		initialMessages: config.initialMessages,
+		pluginPaths: sessionPlugins.pluginPaths,
+		extensionContext: {
+			workspace: sessionPlugins.workspace,
+		},
 	};
 }
 

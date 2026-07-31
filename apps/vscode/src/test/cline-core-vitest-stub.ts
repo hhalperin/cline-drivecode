@@ -84,6 +84,28 @@ export function setCompactionStrategyGlobally(compactionStrategy: GlobalCompacti
 	}
 }
 
+export type {
+	ProductSessionFeatures,
+	ProductSessionHostKind,
+	ResolveProductSessionFeaturesInput,
+} from "../../../../sdk/packages/core/src/session/product-session-defaults"
+export {
+	PRODUCT_DEFAULT_MAX_ITERATIONS,
+	resolveProductSessionFeatures,
+} from "../../../../sdk/packages/core/src/session/product-session-defaults"
+export type {
+	BuildSessionPluginInjectionInput,
+	ResolveSessionPluginLoadInput,
+	ResolveSessionPluginPathsInput,
+	SessionExtensionWorkspaceInput,
+} from "../../../../sdk/packages/core/src/session/session-plugin-load"
+export {
+	buildSessionExtensionWorkspace,
+	buildSessionPluginInjection,
+	resolveSessionPluginLoad,
+	resolveSessionPluginPaths,
+} from "../../../../sdk/packages/core/src/session/session-plugin-load"
+
 export function truncateCommandOutput(output: string): string {
 	return output
 }

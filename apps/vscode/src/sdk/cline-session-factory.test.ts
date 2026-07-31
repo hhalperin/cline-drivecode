@@ -126,8 +126,8 @@ function makeBaseConfig(overrides: Partial<CoreSessionConfig> = {}): CoreSession
 		systemPrompt: "",
 		mode: "act",
 		enableTools: true,
-		enableSpawnAgent: false,
-		enableAgentTeams: false,
+		enableSpawnAgent: true,
+		enableAgentTeams: true,
 		...overrides,
 	}
 }
@@ -315,6 +315,56 @@ describe("buildSessionConfig", () => {
 
 		expect(config.providerId).toBe("cline")
 		expect(config.apiKey).toBe("workos:test-access-token")
+	})
+
+	it("enables spawn agent and agent teams by default (D1)", async () => {
+		mocks.stateManager.getApiConfiguration.mockReturnValue({} as any)
+
+		const config = await buildSessionConfig({ cwd: "/tmp/workspace" })
+
+		expect(config.enableSpawnAgent).toBe(true)
+		expect(config.enableAgentTeams).toBe(true)
+	})
+
+	it("applies PRODUCT_DEFAULT_MAX_ITERATIONS when unset (SDK-5.1)", async () => {
+		mocks.stateManager.getApiConfiguration.mockReturnValue({} as any)
+		const { PRODUCT_DEFAULT_MAX_ITERATIONS } = await import("@cline/core")
+
+		const config = await buildSessionConfig({ cwd: "/tmp/workspace" })
+
+		expect(config.maxIterations).toBe(PRODUCT_DEFAULT_MAX_ITERATIONS)
+	})
+
+	it("injects pluginPaths on session start (SDK-4.3)", async () => {
+		mocks.stateManager.getApiConfiguration.mockReturnValue({} as any)
+
+		const emptyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-plugin-empty-"))
+		fs.mkdirSync(path.join(emptyRoot, ".cline", "plugins"), { recursive: true })
+		const emptyConfig = await buildSessionConfig({ cwd: emptyRoot })
+		expect(emptyConfig.pluginPaths).toEqual([])
+		expect(emptyConfig.extensionContext?.workspace).toMatchObject({
+			rootPath: emptyRoot,
+			cwd: emptyRoot,
+			ide: "VS Code",
+		})
+
+		const pluginRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vscode-plugin-"))
+		const pluginDir = path.join(pluginRoot, ".cline", "plugins", "demo")
+		fs.mkdirSync(pluginDir, { recursive: true })
+		fs.writeFileSync(path.join(pluginDir, "index.ts"), `export default { name: "demo", setup() {} }\n`, "utf8")
+		fs.writeFileSync(
+			path.join(pluginDir, "package.json"),
+			JSON.stringify({
+				name: "demo-plugin",
+				type: "module",
+				cline: {
+					plugins: [{ paths: ["./index.ts"], capabilities: ["hooks"] }],
+				},
+			}),
+			"utf8",
+		)
+		const pluginConfig = await buildSessionConfig({ cwd: pluginRoot })
+		expect(pluginConfig.pluginPaths?.some((p) => p.endsWith("index.ts"))).toBe(true)
 	})
 
 	it("resolves ClinePass from the shared Cline OAuth credentials", async () => {

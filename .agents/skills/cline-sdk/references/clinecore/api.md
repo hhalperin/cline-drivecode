@@ -235,7 +235,7 @@ const session = await cline.start({
   config: { ... },
   toolPolicies: {
     read_files: { autoApprove: true },
-    bash: { autoApprove: false },
+    run_commands: { autoApprove: false },
     editor: { enabled: false },
   },
 })
@@ -275,14 +275,15 @@ const cline = await ClineCore.create({
   automation: true,
 })
 
-// Access automation methods
-cline.automation.start()
-cline.automation.stop()
-cline.automation.reconcile(specs)
+// Access automation methods (embedder / file-based CronService path).
+// Product CLI/Hub/Desktop schedules use Hub `schedule.*` instead — see scheduling/REFERENCE.md.
+await cline.automation.start()
+await cline.automation.reconcileNow()
 cline.automation.ingestEvent(event)
 cline.automation.listEvents()
 cline.automation.listSpecs()
 cline.automation.listRuns()
+await cline.automation.stop()
 ```
 
 ## Settings API
@@ -292,7 +293,7 @@ cline.automation.listRuns()
 const settings = await cline.settings.list()
 
 // Toggle tools, plugins, MCP servers
-await cline.settings.toggle({ type: "tool", name: "bash", enabled: true })
+await cline.settings.toggle({ type: "tool", name: "run_commands", enabled: true })
 ```
 
 ## See Also

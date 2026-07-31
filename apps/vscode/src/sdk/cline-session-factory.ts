@@ -14,7 +14,9 @@ import {
 	getProviderAuthHandler,
 	type ProviderSettings,
 	readCompactionStrategyGlobally,
+	resolveProductSessionFeatures,
 	resolveProviderApiKeyFromSettings,
+	resolveSessionPluginPaths,
 	type StartSessionResult,
 } from "@cline/core"
 import type { ProviderApiLine, ModelInfo as SdkModelInfo } from "@cline/llms"
@@ -68,6 +70,11 @@ export interface SessionConfigInput {
 	files?: string[]
 	/** History item to resume (for task resumption) */
 	historyItem?: HistoryItem
+	/**
+	 * When true, session AgentHooks fire TaskResume instead of TaskStart
+	 * (SDK-7.1 / CLI CLINE_HOOK_AGENT_RESUME parity). Also implied by historyItem.
+	 */
+	isResume?: boolean
 	/** Task-specific settings overrides */
 	taskSettings?: Partial<Settings>
 	/** Working directory */
@@ -943,6 +950,13 @@ export async function buildSessionConfig(input: SessionConfigInput): Promise<Cor
 		fetch,
 	}
 
+	// No VS Code setting for maxIterations yet — apply product default (D4).
+	const sessionFeatures = resolveProductSessionFeatures({
+		host: "vscode",
+		applyDefaultMaxIterations: true,
+	})
+	const pluginPaths = resolveSessionPluginPaths({ cwd, workspaceRoot })
+
 	const config: CoreSessionConfig = {
 		providerId: sdkProviderId,
 		modelId,
@@ -955,13 +969,14 @@ export async function buildSessionConfig(input: SessionConfigInput): Promise<Cor
 		...(knownModels && Object.keys(knownModels).length > 0 ? { knownModels } : {}),
 		cwd,
 		workspaceRoot,
+		pluginPaths,
 		systemPrompt,
 		enableTools: true,
 		checkpoint: {
 			enabled: enableCheckpoints,
 		},
-		enableSpawnAgent: false,
-		enableAgentTeams: false,
+		enableSpawnAgent: sessionFeatures.enableSpawnAgent,
+		enableAgentTeams: sessionFeatures.enableAgentTeams,
 		...(useAutoCondense
 			? {
 					compaction: {
@@ -970,12 +985,15 @@ export async function buildSessionConfig(input: SessionConfigInput): Promise<Cor
 					},
 				}
 			: {}),
+		// Intentional MCP split-brain (SDK-7.2): keep Core MCP settings tools off.
+		// VS Code injects MCP tools via McpHub + createMcpTools instead. Do not flip
+		// this without the migration plan in docs/sdk/architecture/vscode-mcp-spike.mdx.
 		disableMcpSettingsTools: true,
 		mode: mode === "plan" ? "plan" : "act",
 		...reasoningConfig,
 		...(maxTokensPerTurn !== undefined ? { maxTokensPerTurn } : {}),
 		...(temperature !== undefined ? { temperature } : {}),
-		maxIterations: undefined,
+		...(sessionFeatures.maxIterations !== undefined ? { maxIterations: sessionFeatures.maxIterations } : {}),
 		logger: sdkLogger,
 		extensionContext: {
 			user: distinctId ? { distinctId } : undefined,
@@ -996,7 +1014,9 @@ export async function buildSessionConfig(input: SessionConfigInput): Promise<Cor
 			},
 			logger: sdkLogger,
 		},
-		hooks: buildAgentHooks(StateManager.get()),
+		hooks: buildAgentHooks(StateManager.get(), undefined, {
+			isResume: input.isResume === true || input.historyItem !== undefined,
+		}),
 	}
 
 	return config

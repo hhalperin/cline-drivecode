@@ -43,6 +43,10 @@ import {
 import { describeAbortSource, resolveMistakeLimitDecision } from "./format";
 import { buildUserInputMessage } from "./prompt";
 import { subscribeToAgentEvents } from "./session-events";
+import {
+	createCliUsageBudgetAbortHandler,
+	readCliMaxSessionCostUsd,
+} from "./usage-budget";
 
 function printModelProviderInfo(config: Config): void {
 	const catalog = config.knownModels ? "live" : "bundled";
@@ -191,7 +195,39 @@ export async function runAgent(
 	const displayedErrorMessages = new Set<string>();
 	const shouldZeroCost = await shouldZeroClineFreeModelCost(config);
 
+	// --- Abort & signal handling (declared early so usage-budget can call it) ---
+	// Session is registered under plannedSessionId before start() returns, so
+	// abort during the first turn must use that id (activeSessionId is assigned after).
+	const plannedSessionId = createSessionId();
+	let abortRequested = false;
+	let timedOut = false;
+	let activeSessionId: string | undefined;
+	let lastAbortReason: string | undefined;
+
+	const abortAll = (reason?: string) => {
+		if (abortRequested) return false;
+		abortRequested = true;
+		lastAbortReason = reason;
+		const sessionId = activeSessionId ?? plannedSessionId;
+		sessionManager
+			.abort(
+				sessionId,
+				new Error(reason ?? "Run-agent runtime abort requested"),
+			)
+			.catch(() => {});
+		return true;
+	};
+	setActiveRuntimeAbort(abortAll);
+
+	const usageBudgetAbort = createCliUsageBudgetAbortHandler({
+		maxCostUsd: readCliMaxSessionCostUsd(),
+		abort: (reason) => {
+			abortAll(reason);
+		},
+	});
+
 	const onAgentEvent = (rawEvent: AgentEvent): void => {
+		usageBudgetAbort?.(rawEvent);
 		const event = zeroCliAgentEventCost(rawEvent, shouldZeroCost);
 		if (event.type === "content_start" && event.contentType === "reasoning") {
 			reasoningChunkCount += 1;
@@ -212,27 +248,9 @@ export async function runAgent(
 		}
 		handleEvent(event, config);
 	};
-	const plannedSessionId = createSessionId();
 	const unsubscribe = subscribeToAgentEvents(sessionManager, onAgentEvent, {
 		sessionId: plannedSessionId,
 	});
-
-	// --- Abort & signal handling ---
-	let abortRequested = false;
-	let timedOut = false;
-	let activeSessionId: string | undefined;
-
-	const abortAll = () => {
-		if (abortRequested) return false;
-		abortRequested = true;
-		if (activeSessionId) {
-			sessionManager
-				.abort(activeSessionId, new Error("Run-agent runtime abort requested"))
-				.catch(() => {});
-		}
-		return true;
-	};
-	setActiveRuntimeAbort(abortAll);
 
 	let cleanupDone: Promise<void> | undefined;
 	const cleanupRuntime = () => {
@@ -267,6 +285,23 @@ export async function runAgent(
 	};
 	process.on("SIGINT", handleSigint);
 	process.on("SIGTERM", handleSigterm);
+
+	// Schedule timeout before start() so it can abort the first turn.
+	const timeoutMs =
+		typeof config.timeoutSeconds === "number" &&
+		Number.isFinite(config.timeoutSeconds) &&
+		config.timeoutSeconds > 0
+			? config.timeoutSeconds * 1000
+			: undefined;
+	const timeoutId = timeoutMs
+		? setTimeout(() => {
+				timedOut = true;
+				abortAll();
+			}, timeoutMs)
+		: undefined;
+	const clearRunTimeout = () => {
+		if (timeoutId) clearTimeout(timeoutId);
+	};
 
 	// --- Main execution ---
 	try {
@@ -308,23 +343,17 @@ export async function runAgent(
 		setActiveCliSession({
 			manifest: started.manifest,
 		});
-
-		// Schedule timeout abort if configured.
-		const timeoutMs =
-			typeof config.timeoutSeconds === "number" &&
-			Number.isFinite(config.timeoutSeconds) &&
-			config.timeoutSeconds > 0
-				? config.timeoutSeconds * 1000
-				: undefined;
-		const timeoutId = timeoutMs
-			? setTimeout(() => {
-					timedOut = true;
-					abortAll();
-				}, timeoutMs)
-			: undefined;
-		const clearRunTimeout = () => {
-			if (timeoutId) clearTimeout(timeoutId);
-		};
+		// Re-issue if abort landed during start (covers session-id remap edge cases).
+		if (abortRequested) {
+			sessionManager
+				.abort(
+					activeSessionId,
+					new Error(
+						lastAbortReason ?? "Run-agent runtime abort requested",
+					),
+				)
+				.catch(() => {});
+		}
 
 		// When start() already ran the first turn (non-interactive with prompt),
 		// the session is finalized before start() returns. Use that result
@@ -420,6 +449,7 @@ export async function runAgent(
 		writeErr(message);
 		process.exitCode = 1;
 	} finally {
+		clearRunTimeout();
 		await cleanupRuntime();
 	}
 }

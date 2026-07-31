@@ -1,7 +1,10 @@
 import { fstatSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename } from "node:path";
 import type { ToolPolicy } from "@cline/core";
+import {
+	buildSessionPluginInjection,
+	resolveProductSessionFeatures,
+} from "@cline/core";
 
 import { registerDisposable } from "@cline/shared";
 import type { Command } from "commander";
@@ -1112,6 +1115,16 @@ export async function runCli(): Promise<void> {
 			cwd,
 		});
 
+		const sessionFeatures = resolveProductSessionFeatures({
+			yolo: isYoloMode,
+			host: "cli",
+			applyDefaultMaxIterations: true,
+		});
+		const sessionPlugins = buildSessionPluginInjection({
+			cwd,
+			workspaceRoot,
+			ide: "Terminal Shell",
+		});
 		const config: Config = {
 			providerId: provider,
 			modelId:
@@ -1145,11 +1158,15 @@ export async function runCli(): Promise<void> {
 			telemetry: getCliTelemetryService(loggerAdapter.core),
 			defaultToolAutoApprove,
 			toolPolicies,
-			enableSpawnAgent: !isYoloMode,
-			enableAgentTeams: !isYoloMode,
+			enableSpawnAgent: sessionFeatures.enableSpawnAgent,
+			enableAgentTeams: sessionFeatures.enableAgentTeams,
+			...(sessionFeatures.maxIterations !== undefined
+				? { maxIterations: sessionFeatures.maxIterations }
+				: {}),
 			enableTools: true,
 			cwd,
 			workspaceRoot,
+			pluginPaths: sessionPlugins.pluginPaths,
 			extensionContext: {
 				client: {
 					name: "cline-cli",
@@ -1158,16 +1175,12 @@ export async function runCli(): Promise<void> {
 					platformVersion: cliBuildInfo.version,
 					isMultiRoot: false,
 				},
-				workspace: {
-					rootPath: workspaceRoot,
-					cwd,
-					workspaceName: basename(cwd),
-					ide: "Terminal Shell",
-					platform: process.platform,
-				},
+				workspace: sessionPlugins.workspace,
 				logger: loggerAdapter.core,
 			},
-			teamName: !isYoloMode ? args.teamName?.trim() || undefined : undefined,
+			teamName: sessionFeatures.enableAgentTeams
+				? args.teamName?.trim() || undefined
+				: undefined,
 		};
 		try {
 			// For OAuth providers, don't write the resolved key into apiKey;

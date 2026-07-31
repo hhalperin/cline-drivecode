@@ -2,11 +2,14 @@ import process from "node:process";
 import {
 	type ClineCoreStartInput,
 	type SessionRecord,
+	buildSessionPluginInjection,
+	resolveProductSessionFeatures,
 	SessionSource,
 } from "@cline/core";
 import type { Message } from "@cline/llms";
 import type { WebviewConfig, WebviewReasonLevel } from "../webview-protocol";
 import { rejectPendingApprovalsForSession } from "./approvals";
+import { resolveHubSessionCompaction } from "./compaction";
 import { providerSettingsManager, workspaceRoot } from "./deps";
 import {
 	loadProviders,
@@ -75,7 +78,7 @@ export function resolveLaunchContext(
 	};
 }
 
-function buildSessionStartInput(
+export function buildSessionStartInput(
 	context: SessionContext,
 	options?: {
 		mode?: "act" | "plan";
@@ -94,6 +97,24 @@ function buildSessionStartInput(
 ): ClineCoreStartInput {
 	const mode = options?.mode === "plan" ? "plan" : "act";
 	const reasoningOptions = toRuntimeReasoningOptions(options?.reasonLevel);
+	const sessionFeatures = resolveProductSessionFeatures({
+		host: "hub",
+		applyDefaultMaxIterations: true,
+		...(typeof options?.maxIterations === "number"
+			? { maxIterations: options.maxIterations }
+			: {}),
+		...(typeof options?.enableSpawn === "boolean"
+			? { enableSpawnAgent: options.enableSpawn }
+			: {}),
+		...(typeof options?.enableTeams === "boolean"
+			? { enableAgentTeams: options.enableTeams }
+			: {}),
+	});
+	const sessionPlugins = buildSessionPluginInjection({
+		cwd: context.cwd,
+		workspaceRoot: context.workspaceRoot,
+		ide: "Cline Hub",
+	});
 	return {
 		source: options?.source ?? SessionSource.WEB,
 		interactive: true,
@@ -105,20 +126,34 @@ function buildSessionStartInput(
 			systemPrompt: options?.systemPrompt ?? "",
 			mode,
 			...reasoningOptions,
-			maxIterations: options?.maxIterations,
+			...(sessionFeatures.maxIterations !== undefined
+				? { maxIterations: sessionFeatures.maxIterations }
+				: {}),
 			enableTools: options?.enableTools !== false,
-			enableSpawnAgent: options?.enableSpawn !== false,
-			enableAgentTeams: options?.enableTeams === true,
-			teamName: options?.teamName ?? "cline-hub",
+			enableSpawnAgent: sessionFeatures.enableSpawnAgent,
+			enableAgentTeams: sessionFeatures.enableAgentTeams,
+			teamName: sessionFeatures.enableAgentTeams
+				? (options?.teamName ?? "cline-hub")
+				: undefined,
 			missionLogIntervalSteps: 3,
 			missionLogIntervalMs: 120000,
 			checkpoint: { enabled: true },
+			// CLI-ish default when unset; honors global compaction mode when set.
+			compaction: resolveHubSessionCompaction(),
+			// File-based hooks (.clinerules/hooks) are injected by Core's
+			// local-runtime-bootstrap on the hub daemon for hub-backed sessions.
+			// Host AgentHooks (CLI createRuntimeHooks / VS Code hooks-adapter)
+			// are intentionally omitted — Desktop parity. See SDK-6.3.
+			pluginPaths: sessionPlugins.pluginPaths,
+			extensionContext: {
+				workspace: sessionPlugins.workspace,
+			},
 		},
 		sessionMetadata: {
 			source: options?.source ?? SessionSource.WEB,
 			mode,
 			systemPrompt: options?.systemPrompt,
-			maxIterations: options?.maxIterations,
+			maxIterations: sessionFeatures.maxIterations,
 			reasonLevel: options?.reasonLevel,
 			autoApproveTools: options?.autoApproveTools,
 			...(options?.sessionMetadata ?? {}),

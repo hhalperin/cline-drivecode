@@ -796,6 +796,42 @@ export type {
 } from "./session/session-snapshot";
 export { createCoreSessionSnapshot } from "./session/session-snapshot";
 export type {
+	ProductSessionFeatures,
+	ProductSessionHostKind,
+	ResolveProductSessionFeaturesInput,
+} from "./session/product-session-defaults";
+export {
+	PRODUCT_DEFAULT_MAX_ITERATIONS,
+	resolveProductSessionFeatures,
+} from "./session/product-session-defaults";
+export type {
+	CreateUsageBudgetAbortHandlerOptions,
+	EvaluateUsageBudgetInput,
+	UsageBudgetAbortDecision,
+	UsageBudgetPricing,
+	UsageForBudget,
+} from "./session/usage-budget-abort";
+export {
+	createUsageBudgetAbortHandler,
+	DEFAULT_USAGE_BUDGET_ABORT_REASON,
+	estimateUsageCost,
+	evaluateUsageBudget,
+	shouldAbortForUsageBudget,
+	usageFromSessionEvent,
+} from "./session/usage-budget-abort";
+export type {
+	BuildSessionPluginInjectionInput,
+	ResolveSessionPluginLoadInput,
+	ResolveSessionPluginPathsInput,
+	SessionExtensionWorkspaceInput,
+} from "./session/session-plugin-load";
+export {
+	buildSessionExtensionWorkspace,
+	buildSessionPluginInjection,
+	resolveSessionPluginLoad,
+	resolveSessionPluginPaths,
+} from "./session/session-plugin-load";
+export type {
 	SessionCheckpointRestoreContext,
 	SessionCheckpointRestoreResult,
 	SessionVersioningErrorCode,
