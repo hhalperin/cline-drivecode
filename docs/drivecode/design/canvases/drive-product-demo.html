@@ -2157,6 +2157,171 @@
     .pip .narr { min-height: 2.2em; }
   }
 
+  /* ---- Responsive: ultrawide through mobile ----
+     Width- (and aspect-) driven; ≥1280×640 behavior is untouched. Placed
+     last so equal-specificity overrides win the cascade. */
+
+  /* Ultrawide: the stage grows but content stays readable — cap the shared
+     screen's inner blocks and the full-page surfaces, left-aligned. */
+  @media (min-width: 1800px) {
+    .screen-body > * { max-width: 920px; }
+    .screen-body.ws-host { justify-content: center; }
+    .screen-body.ws-host .ws { max-width: 980px; }
+    .rooms, .rooms-page, .arts, .lens-body { max-width: 1280px; }
+  }
+
+  /* Small laptop / split tab: keep the player to one row — the hub-op chip
+     yields first, then the maturity badge (beat-meta hides ≤960). */
+  @media (max-width: 1150px) {
+    .hub-op { display: none; }
+  }
+  @media (max-width: 1050px) {
+    #maturity { display: none; }
+  }
+
+  /* Tablet landscape: the scrubber scrolls (hidden scrollbar) instead of
+     wrapping or pushing the row wide; rail resize retires with the labels. */
+  @media (max-width: 960px) {
+    .scrubber {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .scrubber::-webkit-scrollbar { display: none; }
+    .rail-resize { display: none; }
+  }
+
+  /* Tablet portrait / narrow splits / portrait monitors: stack the call
+     surface — stage on top, the feed drawer becomes a bottom panel with the
+     members column as a horizontal strip. Aspect-based too, so 1080×1920
+     stacks even though it is wide. */
+  @media (max-width: 860px), (max-aspect-ratio: 4/5) {
+    /* min-width: 0 keeps the column container from adopting its children's
+       min-content width (it is a flex item of the row-flex .surface). */
+    .call-split { flex-direction: column; min-width: 0; }
+    .spot-col, .feed-col { min-width: 0; }
+    .feed-col {
+      flex: 0 0 38%;
+      border-left: none;
+      border-top: 0.8px solid var(--hair);
+    }
+    .call-split.feed-hidden .feed-col { border-top-width: 0; }
+    .drawer-resize { display: none; }
+    .drawer-body { flex-direction: column; }
+    .members {
+      flex: none;
+      border-right: none;
+      border-bottom: 0.8px solid var(--hair);
+      overflow: hidden;
+      padding: 0 10px 8px;
+    }
+    .feed-col.drawer-narrow .members { display: flex; }
+    .member-list {
+      flex-direction: row;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 2px;
+    }
+    .member-list::-webkit-scrollbar { display: none; }
+    .member-row { flex: 0 0 156px; }
+    /* Content surfaces go single-column with tighter padding. */
+    .board-grid, .art-grid, .agents-grid, .teams-grid { grid-template-columns: 1fr; }
+    .rooms, .rooms-page, .arts { padding: 14px; }
+    .lens-body { padding: 12px 14px; }
+    .screen-body { padding: 12px; }
+    .presenter-bar .sticky-chip { display: none; }
+    .pip { width: 200px; }
+  }
+
+  /* Tall stacked screens (portrait monitors): the feed panel takes a fixed
+     height instead of a percentage; the stage absorbs the rest. */
+  @media (max-width: 860px) and (min-height: 1200px), (max-aspect-ratio: 4/5) and (min-height: 1200px) {
+    .feed-col { flex-basis: 320px; }
+  }
+
+  /* Mobile burger + scrim scaffolding (visible only ≤600). */
+  #rail-burger {
+    display: none;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    place-items: center;
+    flex: none;
+    border: 0.8px solid var(--line);
+    border-radius: var(--r);
+    background: var(--panel);
+    color: var(--muted);
+  }
+  #rail-burger svg { width: 15px; height: 15px; display: block; }
+  #rail-burger:hover { color: var(--text); border-color: var(--line-strong); }
+  .rail-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 59;
+    background: rgba(10, 10, 11, 0.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s var(--ease);
+  }
+
+  /* Mobile portrait: the rail becomes an off-canvas overlay behind a
+     burger; the player compresses to mark + transport + theme/voice. */
+  @media (max-width: 600px) {
+    .shell, .shell.rail-hidden { grid-template-columns: 1fr; }
+    .rail {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 60;
+      width: 228px;
+      transform: translateX(-102%);
+      transition: transform .3s var(--ease);
+    }
+    body.rail-open .rail {
+      transform: none;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+    }
+    body.rail-open .rail-scrim { opacity: 1; pointer-events: auto; }
+    /* The overlay always shows the full labeled rail, whatever fold or
+       icon-mode state the inline rail was in. */
+    .rail-head { display: none; }
+    .rail .label, .rail .eyebrow { display: block; }
+    .rail-foot { display: flex; }
+    .rail-item { justify-content: flex-start; padding: 10px 12px; }
+    .shell.rail-hidden .rail { padding: 14px 10px; }
+    .shell.rail-hidden .rail .rail-items { display: flex; }
+    .shell.rail-hidden .rail .rail-item { display: flex; }
+    .shell.rail-hidden .rail .eyebrow { display: block; }
+    .shell.rail-hidden .rail .rail-foot { display: flex; }
+    #rail-burger { display: grid; }
+    .scrubber { display: none; }
+    .player .brand { font-size: 0; gap: 0; }
+    .player .brand span { display: none; }
+    #vol-slider { width: 48px; }
+    .caption .text { white-space: nowrap; }
+    .caption-links { display: none; }
+    /* The call strip scrolls (hidden scrollbar) rather than overflowing;
+       the informational partner label yields to the controls. */
+    .call-strip {
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .call-strip::-webkit-scrollbar { display: none; }
+    .call-strip .strip-btn,
+    .call-strip .mode-pill,
+    .call-strip .posture-chip,
+    .call-strip .privacy-chip { flex: none; }
+    .partner-label { display: none; }
+  }
+
+  /* Touch: strip buttons keep their 30px look but gain 4px of tap-slop. */
+  @media (pointer: coarse) {
+    .strip-btn { position: relative; }
+    .strip-btn::after { content: ""; position: absolute; inset: -4px; }
+  }
+
   /* ---- Simulated cursor ---- */
   .demo-cursor-layer {
     position: fixed;
@@ -2222,6 +2387,9 @@
 </svg>
 
 <header class="player" id="player">
+  <button type="button" id="rail-burger" title="Navigation" aria-label="Open navigation" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+  </button>
   <div class="brand">
     <svg class="brand-mark" width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg>
     Drive <span>· product demo</span>
@@ -2659,6 +2827,8 @@
     <a href="../wireframes/DEMO.md">DEMO.md</a>
   </nav>
 </div>
+
+<div class="rail-scrim" id="rail-scrim" aria-hidden="true"></div>
 
 <div class="demo-cursor-layer" id="demo-cursor-layer" aria-hidden="true">
   <div id="demo-cursor">
@@ -3795,6 +3965,9 @@
         px += spec.offset.dx || 0;
         py += spec.offset.dy || 0;
       }
+      // Off-viewport targets (e.g. the off-canvas mobile rail) skip like
+      // hidden ones — the beat still lands, only the cursor leg is dropped.
+      if (px < 0 || py < 0 || px > window.innerWidth || py > window.innerHeight) return null;
       return { el: target, px: px, py: py };
     }
 
@@ -4912,16 +5085,29 @@
     });
   }
 
+  // Layout-mode media checks (mirror the responsive stylesheet): inline
+  // resize widths must yield when the rail is compact / the call surface
+  // stacks / the rail is a mobile overlay, or the inline style would defeat
+  // the media queries.
+  const railCompactMq = window.matchMedia("(max-width: 960px)");
+  const stackedMq = window.matchMedia("(max-width: 860px), (max-aspect-ratio: 4/5)");
+  const mobileMq = window.matchMedia("(max-width: 600px)");
+
   /** Width applies as an inline grid template only while the rail is
-   *  unfolded; folding removes it so .rail-hidden's 34px sliver wins. */
+   *  unfolded AND the layout is wide enough for a resizable rail; folding
+   *  (or the ≤960 compact / ≤600 overlay modes) removes it so the
+   *  stylesheet's value wins. */
   function applyRailWidth() {
     const shell = document.querySelector(".shell");
-    if (shell.classList.contains("rail-hidden")) {
+    if (shell.classList.contains("rail-hidden") || railCompactMq.matches) {
       shell.style.gridTemplateColumns = "";
     } else {
       shell.style.gridTemplateColumns = railConfig.width + "px 1fr";
     }
-    document.querySelector(".rail").classList.toggle("rail-narrow", railConfig.width < 110);
+    document.querySelector(".rail").classList.toggle(
+      "rail-narrow",
+      railConfig.width < 110 && !railCompactMq.matches,
+    );
   }
 
   // ---- Scrubber (acts derived from BEATS) ----
@@ -5016,6 +5202,7 @@
       return; // no surface preview while editing
     }
     previewSurface(item.getAttribute("data-surface"));
+    if (mobileMq.matches) setRailOpen(false);
   });
 
   // Edit mode: pencil toggles the customize affordances.
@@ -5082,7 +5269,7 @@
     let startX = 0;
     let startW = 0;
     handle.addEventListener("pointerdown", function (e) {
-      if (shell.classList.contains("rail-hidden")) return;
+      if (shell.classList.contains("rail-hidden") || railCompactMq.matches) return;
       dragging = true;
       startX = e.clientX;
       startW = railConfig.width;
@@ -5106,7 +5293,7 @@
     handle.addEventListener("pointerup", endDrag);
     handle.addEventListener("pointercancel", endDrag);
     handle.addEventListener("dblclick", function () {
-      if (shell.classList.contains("rail-hidden")) return;
+      if (shell.classList.contains("rail-hidden") || railCompactMq.matches) return;
       railConfig.width = RAIL_DEFAULT_WIDTH;
       applyRailWidth();
       saveRailConfig();
@@ -5137,13 +5324,16 @@
   function applyDrawerWidth() {
     const split = document.getElementById("call-split");
     const col = split.querySelector(".feed-col");
-    if (split.classList.contains("feed-hidden")) {
+    // Stacked mode (≤860 / portrait aspect) turns the drawer into a bottom
+    // panel — the inline width flex-basis must clear so the stylesheet's
+    // height-basis wins, and drawer-narrow no longer applies.
+    if (split.classList.contains("feed-hidden") || stackedMq.matches) {
       col.style.flexBasis = "";
     } else {
       col.style.flexBasis = drawerWidth + "px";
     }
     // Below 340px the members column yields its width back to the feed.
-    col.classList.toggle("drawer-narrow", drawerWidth < 340);
+    col.classList.toggle("drawer-narrow", drawerWidth < 340 && !stackedMq.matches);
   }
   (function () {
     const handle = document.getElementById("drawer-resize");
@@ -5152,7 +5342,7 @@
     let startX = 0;
     let startW = 0;
     handle.addEventListener("pointerdown", function (e) {
-      if (split.classList.contains("feed-hidden")) return;
+      if (split.classList.contains("feed-hidden") || stackedMq.matches) return;
       dragging = true;
       startX = e.clientX;
       startW = drawerWidth;
@@ -5177,12 +5367,33 @@
     handle.addEventListener("pointerup", endDrag);
     handle.addEventListener("pointercancel", endDrag);
     handle.addEventListener("dblclick", function () {
-      if (split.classList.contains("feed-hidden")) return;
+      if (split.classList.contains("feed-hidden") || stackedMq.matches) return;
       drawerWidth = DRAWER_DEFAULT_WIDTH;
       applyDrawerWidth();
       saveDrawerWidth();
     });
   })();
+
+  // Crossing a layout-mode boundary re-applies the inline resize widths
+  // (clearing them in compact/stacked modes, restoring them on the way out).
+  railCompactMq.addEventListener("change", applyRailWidth);
+  stackedMq.addEventListener("change", applyDrawerWidth);
+
+  // Mobile off-canvas rail (≤600): the burger slides the rail over a scrim;
+  // scrim tap, item tap, or leaving mobile width closes it.
+  function setRailOpen(open) {
+    document.body.classList.toggle("rail-open", open);
+    document.getElementById("rail-burger").setAttribute("aria-expanded", String(open));
+  }
+  document.getElementById("rail-burger").addEventListener("click", function () {
+    setRailOpen(!document.body.classList.contains("rail-open"));
+  });
+  document.getElementById("rail-scrim").addEventListener("click", function () {
+    setRailOpen(false);
+  });
+  mobileMq.addEventListener("change", function (e) {
+    if (!e.matches) setRailOpen(false);
+  });
   document.querySelectorAll("#lens-tabs button").forEach(function (btn) {
     btn.addEventListener("click", function () {
       const lens = btn.getAttribute("data-lens");
