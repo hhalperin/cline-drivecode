@@ -1496,6 +1496,131 @@
     background: color-mix(in srgb, var(--ok) 8%, transparent);
   }
 
+  /* Agents surface: the roster of seatable agents + the teams that call
+     them together. One agent can sit on many teams (Riley: Core + Docs). */
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+  .agent-card {
+    padding: 12px 14px;
+    border-radius: var(--r);
+    border: 0.8px solid var(--line);
+    background: var(--raised);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .agent-id { display: flex; align-items: center; gap: 9px; }
+  .agent-av {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    flex: none;
+    font: 700 12px/1 var(--display);
+    color: var(--live-t);
+    border: 0.8px solid color-mix(in srgb, var(--live) 40%, transparent);
+    background: color-mix(in srgb, var(--live) 10%, transparent);
+  }
+  .agent-name { font: 600 13px/1.2 var(--display); }
+  .agent-role { color: var(--muted); font-size: 12px; }
+  .agent-teams { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; }
+  .team-chip {
+    font: 500 10px/1 var(--mono);
+    color: var(--drive-t);
+    padding: 3px 8px;
+    border-radius: 999px;
+    border: 0.8px solid color-mix(in srgb, var(--drive) 40%, transparent);
+    background: color-mix(in srgb, var(--drive) 8%, transparent);
+  }
+  .team-chip.none {
+    color: var(--dim);
+    border-color: var(--line);
+    background: none;
+  }
+  .teams-eyebrow {
+    font: 600 11px/1 var(--eyebrow);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 10px;
+  }
+  .teams-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 10px;
+  }
+  .team-card {
+    padding: 12px 14px;
+    border-radius: var(--r-lg);
+    border: 0.8px solid var(--line);
+    background: var(--raised);
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  .team-head { display: flex; align-items: center; gap: 8px; }
+  .team-name { font: 600 13px/1.2 var(--display); }
+  .team-members { display: flex; padding-left: 5px; }
+  .team-members .agent-av {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
+    margin-left: -5px;
+    box-shadow: 0 0 0 1.6px var(--raised);
+  }
+  .team-desc { color: var(--muted); font-size: 12px; }
+  .call-team {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-top: auto;
+    padding: 8px 12px;
+    border-radius: var(--r);
+    background: var(--drive);
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .call-team svg { width: 14px; height: 14px; flex: none; }
+  .team-card.ghost {
+    border: 0.8px dashed var(--line-strong);
+    background: none;
+    color: var(--dim);
+    display: grid;
+    place-items: center;
+    min-height: 118px;
+    font-weight: 600;
+  }
+  .team-card.ghost:hover { color: var(--muted); }
+  .team-card.ghost:active { transform: translateY(1px); }
+
+  /* Tasks surface: the dependency map as a first-class page. Reuses the
+     Status depmap lens language (.g-node/.g-edge/.plans-rail) expanded. */
+  .tasks-legend { color: var(--dim); font-size: 11px; margin-top: 10px; }
+  .g-node.done {
+    color: var(--ok-soft);
+    border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+    background: color-mix(in srgb, var(--ok) 6%, transparent);
+  }
+  .g-node.blocked {
+    color: var(--dim);
+    border-style: dashed;
+  }
+  .g-node .g-sub {
+    display: block;
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--dim);
+    text-transform: none;
+  }
+  .g-edge.join { font-size: 11px; }
+
   /* Inbox stub — exists to demonstrate rail "+ Add item" */
   .inbox-row {
     max-width: 420px;
@@ -2076,6 +2201,118 @@
         </div>
       </div>
 
+      <!-- Agents & teams: call a whole team at once instead of one by one -->
+      <div class="surface" id="surface-agents">
+        <div class="rooms-page">
+          <h2>Agents <span class="badge planned">planned</span></h2>
+          <p class="lead">Every agent you can seat — and the teams that call them together.</p>
+          <div class="agents-grid">
+            <div class="agent-card">
+              <div class="agent-id">
+                <span class="agent-av" aria-hidden="true">A</span>
+                <div>
+                  <div class="agent-name">Adam</div>
+                  <div class="agent-role">pair partner · router-fix</div>
+                </div>
+              </div>
+              <div class="agent-teams"><span class="team-chip">Core</span></div>
+            </div>
+            <div class="agent-card">
+              <div class="agent-id">
+                <span class="agent-av" aria-hidden="true">R</span>
+                <div>
+                  <div class="agent-name">Riley</div>
+                  <div class="agent-role">docs &amp; review</div>
+                </div>
+              </div>
+              <div class="agent-teams"><span class="team-chip">Core</span><span class="team-chip">Docs</span></div>
+            </div>
+            <div class="agent-card">
+              <div class="agent-id">
+                <span class="agent-av" aria-hidden="true">S</span>
+                <div>
+                  <div class="agent-name">Sam</div>
+                  <div class="agent-role">test runner</div>
+                </div>
+              </div>
+              <div class="agent-teams"><span class="team-chip">Docs</span></div>
+            </div>
+            <div class="agent-card">
+              <div class="agent-id">
+                <span class="agent-av" aria-hidden="true">Q</span>
+                <div>
+                  <div class="agent-name">Quinn</div>
+                  <div class="agent-role">security review</div>
+                </div>
+              </div>
+              <div class="agent-teams"><span class="team-chip none">no team yet</span></div>
+            </div>
+          </div>
+          <div class="teams-eyebrow">Teams</div>
+          <div class="teams-grid">
+            <div class="team-card">
+              <div class="team-head">
+                <span class="team-name">Core</span>
+                <span class="team-members" aria-hidden="true"><span class="agent-av">A</span><span class="agent-av">R</span></span>
+              </div>
+              <div class="team-desc">Adam + Riley · ships the fix</div>
+              <button type="button" class="call-team" title="Seats the whole team in one call">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Call team
+              </button>
+            </div>
+            <div class="team-card">
+              <div class="team-head">
+                <span class="team-name">Docs</span>
+                <span class="team-members" aria-hidden="true"><span class="agent-av">R</span><span class="agent-av">S</span></span>
+              </div>
+              <div class="team-desc">Riley + Sam · keeps the docs honest</div>
+              <button type="button" class="call-team" title="Seats the whole team in one call">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Call team
+              </button>
+            </div>
+            <button type="button" class="team-card ghost" title="Create a new team">+ New team</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tasks: the dependency map as a first-class surface -->
+      <div class="surface" id="surface-tasks">
+        <div class="rooms-page">
+          <h2>Tasks</h2>
+          <p class="lead">The dependency map, first-class: what blocks what, across every agent.</p>
+          <div class="dep-map">
+            <div class="graph-box">
+              <div class="graph-nodes">
+                <span class="g-node done">guard pending flag ✓</span>
+                <span class="g-edge">→</span>
+                <span class="g-node done">unit tests ✓</span>
+                <span class="g-edge">→</span>
+                <span class="g-node hot">explain race</span>
+                <span class="g-edge">→</span>
+                <span class="g-node">commit</span>
+                <span class="g-edge">→</span>
+                <span class="g-node">open PR</span>
+                <span class="g-edge">→</span>
+                <span class="g-node blocked">changelog entry<span class="g-sub">waits on PR</span></span>
+              </div>
+              <div class="graph-nodes">
+                <span class="g-node done">retry.ts docs ✓<span class="g-sub">Riley</span></span>
+                <span class="g-edge join">↗ joins before open PR</span>
+              </div>
+              <div class="tasks-legend">amber = in progress · green = done · dashed = blocked</div>
+            </div>
+            <div class="plans-rail">
+              <h4>Plans</h4>
+              <div class="plan-node on">Now · explain the race, then commit</div>
+              <div class="plan-node">Next · open PR</div>
+              <div class="plan-node">Later · changelog</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Inbox (stub — demonstrates rail "+ Add item") -->
       <div class="surface" id="surface-inbox">
         <div class="rooms-page">
@@ -2245,7 +2482,7 @@
    *   privacyDebug: boolean,
    *   artifacts: SessionArtifact[],
    *   rooms: Array<{id:string,name:string,status:'live'|'paused'|'ended',meta:string}>,
-   *   surface: 'chat'|'drive'|'drive-in-call'|'rooms'|'status'|'artifacts'|'inbox',
+   *   surface: 'chat'|'drive'|'drive-in-call'|'rooms'|'agents'|'tasks'|'status'|'artifacts'|'inbox',
    *   statusLens: 'board'|'changelog'|'sessions'|'depmap',
    *   pipVisible: boolean,
    *   feedMessages: Array<{id:string,from:string,who:string,text:string,chips?:string[]}>,
@@ -3167,6 +3404,27 @@
       },
     },
     {
+      id: "a10-agents",
+      act: 10,
+      title: "Agents · call a whole team",
+      caption: "Agents and teams: call Core once — the whole team seats itself. Riley is on two teams.",
+      maturity: "planned",
+      dwellMs: 1800,
+      cursor: { target: "#rail-agents", action: "click" },
+      patch: { surface: "agents" },
+    },
+    {
+      id: "a10-tasks",
+      act: 10,
+      title: "Tasks · dependency map, first-class",
+      caption: "Tasks: the dependency map as a first-class page — what blocks what, across agents.",
+      hubOp: "report_status",
+      maturity: "shipped",
+      dwellMs: 1600,
+      cursor: { target: "#rail-tasks", action: "click" },
+      patch: { surface: "tasks" },
+    },
+    {
       id: "a10-rooms",
       act: 10,
       title: "Rooms · every session, resumable",
@@ -3502,6 +3760,8 @@
     );
     document.getElementById("surface-drive").classList.toggle("on", state.surface === "drive");
     document.getElementById("surface-rooms").classList.toggle("on", state.surface === "rooms");
+    document.getElementById("surface-agents").classList.toggle("on", state.surface === "agents");
+    document.getElementById("surface-tasks").classList.toggle("on", state.surface === "tasks");
     document.getElementById("surface-status").classList.toggle("on", state.surface === "status");
     document.getElementById("surface-artifacts").classList.toggle("on", state.surface === "artifacts");
     document.getElementById("surface-inbox").classList.toggle("on", state.surface === "inbox");
@@ -4004,9 +4264,9 @@
   }
 
   // ---- Customizable rail ----
-  // Registry-driven: adding an entry here (U8: agents, tasks) is all it
-  // takes — the config loader merges stored order/hidden with the registry,
-  // appending new registry ids and dropping unknown ones.
+  // Registry-driven: adding an entry here is all it takes — the config
+  // loader merges stored order/hidden with the registry, appending new
+  // registry ids and dropping unknown ones.
   function railIco(paths) {
     return '<svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
   }
@@ -4015,6 +4275,8 @@
     { id: "chat", label: "Chat", surface: "chat", icon: railIco('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>') },
     { id: "drive", label: "Drive", surface: "drive", icon: '<svg class="rail-ico" width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg>' },
     { id: "rooms", label: "Rooms", surface: "rooms", planned: true, icon: railIco('<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.562Z"/>') },
+    { id: "agents", label: "Agents", surface: "agents", planned: true, icon: railIco('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
+    { id: "tasks", label: "Tasks", surface: "tasks", icon: railIco('<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>') },
     { id: "status", label: "Status", surface: "status", icon: railIco('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>') },
     { id: "artifacts", label: "Artifacts", surface: "artifacts", icon: railIco('<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>') },
     { id: "inbox", label: "Inbox", surface: "inbox", planned: true, defaultHidden: true, icon: railIco('<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>') },
@@ -4191,6 +4453,8 @@
     chat: "surface-call",
     drive: "surface-drive",
     rooms: "surface-rooms",
+    agents: "surface-agents",
+    tasks: "surface-tasks",
     status: "surface-status",
     artifacts: "surface-artifacts",
     inbox: "surface-inbox",
