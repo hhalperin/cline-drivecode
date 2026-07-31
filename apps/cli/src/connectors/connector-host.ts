@@ -1092,7 +1092,10 @@ async function runConnectorRuntimeTurnWithRecovery<
 			startedLogMessage: input.startedLogMessage,
 		});
 	let sessionId = await resolveSessionId();
-	let allowStaleSessionRetry = params.staleSessionId === undefined;
+	// Upfront forget of `staleSessionId` (steer recovery) clears a known-dead
+	// active-turn session only. The resolved session can still race to
+	// `session_not_found` on send, so keep one retry — same as the normal path.
+	let allowStaleSessionRetry = true;
 	for (;;) {
 		try {
 			await runConnectorRuntimeTurn({

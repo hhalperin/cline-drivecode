@@ -770,6 +770,77 @@ describe("handleConnectorUserTurn", () => {
 		).toBe(false);
 	});
 
+	it("retries send-time session_not_found after steer recovery", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "connector-host-test-"));
+		tempDirs.push(dir);
+		const bindingsPath = join(dir, "threads.json");
+		const { thread, posts, getState } = createThread({
+			enableTools: false,
+			autoApproveTools: false,
+			cwd: "/tmp/work",
+			workspaceRoot: "/tmp/work",
+			sessionId: "dead-session",
+			welcomeSentAt: new Date().toISOString(),
+		});
+
+		const runtime = createRuntimeClient("recovered reply");
+		runtime.getSession.mockImplementation(async (sessionId: string) => ({
+			sessionId,
+		}));
+		runtime.startRuntimeSession
+			.mockResolvedValueOnce({ sessionId: "raced-session" })
+			.mockResolvedValueOnce({ sessionId: "stable-session" });
+		runtime.sendRuntimeSession.mockImplementation(async (sessionId: string) => {
+			if (sessionId === "dead-session" || sessionId === "raced-session") {
+				throw Object.assign(new Error(`session not found: ${sessionId}`), {
+					code: "session_not_found",
+				});
+			}
+			return {
+				result: {
+					text: "recovered reply",
+					finishReason: "stop",
+					iterations: 1,
+				},
+			};
+		});
+		const activeTurns = new Map([
+			["thread-1", { sessionId: "dead-session", threadId: "thread-1" }],
+		]);
+
+		await handleConnectorUserTurn({
+			thread: thread as never,
+			text: "actually do this instead",
+			client: runtime.client as never,
+			pendingApprovals: new Map(),
+			baseStartRequest: baseStartRequest() as never,
+			explicitSystemPrompt: undefined,
+			clientId: "client-1",
+			logger: {
+				core: { debug: vi.fn(), log: vi.fn(), error: vi.fn() },
+			} as never,
+			transport: "slack",
+			botUserName: "ClineAdapterBot",
+			requestStop: vi.fn(),
+			bindingsPath,
+			systemRules: "rules",
+			errorLabel: "Slack",
+			getSessionMetadata: () => ({}),
+			reusedLogMessage: "reused",
+			startedLogMessage: "started",
+			activeTurns: activeTurns as never,
+			enqueueTurn: runTurnImmediately,
+			turnKey: "thread-1",
+		});
+
+		expect(
+			runtime.sendRuntimeSession.mock.calls.map((call) => call[0]),
+		).toEqual(["dead-session", "raced-session", "stable-session"]);
+		expect(runtime.startRuntimeSession).toHaveBeenCalledTimes(2);
+		expect(getState().sessionId).toBe("stable-session");
+		expect(messageText(posts.at(-1))).toBe("recovered reply");
+	});
+
 	it("serializes concurrent recovery from the same stale active turn", async () => {
 		const dir = mkdtempSync(join(tmpdir(), "connector-host-test-"));
 		tempDirs.push(dir);
