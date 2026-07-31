@@ -339,18 +339,17 @@
   .surface { display: none; flex: 1; min-height: 0; }
   .surface.on { display: flex; }
 
-  /* Chat / in-call split */
+  /* Chat / in-call split: the stage owns the room; the feed is a right drawer */
   .call-split {
     flex: 1;
-    display: grid;
-    grid-template-columns: 1.15fr 0.95fr;
+    display: flex;
     min-height: 0;
   }
   @media (max-width: 960px) {
     .shell { grid-template-columns: 56px 1fr; }
     .rail .label, .rail .eyebrow, .rail-foot { display: none; }
     .rail-item { justify-content: center; padding: 10px; }
-    .call-split { grid-template-columns: 1fr; }
+    .feed-col { flex-basis: 260px; }
     .beat-meta { display: none; }
   }
 
@@ -358,9 +357,37 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    border-right: 0.8px solid var(--hair);
   }
-  .spot-col { border-right: none; }
+  .spot-col { flex: 1; min-width: 0; }
+  .feed-col {
+    flex: 0 0 340px;
+    border-left: 0.8px solid var(--hair);
+    overflow: hidden;
+    transition: flex-basis .35s var(--ease), opacity .3s var(--ease);
+  }
+  .call-split.feed-hidden .feed-col {
+    flex-basis: 0;
+    opacity: 0;
+    border-left-width: 0;
+    pointer-events: none;
+  }
+  .call-split.feed-hidden .spotlight { padding: 16px 22px; }
+  .panel-toggle {
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    border: 0.8px solid transparent;
+    color: var(--dim);
+  }
+  .panel-toggle:hover { color: var(--text); border-color: var(--line); }
+  .panel-toggle svg { width: 14px; height: 14px; }
+  .call-split.feed-hidden .panel-toggle {
+    color: var(--drive-t);
+    border-color: color-mix(in srgb, var(--drive-b) 40%, transparent);
+    background: color-mix(in srgb, var(--drive) 10%, transparent);
+  }
   .col-head {
     display: flex;
     align-items: center;
@@ -542,6 +569,7 @@
   }
   .stage-pane .pane-head .badge { margin-left: auto; }
   .stage-pane .pane-title { font: 600 13px/1.25 var(--display); margin-bottom: 8px; }
+  .stage-plan, .stage-walk { max-width: 560px; }
   .stage-plan .step {
     display: flex;
     align-items: center;
@@ -568,7 +596,7 @@
     border-color: color-mix(in srgb, var(--live) 55%, transparent);
     background: color-mix(in srgb, var(--live) 12%, transparent);
   }
-  .stage-diagram svg { width: 100%; height: auto; display: block; }
+  .stage-diagram svg { width: 100%; max-width: 520px; height: auto; display: block; }
   .stage-diagram .n rect { fill: var(--panel); stroke: var(--line); stroke-width: 1; }
   .stage-diagram .n text { fill: var(--text); font-family: var(--mono); font-size: 10px; }
   .stage-diagram .n.hot rect {
@@ -751,7 +779,11 @@
   .how-flow .arrow { color: var(--drive-t); }
   .how-flow + .how-flow { margin-top: 6px; }
 
-  .cards { display: flex; flex-direction: column; gap: 8px; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
+  }
   .card {
     padding: 11px 12px;
     border-radius: var(--r);
@@ -985,13 +1017,26 @@
   }
   .call-strip.on { display: flex; }
   .strip-btn {
-    padding: 6px 11px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: grid;
+    place-items: center;
     border-radius: var(--r);
     border: 0.8px solid var(--line);
     background: var(--raised);
     color: var(--muted);
-    font-weight: 600;
   }
+  .strip-btn svg { width: 15px; height: 15px; display: block; }
+  .strip-btn .i-mic-off { display: none; }
+  .strip-btn.mic.on {
+    color: var(--danger-t);
+    border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+  }
+  .strip-btn.mic.on .i-mic-off { display: block; }
+  .strip-btn.mic.on .i-mic { display: none; }
+  .strip-btn.leave svg { transform: rotate(135deg); }
   .strip-btn:hover { color: var(--text); border-color: var(--line-strong); }
   .strip-btn.hand.on {
     color: var(--live-t);
@@ -1194,13 +1239,15 @@
   }
   .pip .pip-actions button {
     flex: 1;
-    padding: 6px;
+    padding: 6px 0;
     border-radius: 8px;
     border: 0.8px solid var(--line);
     background: var(--well);
-    font: 600 10px/1 var(--ui);
     color: var(--muted);
   }
+  .pip .pip-actions svg { width: 13px; height: 13px; display: block; margin: 0 auto; }
+  .pip .pip-actions .pip-leave { color: var(--danger-t); }
+  .pip .pip-actions .pip-leave svg { transform: rotate(135deg); }
   .pip .pip-actions button:hover { color: var(--text); border-color: var(--line-strong); }
   .pip .pip-actions button.hand.on {
     color: var(--live-t);
@@ -1386,7 +1433,18 @@
 
       <!-- Chat / Drive-in-call -->
       <div class="surface" id="surface-call">
-        <div class="call-split">
+        <div class="call-split" id="call-split">
+          <div class="spot-col">
+            <div class="col-head">
+              <span class="spot-dot" aria-hidden="true"></span>
+              <h2>Spotlight</h2>
+              <span class="sub">stage</span>
+              <button type="button" class="panel-toggle" id="feed-toggle" title="Hide chat panel" aria-label="Hide chat panel" aria-expanded="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg>
+              </button>
+            </div>
+            <div class="spotlight" id="spotlight"></div>
+          </div>
           <div class="feed-col">
             <div class="col-head">
               <h2>Feed</h2>
@@ -1394,14 +1452,6 @@
             </div>
             <div class="feed" id="feed"></div>
             <div class="roster" id="roster"></div>
-          </div>
-          <div class="spot-col">
-            <div class="col-head">
-              <span class="spot-dot" aria-hidden="true"></span>
-              <h2>Spotlight</h2>
-              <span class="sub">stage</span>
-            </div>
-            <div class="spotlight" id="spotlight"></div>
           </div>
         </div>
       </div>
@@ -1540,21 +1590,39 @@
         </div>
         <div class="narr" id="pip-narr"></div>
         <div class="pip-actions">
-          <button type="button">Mute</button>
-          <button type="button" class="hand" id="pip-hand">Hand</button>
-          <button type="button">Leave</button>
-          <button type="button">Expand</button>
+          <button type="button" title="Mute" aria-label="Mute">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+          </button>
+          <button type="button" class="hand" id="pip-hand" title="Raise hand" aria-label="Raise hand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+          </button>
+          <button type="button" class="pip-leave" title="Leave call" aria-label="Leave call">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
+          <button type="button" title="Expand" aria-label="Expand">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
         </div>
       </div>
     </div>
 
     <div class="call-strip" id="call-strip">
-      <button type="button" class="strip-btn" id="strip-mute">Mute</button>
-      <button type="button" class="strip-btn hand" id="strip-hand">Raise hand</button>
+      <button type="button" class="strip-btn mic" id="strip-mute" title="Unmute" aria-label="Unmute">
+        <svg class="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+        <svg class="i-mic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="3" y1="3" x2="21" y2="21"/></svg>
+      </button>
+      <button type="button" class="strip-btn hand" id="strip-hand" title="Raise hand" aria-label="Raise hand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>
+      </button>
       <span class="mode-pill" id="mode-pill">Agent</span>
       <span class="posture-chip hide" id="posture-chip"></span>
       <span class="privacy-chip hide" id="privacy-chip">privacy-strict</span>
-      <button type="button" class="strip-btn leave" id="strip-leave">Leave</button>
+      <button type="button" class="strip-btn" id="strip-settings" title="Call settings" aria-label="Call settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="14" cy="6" r="2.5"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="8" cy="12" r="2.5"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="16" cy="18" r="2.5"/></svg>
+      </button>
+      <button type="button" class="strip-btn leave" id="strip-leave" title="Leave call" aria-label="Leave call">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
       <span class="partner-label" id="partner-label">with <b>Adam</b></span>
     </div>
   </div>
@@ -1596,6 +1664,8 @@
    *   addressSet: string[],
    *   mode: string,
    *   posture: string|null,
+   *   muted: boolean,
+   *   feedCollapsed: boolean,
    *   stage: { sharer: string, sharerId: string, cards: StageCard[], pin: null|{label:string,ref:string} },
    *   narration: string,
    *   nowLabel: string,
@@ -1621,6 +1691,8 @@
     addressSet: [],
     mode: "Agent",
     posture: null,
+    muted: true,
+    feedCollapsed: false,
     stage: { sharer: "", sharerId: "", cards: [], pin: null, show: null, backlog: [] },
     narration: "",
     nowLabel: "",
@@ -1833,6 +1905,16 @@
       patch: { showHowInset: true },
     },
     {
+      id: "a3-focus",
+      act: 3,
+      title: "Fold the feed · stage is the screen",
+      caption: "Voice-first: tuck the chat away. The shared screen takes the whole room.",
+      maturity: "shipped",
+      dwellMs: 1400,
+      cursor: { target: "#feed-toggle", action: "click" },
+      patch: { feedCollapsed: true },
+    },
+    {
       id: "a3-plan",
       act: 3,
       title: "Director presents the plan",
@@ -2017,12 +2099,13 @@
       id: "a4-steer",
       act: 4,
       title: "Steer mid-turn chip",
-      caption: "Steer builds on the pending-prompt / turn queue. No side channel.",
+      caption: "Feed back for a typed steer. Builds on the pending-prompt / turn queue — no side channel.",
       hubOp: "steer queue",
       maturity: "shipped",
       dwellMs: 1400,
-      cursor: { target: "#feed", action: "click", offset: { dy: 100 } },
+      cursor: { target: "#feed-toggle", action: "click" },
       patch: {
+        feedCollapsed: false,
         steerQueued: true,
         feedMessages: [
           { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
@@ -2053,12 +2136,14 @@
     {
       id: "a4-pause",
       act: 4,
-      title: "Pause-after-tool",
-      caption: "Pause-after-tool. Partner finishes the current tool, then yields.",
+      title: "Pause-after-tool · you unmute",
+      caption: "Partner finishes the current tool, then yields — you unmute and take the floor.",
       hubOp: "interrupt",
       maturity: "shipped",
       dwellMs: 1800,
+      cursor: { target: "#strip-mute", action: "click" },
       patch: {
+        muted: false,
         posture: "paused_after_tool",
         narration: "Pausing after this tool. Your turn.",
       },
@@ -2768,10 +2853,21 @@
       document.getElementById("lens-" + lens).classList.toggle("on", state.statusLens === lens);
     });
 
+    // Feed drawer
+    document.getElementById("call-split").classList.toggle("feed-hidden", !!state.feedCollapsed);
+    const feedToggle = document.getElementById("feed-toggle");
+    feedToggle.title = state.feedCollapsed ? "Show chat panel" : "Hide chat panel";
+    feedToggle.setAttribute("aria-label", feedToggle.title);
+    feedToggle.setAttribute("aria-expanded", String(!state.feedCollapsed));
+
     // Call strip
     const strip = document.getElementById("call-strip");
     strip.classList.toggle("on", state.inCall && state.driveOn);
     document.getElementById("strip-hand").classList.toggle("on", youHandRaised(state));
+    const mic = document.getElementById("strip-mute");
+    mic.classList.toggle("on", !!state.muted);
+    mic.title = state.muted ? "Unmute" : "Mute";
+    mic.setAttribute("aria-label", mic.title);
     document.getElementById("mode-pill").textContent = state.mode;
     const posture = document.getElementById("posture-chip");
     if (state.posture) {
