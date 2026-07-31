@@ -832,6 +832,144 @@
     padding: 4px 8px;
   }
 
+  /* Live workspace: the sharer's actual work when nothing is staged.
+     Two full-bleed panes (editor over terminal) instead of the centered
+     artifact layout — toggled on the body via .ws-host. */
+  .screen-body.ws-host {
+    display: flex;
+    align-items: stretch;
+    padding: 0;
+    background-image: none;
+  }
+  .ws {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .ws-ed {
+    flex: 3;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--panel);
+  }
+  .ws-tabs {
+    flex: none;
+    display: flex;
+    align-items: center;
+    background: var(--well);
+    border-bottom: 0.8px solid var(--hair);
+  }
+  .ws-tab {
+    font: 500 10px/1 var(--mono);
+    color: var(--dim);
+    padding: 7px 12px;
+    border-right: 0.8px solid var(--hair);
+  }
+  .ws-tab.on {
+    color: var(--text);
+    background: var(--panel);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--live) 65%, transparent);
+  }
+  .ws-activity {
+    margin-left: auto;
+    padding: 0 10px;
+    font: 500 10px/1 var(--mono);
+    color: var(--dim);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ws-code {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 8px 0;
+  }
+  .ws-cl {
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    gap: 10px;
+    font: 400 11px/1.65 var(--mono);
+    color: var(--muted);
+    padding-right: 12px;
+    white-space: pre;
+  }
+  .ws-cl .ln { color: var(--dim); text-align: right; user-select: none; }
+  .ws-cl .tx { overflow: hidden; text-overflow: ellipsis; }
+  .ws-cl.hl { background: color-mix(in srgb, var(--live) 10%, transparent); color: var(--text); }
+  .ws-cl.hl .ln { color: var(--live-t); }
+  .ws-caret {
+    display: inline-block;
+    width: 1.5px;
+    height: 12px;
+    margin-left: 1px;
+    vertical-align: -2px;
+    background: var(--live-t);
+    animation: ws-blink 1.05s steps(1) infinite;
+  }
+  @keyframes ws-blink { 50% { opacity: 0; } }
+  /* Last line "types in": a steps() reveal with a border caret riding the
+     edge. Under reduced motion the forwards fill lands it fully typed. */
+  .ws-cl .type {
+    display: inline-block;
+    overflow: hidden;
+    white-space: pre;
+    vertical-align: bottom;
+    max-width: 100%;
+    width: 0%;
+    border-right: 1.5px solid var(--live-t);
+    animation: ws-type 1.5s steps(26, end) .25s forwards, ws-type-caret 1.05s steps(1) infinite;
+  }
+  @keyframes ws-type { to { width: 100%; } }
+  @keyframes ws-type-caret { 50% { border-right-color: transparent; } }
+  .ws-term {
+    flex: 2;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+    border-top: 0.8px solid rgba(255, 255, 255, 0.08);
+    background: var(--well);
+  }
+  .ws-tl {
+    font: 400 10.5px/1.6 var(--mono);
+    color: var(--muted);
+    white-space: pre-wrap;
+    opacity: 0;
+    animation: ws-tl-in .3s var(--ease) forwards;
+    animation-delay: calc(var(--i, 0) * 140ms);
+  }
+  @keyframes ws-tl-in { to { opacity: 1; } }
+  .ws-tl .ps { color: var(--ok-soft); font-weight: 600; }
+  .ws-tl.dim { color: var(--dim); }
+  .ws-tl.ok { color: var(--ok-soft); }
+  .ws-spin {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    border: 1.2px solid var(--line-strong);
+    border-top-color: var(--live-t);
+    vertical-align: -1px;
+    margin-left: 4px;
+    animation: ws-rot .8s linear infinite;
+  }
+  @keyframes ws-rot { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    /* Degrade to static: no blink/spin loops, typed line fully revealed,
+       terminal lines visible without stagger. */
+    .ws-caret, .ws-spin { animation: none !important; }
+    .ws-cl .type { animation: none !important; width: 100%; border-right-color: transparent; }
+    .ws-tl { animation: none !important; opacity: 1; }
+  }
+
   /* Show backlog rail: the director's queue, made visible */
   .show-rail {
     display: flex;
@@ -1808,6 +1946,21 @@
    *  the Show backlog the director is staging from.
    * @typedef {{ kind: 'plan'|'diagram'|'walk'|'capture', kindLabel: string, sticky: 'replace'|'hold', maturity?: string, title: string, body: object }} ShowArtifact
    * @typedef {{ id: string, label: string, status: 'planned'|'ready'|'showing'|'shown' }} ShowBacklogItem */
+  /** Live workspace: what the sharer is actually doing when nothing is
+   *  staged (no pin, no show). Rendered by buildWorkspace as a two-pane
+   *  mini-IDE (editor + terminal). Because deepMerge MERGES objects, a
+   *  `work` object persists and inherits forward through later beats until
+   *  a beat changes its fields (arrays replace wholesale); `work: null`
+   *  clears it. Precedence on the screen: pin > show > work > idle.
+   * @typedef {{
+   *   file: string,                              // active editor tab
+   *   code: Array<{t:string,hl?:boolean}>,       // 4–7 editor lines
+   *   caret?: number|null,                       // index into code for the blinking caret
+   *   typing?: string|null,                      // text "typed in" on a new last line
+   *   term: Array<{t:string,cls?:'dim'|'ok'}>,   // terminal lines ("$ " prefix = prompt)
+   *   spin?: boolean,                            // spinner on the last terminal line
+   *   activity: string,                          // thin activity label in the tab strip
+   * }} Workspace */
   /** @typedef {{
    *   driveOn: boolean,
    *   inCall: boolean,
@@ -1817,7 +1970,7 @@
    *   posture: string|null,
    *   muted: boolean,
    *   feedCollapsed: boolean,
-   *   stage: { sharer: string, sharerId: string, cards: StageCard[], pin: null|{label:string,ref:string} },
+   *   stage: { sharer: string, sharerId: string, cards: StageCard[], pin: null|{label:string,ref:string}, show: null|ShowArtifact, backlog: ShowBacklogItem[], work: null|Workspace },
    *   narration: string,
    *   nowLabel: string,
    *   nextLabel: string,
@@ -1844,7 +1997,7 @@
     posture: null,
     muted: true,
     feedCollapsed: false,
-    stage: { sharer: "", sharerId: "", cards: [], pin: null, show: null, backlog: [] },
+    stage: { sharer: "", sharerId: "", cards: [], pin: null, show: null, backlog: [], work: null },
     narration: "",
     nowLabel: "",
     nextLabel: "",
@@ -1963,7 +2116,30 @@
         driveOn: true,
         inCall: true,
         participants: [{ ...YOU }],
-        stage: { sharer: "Adam", sharerId: "adam", cards: [], pin: null },
+        stage: {
+          sharer: "Adam",
+          sharerId: "adam",
+          cards: [],
+          pin: null,
+          // Adam's live workspace — the screen is never just an avatar.
+          work: {
+            file: "router.ts",
+            code: [
+              { t: "function onTimeout(req) {" },
+              { t: "  if (!req.active) return;" },
+              { t: "  if (req.timer) scheduleRetry(req);" },
+              { t: "  req.attempts += 1;" },
+              { t: "}" },
+            ],
+            caret: 2,
+            term: [
+              { t: "$ bun -F @cline/core test:unit", cls: "dim" },
+              { t: "queued · waiting for workspace", cls: "dim" },
+            ],
+            spin: false,
+            activity: "opening workspace · router-fix",
+          },
+        },
         feedMessages: [
           { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
         ],
@@ -1998,6 +2174,16 @@
       cursor: { target: "#roster .seat.agent", action: "click" },
       patch: {
         addressSet: ["one"],
+        stage: {
+          work: {
+            term: [
+              { t: '$ rg "scheduleRetry" src/' },
+              { t: "src/router.ts:43:  if (req.timer) scheduleRetry(req);", cls: "dim" },
+              { t: "src/retry.ts:12: export function scheduleRetry(req) {", cls: "dim" },
+            ],
+            activity: "locating the race",
+          },
+        },
       },
     },
     {
@@ -2030,6 +2216,23 @@
         narration: "Found the race. Watch the spotlight — I will walk the pending-flag path.",
         nowLabel: "running router unit tests",
         nextLabel: "explain the race, then commit",
+        stage: {
+          work: {
+            code: [
+              { t: "function onTimeout(req) {" },
+              { t: "  if (!req.active) return;" },
+              { t: "  if (req.timer) scheduleRetry(req);", hl: true },
+              { t: "  req.attempts += 1;" },
+              { t: "}" },
+            ],
+            term: [
+              { t: "$ bun -F @cline/core test:unit" },
+              { t: "router retry · once per timeout — running", cls: "dim" },
+            ],
+            spin: true,
+            activity: "running router unit tests",
+          },
+        },
         feedMessages: [
           { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
           { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
@@ -2316,7 +2519,29 @@
       patch: {
         posture: null,
         steerQueued: false,
-        stage: { show: null, backlog: [] },
+        stage: {
+          show: null,
+          backlog: [],
+          // Riley's workspace takes over the (now show-less) screen.
+          work: {
+            file: "retry.ts",
+            code: [
+              { t: "export function scheduleRetry(req) {" },
+              { t: "  if (req.pending) return;" },
+              { t: "  req.pending = true;" },
+              { t: "  queue.push(req, req.timeoutMs);" },
+              { t: "}" },
+            ],
+            caret: null,
+            typing: "// scheduleRetry fires at most once per timeout window",
+            term: [
+              { t: "$ bun run lint retry.ts" },
+              { t: "clean · 0 warnings", cls: "ok" },
+            ],
+            spin: false,
+            activity: "tightening retry docs",
+          },
+        },
         participants: [
           { ...YOU, handRaised: false },
           { ...ADAM },
@@ -2511,6 +2736,24 @@
           sharerId: "adam",
           pin: null,
           cards: [CARD_RILEY, CARD_CMD, CARD_TEST],
+          // Adam is back on the screen, drafting the PR body.
+          work: {
+            file: "PR_BODY.md",
+            code: [
+              { t: "## router-fix · pending-flag race" },
+              { t: "" },
+              { t: "– one retry per timeout window, proven by unit test" },
+              { t: "– Riley tightened the scheduleRetry docs" },
+            ],
+            caret: null,
+            typing: "– guard prevents double scheduleRetry",
+            term: [
+              { t: "$ git status --short" },
+              { t: "2 files changed · router.ts retry.ts", cls: "dim" },
+            ],
+            spin: false,
+            activity: "drafting the PR body",
+          },
         },
         sinceYouLeft: null,
         narration: "Welcome back. Room state intact.",
@@ -2548,6 +2791,27 @@
         sinceYouLeft: null,
         mode: "Plan",
         modeCycle: ["Plan", "Ask", "Agent"],
+        stage: {
+          work: {
+            code: [
+              { t: "## router-fix · pending-flag race" },
+              { t: "" },
+              { t: "– one retry per timeout window, proven by unit test" },
+              { t: "– Riley tightened the scheduleRetry docs" },
+              { t: "– guard prevents double scheduleRetry" },
+            ],
+            caret: 4,
+            typing: null,
+            term: [
+              { t: '$ git commit -m "fix(router): guard pending retry"' },
+              { t: "[router-fix 4c2a11d] 2 files changed", cls: "dim" },
+              { t: "$ gh pr create --fill" },
+              { t: "waiting for approval…", cls: "dim" },
+            ],
+            spin: true,
+            activity: "opening the PR",
+          },
+        },
       },
     },
     {
@@ -2587,6 +2851,17 @@
       cursor: { target: ".gates-card .approve", action: "click" },
       patch: {
         showGatesCard: false,
+        stage: {
+          work: {
+            term: [
+              { t: "$ gh pr create --fill" },
+              { t: "waiting for approval…", cls: "dim" },
+              { t: "PR #12 opened ✓", cls: "ok" },
+            ],
+            spin: false,
+            activity: "done — PR open",
+          },
+        },
         feedMessages: [
           { id: "m9", from: "system", who: "Hub", text: "pr_create approved — PR #12 opened." },
         ],
@@ -3031,7 +3306,7 @@
 
       // The shared screen: human pin > presented artifact > live workspace.
       // Narration is excluded — it lives in the fixed caption slot below.
-      const screenSig = JSON.stringify({ sharer: state.stage.sharer, show: state.stage.show, pin: state.stage.pin });
+      const screenSig = JSON.stringify({ sharer: state.stage.sharer, show: state.stage.show, pin: state.stage.pin, work: state.stage.work });
       if (screenSig !== R.screenSig) {
         R.screenSig = screenSig;
         R.el.screen.classList.toggle("human", human);
@@ -3055,6 +3330,7 @@
           R.el.bar.innerHTML = barHtml;
         }
         let bodyHtml;
+        let isWorkspace = false;
         if (human) {
           bodyHtml =
             '<div class="screen-pin"><div class="kind">Your pin</div>' +
@@ -3062,6 +3338,10 @@
             '<div class="summary">' + escapeHtml(state.stage.pin.ref) + "</div></div>";
         } else if (state.stage.show) {
           bodyHtml = buildScreenBody(state.stage.show);
+        } else if (state.stage.sharer && state.stage.work) {
+          // Live workspace: the sharer's actual work, never a black screen.
+          isWorkspace = true;
+          bodyHtml = buildWorkspace(state.stage.work);
         } else {
           bodyHtml =
             '<div class="screen-idle"><span class="av">' + escapeHtml(presenter.slice(0, 1)) + "</span>" +
@@ -3070,6 +3350,7 @@
         }
         if (bodyHtml !== R.bodyHtml) {
           R.bodyHtml = bodyHtml;
+          R.el.body.classList.toggle("ws-host", isWorkspace);
           R.el.body.innerHTML = bodyHtml;
           R.el.body.classList.remove("swap");
           void R.el.body.offsetWidth;
@@ -3283,6 +3564,41 @@
         escapeHtml(show.body.toast) + "</span></div></div></div>";
     }
     return "";
+  }
+
+  /** The live workspace body (see the Workspace typedef): editor pane with
+   *  a file tab, numbered lines, caret / typed-in last line, over a
+   *  terminal pane with staggered output and an optional prompt spinner. */
+  function buildWorkspace(work) {
+    const code = work.code || [];
+    let lines = code.map(function (l, i) {
+      let text = escapeHtml(l.t);
+      if (!work.typing && work.caret === i) text += '<span class="ws-caret" aria-hidden="true"></span>';
+      return '<div class="ws-cl' + (l.hl ? " hl" : "") + '"><span class="ln">' + (i + 1) +
+        '</span><span class="tx">' + text + "</span></div>";
+    }).join("");
+    if (work.typing) {
+      lines += '<div class="ws-cl"><span class="ln">' + (code.length + 1) +
+        '</span><span class="tx"><span class="type">' + escapeHtml(work.typing) + "</span></span></div>";
+    }
+    const term = (work.term || []).map(function (l, i, arr) {
+      let text = l.t.indexOf("$ ") === 0
+        ? '<span class="ps">$</span> ' + escapeHtml(l.t.slice(2))
+        : escapeHtml(l.t);
+      if (work.spin && i === arr.length - 1) text += '<span class="ws-spin" aria-hidden="true"></span>';
+      return '<div class="ws-tl' + (l.cls ? " " + l.cls : "") + '" style="--i:' + i + '">' + text + "</div>";
+    }).join("");
+    return (
+      '<div class="ws">' +
+        '<div class="ws-ed">' +
+          '<div class="ws-tabs"><span class="ws-tab on">' + escapeHtml(work.file) + "</span>" +
+            (work.activity ? '<span class="ws-activity">' + escapeHtml(work.activity) + "</span>" : "") +
+          "</div>" +
+          '<div class="ws-code">' + lines + "</div>" +
+        "</div>" +
+        '<div class="ws-term">' + term + "</div>" +
+      "</div>"
+    );
   }
 
   // ---- Scrubber (acts 0–9) ----
