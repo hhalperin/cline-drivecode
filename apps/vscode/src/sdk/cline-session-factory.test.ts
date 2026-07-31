@@ -39,8 +39,8 @@ const mocks = vi.hoisted(() => {
 				actModeApiModelId: "claude-sonnet-4-6",
 				apiKey: "test-key",
 			})),
-			getGlobalSettingsKey: vi.fn((key: string): boolean | undefined => {
-				if (key === "subagentsEnabled" || key === "useAutoCondense") {
+			getGlobalSettingsKey: vi.fn((_key: string): unknown => {
+				if (_key === "subagentsEnabled" || _key === "useAutoCondense") {
 					return false
 				}
 				return undefined
@@ -337,7 +337,7 @@ describe("buildSessionConfig", () => {
 
 	it("lets maxIterations setting override PRODUCT_DEFAULT_MAX_ITERATIONS (BL-5.5)", async () => {
 		mocks.stateManager.getApiConfiguration.mockReturnValue({} as any)
-		mocks.stateManager.getGlobalSettingsKey.mockImplementation((key: string) => {
+		mocks.stateManager.getGlobalSettingsKey.mockImplementation((key: string): unknown => {
 			if (key === "maxIterations") {
 				return 7
 			}

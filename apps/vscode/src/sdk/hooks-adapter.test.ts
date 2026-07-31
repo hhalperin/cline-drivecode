@@ -22,7 +22,11 @@ function makeUsage(overrides?: Partial<AgentUsage>): AgentUsage {
 }
 
 const mocks = vi.hoisted(() => {
-	const run = vi.fn(async () => ({ cancel: false }))
+	const run = vi.fn(
+		async (): Promise<{ cancel: boolean; errorMessage?: string }> => ({
+			cancel: false,
+		}),
+	)
 	const hasHook = vi.fn(async (_name: string) => true)
 	const create = vi.fn(async (_name: string) => ({ run }))
 	return {
