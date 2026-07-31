@@ -1276,6 +1276,71 @@
   }
   .g-edge { color: var(--dim); }
 
+  /* Artifacts surface */
+  .arts {
+    flex: 1;
+    padding: 20px 22px;
+    overflow: auto;
+  }
+  .arts h2 {
+    font: 700 18px/1.2 var(--display);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .arts .lead { color: var(--muted); margin-bottom: 18px; }
+  .art-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .art-card {
+    padding: 12px 14px;
+    border-radius: var(--r);
+    border: 0.8px solid var(--line);
+    background: var(--raised);
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .art-head {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .art-kind {
+    font: 600 10px/1 var(--eyebrow);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--live-t);
+  }
+  .art-glyph { margin-left: auto; color: var(--dim); flex: none; display: grid; place-items: center; }
+  .art-glyph svg { width: 14px; height: 14px; display: block; }
+  .art-title { font: 600 13px/1.3 var(--display); color: var(--text); }
+  .art-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--dim);
+    font-size: 11px;
+  }
+  .art-act {
+    font: 500 10px/1 var(--mono);
+    color: var(--dim);
+    border: 0.8px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 7px;
+  }
+  .art-empty {
+    grid-column: 1 / -1;
+    min-height: 180px;
+    display: grid;
+    place-items: center;
+    text-align: center;
+    color: var(--dim);
+    padding: 24px;
+  }
+
   /* Call strip */
   .call-strip {
     display: none;
@@ -1575,6 +1640,7 @@
     .rail { padding: 10px 8px; }
     .rail-item { padding: 8px 10px; }
     .rooms { padding: 14px 16px; }
+    .arts { padding: 14px 16px; }
     .lens-tabs { padding: 6px 10px; }
     .lens-body { padding: 12px 14px; }
     .board-tile .n { font-size: 19px; }
@@ -1701,6 +1767,10 @@
       <svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
       <span class="label">Status</span>
     </button>
+    <button type="button" class="rail-item" data-surface="artifacts" id="rail-artifacts">
+      <svg class="rail-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+      <span class="label">Artifacts</span>
+    </button>
     <div class="rail-foot">Room <span class="mono">router-fix</span></div>
   </nav>
 
@@ -1819,6 +1889,15 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Artifacts -->
+      <div class="surface" id="surface-artifacts">
+        <div class="arts">
+          <h2>Artifacts</h2>
+          <p class="lead">Everything the director produced this session — plans, diagrams, walkthroughs, captures, handoffs.</p>
+          <div class="art-grid" id="art-grid"></div>
         </div>
       </div>
 
@@ -1946,6 +2025,9 @@
    *  the Show backlog the director is staging from.
    * @typedef {{ kind: 'plan'|'diagram'|'walk'|'capture', kindLabel: string, sticky: 'replace'|'hold', maturity?: string, title: string, body: object }} ShowArtifact
    * @typedef {{ id: string, label: string, status: 'planned'|'ready'|'showing'|'shown' }} ShowBacklogItem */
+  /** Session artifact: a row on the Artifacts surface. Grown by RESTATING
+   *  the full array in each beat's patch (deepMerge replaces arrays wholesale).
+   * @typedef {{ id: string, kindLabel: string, title: string, presenter: string, act: number, sticky: 'replace'|'hold', maturity?: string }} SessionArtifact */
   /** Live workspace: what the sharer is actually doing when nothing is
    *  staged (no pin, no show). Rendered by buildWorkspace as a two-pane
    *  mini-IDE (editor + terminal). Because deepMerge MERGES objects, a
@@ -1977,7 +2059,8 @@
    *   sinceYouLeft: string|null,
    *   handoff: boolean,
    *   privacyDebug: boolean,
-   *   surface: 'chat'|'drive'|'drive-in-call'|'status',
+   *   artifacts: SessionArtifact[],
+   *   surface: 'chat'|'drive'|'drive-in-call'|'status'|'artifacts',
    *   statusLens: 'board'|'changelog'|'sessions'|'depmap',
    *   pipVisible: boolean,
    *   feedMessages: Array<{id:string,from:string,who:string,text:string,chips?:string[]}>,
@@ -2004,6 +2087,7 @@
     sinceYouLeft: null,
     handoff: false,
     privacyDebug: false,
+    artifacts: [],
     surface: "chat",
     statusLens: "board",
     pipVisible: false,
@@ -2077,6 +2161,14 @@
       { t: "add", s: "// scheduleRetry fires at most once per timeout window" },
     ],
   };
+
+  /** Session artifacts (Artifacts surface). Titles/sticky/maturity mirror the
+   *  show object of the beat that presented each one. @type {SessionArtifact[]} */
+  const ART_PLAN = { id: "art-plan", kindLabel: "doc.plan", title: "Fix plan · router-fix", presenter: "Adam", act: 3, sticky: "replace" };
+  const ART_ARCH = { id: "art-arch", kindLabel: "diagram.architecture", title: "cline-drive · system architecture", presenter: "Adam", act: 3, sticky: "hold" };
+  const ART_WALK = { id: "art-walk", kindLabel: "walkthrough.code", title: "router.ts · the guard", presenter: "Adam", act: 3, sticky: "hold" };
+  const ART_CAPTURE = { id: "art-capture", kindLabel: "capture.screenshot", title: "router-lab · retry proof", presenter: "Adam", act: 3, sticky: "replace", maturity: "planned" };
+  const ART_HANDOFF = { id: "art-handoff", kindLabel: "doc.handoff", title: "Tier-0 handoff · router-fix", presenter: "Hub", act: 7, sticky: "replace" };
 
   /** Cursor spec: performed against the PREVIOUS beat's DOM during autoplay
    *  (or this beat's DOM when `when: "after"`), so targets must be visible there.
@@ -2274,6 +2366,7 @@
       patch: {
         showHowInset: false,
         narration: "Plan first — three steps. Watch the stage.",
+        artifacts: [ART_PLAN],
         stage: {
           show: {
             kind: "plan",
@@ -2308,6 +2401,7 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         narration: "The hub is the single writer. Our race lived in scheduleRetry — right there.",
+        artifacts: [ART_PLAN, ART_ARCH],
         stage: {
           show: {
             kind: "diagram",
@@ -2386,6 +2480,7 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         narration: "Walking the guard — line 43 is the whole fix.",
+        artifacts: [ART_PLAN, ART_ARCH, ART_WALK],
         stage: {
           show: {
             kind: "walk",
@@ -2425,6 +2520,7 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         narration: "And the behavior: one retry, then success.",
+        artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE],
         stage: {
           show: {
             kind: "capture",
@@ -2663,6 +2759,16 @@
       patch: { statusLens: "depmap" },
     },
     {
+      id: "a6-artifacts",
+      act: 6,
+      title: "Artifacts surface",
+      caption: "Artifacts: the session's Show backlog, kept reviewable — every plan, diagram, and capture in one place.",
+      maturity: "shipped",
+      dwellMs: 1600,
+      cursor: { target: "#rail-artifacts", action: "click" },
+      patch: { surface: "artifacts" },
+    },
+    {
       id: "a7-leave-choice",
       act: 7,
       title: "Leave ≠ End choice",
@@ -2711,6 +2817,7 @@
         handoff: true,
         showLeaveChoice: false,
         participants: [{ ...YOU }, { ...ADAM }, { ...RILEY }],
+        artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
         feedMessages: [
           { id: "m7", from: "system", who: "Hub", text: "call_end · building Tier-0 handoff from typed events." },
         ],
@@ -3120,6 +3227,7 @@
     howOn: null,
     deckSig: null,
     cardIds: {},
+    artsSig: null,
     el: null,
   };
 
@@ -3171,6 +3279,15 @@
     );
     document.getElementById("surface-drive").classList.toggle("on", state.surface === "drive");
     document.getElementById("surface-status").classList.toggle("on", state.surface === "status");
+    document.getElementById("surface-artifacts").classList.toggle("on", state.surface === "artifacts");
+
+    // Artifacts gallery — its own signature (artifact list + surface), so it
+    // repaints only when the session's artifacts change or the surface opens.
+    const artsSig = JSON.stringify({ a: state.artifacts, on: state.surface === "artifacts" });
+    if (artsSig !== R.artsSig) {
+      R.artsSig = artsSig;
+      renderArtifacts(state.artifacts);
+    }
 
     document.getElementById("feed-sub").textContent =
       state.inCall ? "router-fix · live" : "chat";
@@ -3499,6 +3616,39 @@
       .replace(/"/g, "&quot;");
   }
 
+  // ---- Artifacts surface ----
+  // Small kind glyphs keyed by the kindLabel family (doc / diagram /
+  // walkthrough / capture), lucide-style strokes.
+  const ART_GLYPHS = {
+    doc: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+    diagram: '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
+    walkthrough: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+    capture: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  };
+
+  function renderArtifacts(artifacts) {
+    const grid = document.getElementById("art-grid");
+    if (!artifacts.length) {
+      grid.innerHTML = '<div class="art-empty">No artifacts yet — the director’s Show backlog fills this page as it presents.</div>';
+      return;
+    }
+    grid.innerHTML = artifacts.map(function (a) {
+      const glyph = ART_GLYPHS[a.kindLabel.split(".")[0]] || ART_GLYPHS.doc;
+      return (
+        '<div class="art-card">' +
+          '<div class="art-head"><span class="art-kind">' + escapeHtml(a.kindLabel) + "</span>" +
+            '<span class="art-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + "</svg></span>" +
+          "</div>" +
+          '<div class="art-title">' + escapeHtml(a.title) + "</div>" +
+          '<div class="art-meta"><span>' + escapeHtml(a.presenter) + '</span><span class="art-act">act ' + a.act + "</span>" +
+            '<span class="sticky-chip">sticky · ' + escapeHtml(a.sticky) + "</span>" +
+            (a.maturity === "planned" ? '<span class="badge planned">planned</span>' : "") +
+          "</div>" +
+        "</div>"
+      );
+    }).join("");
+  }
+
   // ---- Shared-screen bodies ----
   // The literal cline-drive architecture: clients ← hub daemon (single
   // writer) ← agents' typed events, with the director's show path and the
@@ -3657,6 +3807,7 @@
       document.getElementById("surface-call").classList.toggle("on", surface === "chat");
       document.getElementById("surface-drive").classList.toggle("on", surface === "drive");
       document.getElementById("surface-status").classList.toggle("on", surface === "status");
+      document.getElementById("surface-artifacts").classList.toggle("on", surface === "artifacts");
     });
   });
   document.querySelectorAll("#lens-tabs button").forEach(function (btn) {
