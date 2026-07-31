@@ -4,34 +4,57 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Drive · product demo</title>
+<script>
+  // Apply a stored theme before first paint. Light is the default.
+  try {
+    if (localStorage.getItem("drive-demo-theme") === "dark") {
+      document.documentElement.classList.add("dark");
+    }
+  } catch (e) { /* storage unavailable — stay light */ }
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
 <style>
+  /* Light is the default, mirroring the shipped hub (:root in
+     apps/cline-hub/src/webview/src/index.css); html.dark mirrors its .dark
+     surface ladder. Text accents shift per theme the way the product does
+     (amber-700 on light / amber-300 on dark, #6D2FC4 / #B98AFF for purple). */
   :root {
-    --bg: #0A0A0A;
-    --panel: #101013;
-    --raised: #12131A;
-    --well: #08080A;
-    --line: rgba(255, 255, 255, 0.10);
-    --hair: rgba(255, 255, 255, 0.05);
-    --text: #FFFFFF;
-    --muted: #9CA3AF;
-    --dim: #6B7280;
+    color-scheme: light;
+    --bg: #F8FAFB;
+    --panel: #FFFFFF;
+    --raised: #FFFFFF;
+    --well: rgba(21, 21, 22, 0.035);
+    --overlay: #FFFFFF;
+    --overlay-shadow: 0 8px 24px rgba(21, 21, 22, 0.10);
+    --chrome: rgba(248, 250, 251, 0.95);
+    --line: rgba(21, 21, 22, 0.12);
+    --hair: rgba(21, 21, 22, 0.08);
+    --line-strong: rgba(21, 21, 22, 0.28);
+    --hover-fill: rgba(21, 21, 22, 0.04);
+    --text: #151516;
+    --muted: rgba(21, 21, 22, 0.78);
+    --dim: rgba(21, 21, 22, 0.55);
+    --neutral-t: rgba(21, 21, 22, 0.82);
     --drive: #9F58FA;
-    --drive-t: #B98AFF;
-    --drive-b: #9663F1;
+    --drive-t: #6D2FC4;
+    --drive-b: #9F58FA;
     --ok: #2BCC28;
-    --ok-soft: #4ADE80;
+    --ok-soft: #16A34A;
     --danger: #F53969;
+    --danger-t: #BE123C;
     --hub: #5487C8;
+    --hub-t: #3E6396;
     /* Live-call chrome (product amber). --live also colors the cursor click ripple. */
     --live: #F59E0B;
-    --live-t: #FCD34D;
-    --live-soft: #FEF3C7;
-    --spot: #34D399;
+    --live-t: #B45309;
+    --live-soft: #92400E;
+    --spot: #10B981;
+    /* The terminal card stays dark in both themes — signature Cline surface. */
     --term-bg: #1B1D24;
     --term-line: rgba(75, 85, 99, 0.95);
+    --term-text: #D1D5DB;
     --prompt: #4ADE80;
     --ui: "Schibsted Grotesk", system-ui, -apple-system, sans-serif;
     --display: "DM Sans", system-ui, sans-serif;
@@ -40,6 +63,32 @@
     --r: 9px;
     --r-lg: 13px;
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  html.dark {
+    color-scheme: dark;
+    --bg: #0A0A0A;
+    --panel: #101013;
+    --raised: #12131A;
+    --well: #08080A;
+    --overlay: #171923;
+    --overlay-shadow: none;
+    --chrome: rgba(10, 10, 10, 0.96);
+    --line: rgba(255, 255, 255, 0.10);
+    --hair: rgba(255, 255, 255, 0.05);
+    --line-strong: rgba(255, 255, 255, 0.22);
+    --hover-fill: rgba(255, 255, 255, 0.05);
+    --text: #FFFFFF;
+    --muted: #9CA3AF;
+    --dim: #6B7280;
+    --neutral-t: #D1D5DB;
+    --drive-t: #B98AFF;
+    --drive-b: #9663F1;
+    --ok-soft: #4ADE80;
+    --danger-t: #F53969;
+    --hub-t: #85ABD9;
+    --live-t: #FCD34D;
+    --live-soft: #FEF3C7;
+    --spot: #34D399;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -64,7 +113,7 @@
     background: none;
   }
   button:focus-visible {
-    outline: 2px solid var(--drive);
+    outline: 2px solid var(--drive-b);
     outline-offset: 2px;
   }
   code, .mono { font-family: var(--mono); }
@@ -83,7 +132,7 @@
     gap: 10px;
     flex-wrap: nowrap;
     padding: 7px 12px;
-    background: rgba(10, 10, 10, 0.96);
+    background: var(--chrome);
     border-bottom: 0.8px solid var(--hair);
     backdrop-filter: blur(8px);
     position: relative;
@@ -120,10 +169,14 @@
   #btn-play .i-pause { display: none; }
   #btn-play.on .i-pause { display: block; }
   #btn-play.on .i-play { display: none; }
+  #btn-theme { flex: none; }
+  #btn-theme .i-sun { display: none; }
+  html.dark #btn-theme .i-sun { display: block; }
+  html.dark #btn-theme .i-moon { display: none; }
   .player-controls button:hover,
   .scrubber button:hover {
     color: var(--text);
-    border-color: rgba(255,255,255,.22);
+    border-color: var(--line-strong);
   }
   .player-controls button.on {
     background: color-mix(in srgb, var(--drive) 18%, var(--panel));
@@ -148,7 +201,7 @@
     color: #fff;
   }
   .scrubber button.visited:not(.active) {
-    border-color: color-mix(in srgb, var(--drive) 55%, transparent);
+    border-color: color-mix(in srgb, var(--drive-b) 55%, transparent);
     color: var(--drive-t);
   }
   .beat-meta {
@@ -186,7 +239,7 @@
   }
   .hub-op {
     font: 500 10px/1 var(--mono);
-    color: var(--hub);
+    color: var(--hub-t);
     background: color-mix(in srgb, var(--hub) 12%, transparent);
     border: 0.8px solid color-mix(in srgb, var(--hub) 35%, transparent);
     border-radius: 8px;
@@ -250,10 +303,10 @@
     border: 0.8px solid transparent;
   }
   .rail-item .rail-ico { color: var(--dim); flex: none; }
-  .rail-item:hover { color: var(--text); background: color-mix(in srgb, #FFFFFF 5%, transparent); }
+  .rail-item:hover { color: var(--text); background: var(--hover-fill); }
   .rail-item.active {
     background: color-mix(in srgb, var(--drive) 14%, transparent);
-    border-color: color-mix(in srgb, var(--drive) 40%, transparent);
+    border-color: color-mix(in srgb, var(--drive-b) 40%, transparent);
     color: var(--text);
   }
   .rail-item.active .rail-ico { color: var(--drive-t); }
@@ -343,7 +396,7 @@
     background: var(--raised);
     animation: rise .28s var(--ease);
   }
-  .msg.you { align-self: flex-end; border-color: rgba(255,255,255,.22); }
+  .msg.you { align-self: flex-end; border-color: var(--line-strong); }
   .msg.agent, .msg.system { align-self: flex-start; }
   .msg .who {
     font: 600 11px/1 var(--eyebrow);
@@ -352,7 +405,7 @@
     margin-bottom: 5px;
   }
   .msg.you .who { color: var(--muted); }
-  .msg.system .who { color: var(--hub); }
+  .msg.system .who { color: var(--hub-t); }
   .msg .body { color: var(--text); font-size: 13px; }
   .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .chip {
@@ -364,8 +417,8 @@
     background: var(--well);
   }
   .chip.on {
-    color: #D1D5DB;
-    border-color: rgba(255,255,255,.25);
+    color: var(--neutral-t);
+    border-color: var(--line-strong);
     background: var(--well);
   }
   .chip.steer {
@@ -380,7 +433,7 @@
     color: var(--text);
     font-size: 12.5px;
   }
-  .banner strong { color: var(--hub); }
+  .banner strong { color: var(--hub-t); }
 
   .roster {
     display: flex;
@@ -415,7 +468,7 @@
     border-color: color-mix(in srgb, var(--live) 55%, transparent);
     color: var(--live-t);
   }
-  .seat.human .av { color: var(--hub); }
+  .seat.human .av { color: var(--hub-t); }
   .seat .role {
     font: 500 10px/1 var(--eyebrow);
     letter-spacing: .05em;
@@ -502,7 +555,7 @@
   .how-inset {
     padding: 12px;
     border-radius: var(--r-lg);
-    border: 1px dashed color-mix(in srgb, var(--drive) 50%, transparent);
+    border: 1px dashed color-mix(in srgb, var(--drive-b) 50%, transparent);
     background: color-mix(in srgb, var(--drive) 8%, var(--well));
   }
   .how-inset h3 {
@@ -544,15 +597,18 @@
     text-transform: uppercase;
     margin-bottom: 6px;
   }
-  .card.edit .kind { color: #D1D5DB; }
-  .card.command .kind { color: var(--hub); }
+  .card.edit .kind { color: var(--neutral-t); }
   .card.test .kind { color: var(--ok-soft); }
-  .card.edit { border-left: 3px solid rgba(255,255,255,.28); }
+  .card.edit { border-left: 3px solid var(--line-strong); }
+  /* Terminal card is fixed-dark in both themes, so its internals are literal. */
   .card.command {
     background: var(--term-bg);
     border-color: var(--term-line);
     border-radius: var(--r-lg);
+    color: var(--term-text);
   }
+  .card.command .kind { color: #85ABD9; }
+  .card.command .title { color: #FFFFFF; }
   .card.test {
     border-left: 3px solid var(--ok);
     background: color-mix(in srgb, var(--ok) 6%, var(--raised));
@@ -561,7 +617,7 @@
   .card .summary { color: var(--muted); font-size: 12px; }
   .card.command .summary {
     font-family: var(--eyebrow);
-    color: #D1D5DB;
+    color: var(--term-text);
   }
   .card.command .summary::before { content: "$ "; color: var(--prompt); font-weight: 700; }
   .pin-card {
@@ -605,8 +661,8 @@
     max-width: 420px;
     padding: 14px 16px;
     border-radius: var(--r-lg);
-    border: 0.8px solid color-mix(in srgb, var(--drive) 45%, transparent);
-    background: linear-gradient(180deg, var(--raised), var(--panel));
+    border: 0.8px solid color-mix(in srgb, var(--drive-b) 45%, transparent);
+    background: var(--raised);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -649,7 +705,7 @@
     color: var(--muted);
     font-weight: 500;
   }
-  .lens-tabs button:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
+  .lens-tabs button:hover { color: var(--text); border-color: var(--line-strong); }
   .lens-tabs button.on {
     color: var(--text);
     border-color: color-mix(in srgb, var(--hub) 45%, transparent);
@@ -767,7 +823,7 @@
     color: var(--muted);
     font-weight: 600;
   }
-  .strip-btn:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
+  .strip-btn:hover { color: var(--text); border-color: var(--line-strong); }
   .strip-btn.hand.on {
     color: var(--live-t);
     border-color: color-mix(in srgb, var(--live) 55%, transparent);
@@ -775,7 +831,7 @@
     box-shadow: 0 0 0 0.8px color-mix(in srgb, var(--live) 25%, transparent);
   }
   .strip-btn.leave {
-    color: var(--danger);
+    color: var(--danger-t);
     border-color: color-mix(in srgb, var(--danger) 40%, transparent);
   }
   .mode-pill {
@@ -820,7 +876,8 @@
     padding: 14px;
     border-radius: var(--r-lg);
     border: 0.8px solid var(--line);
-    background: #171923;
+    background: var(--overlay);
+    box-shadow: var(--overlay-shadow);
     display: none;
   }
   .overlay-card.on { display: block; animation: rise .25s var(--ease); }
@@ -838,14 +895,14 @@
     background: var(--well);
     font-weight: 600;
   }
-  .choice-row button:hover { filter: brightness(1.25); }
+  .choice-row button:hover { border-color: var(--line-strong); background: var(--hover-fill); }
   .choice-row button.leave-opt {
     border-color: color-mix(in srgb, var(--hub) 45%, transparent);
-    color: var(--hub);
+    color: var(--hub-t);
   }
   .choice-row button.end-opt {
     border-color: color-mix(in srgb, var(--danger) 45%, transparent);
-    color: var(--danger);
+    color: var(--danger-t);
   }
   .handoff {
     position: absolute;
@@ -866,7 +923,7 @@
   }
   .handoff .tier {
     font: 500 11px/1 var(--mono);
-    color: var(--hub);
+    color: var(--hub-t);
     margin-bottom: 14px;
   }
   .handoff-grid {
@@ -906,7 +963,8 @@
     padding: 14px;
     border-radius: var(--r-lg);
     border: 0.8px solid color-mix(in srgb, var(--live) 45%, transparent);
-    background: #171923;
+    background: var(--overlay);
+    box-shadow: var(--overlay-shadow);
     display: none;
   }
   .gates-card.on { display: block; animation: rise .25s var(--ease); }
@@ -926,7 +984,7 @@
     border: 0.8px solid var(--line);
     font-weight: 600;
   }
-  .gates-actions button:hover { filter: brightness(1.25); }
+  .gates-actions button:hover { border-color: var(--line-strong); background: var(--hover-fill); }
   .gates-actions .approve {
     background: color-mix(in srgb, var(--ok) 14%, transparent);
     border-color: color-mix(in srgb, var(--ok) 40%, transparent);
@@ -935,7 +993,7 @@
   .gates-actions .deny {
     background: color-mix(in srgb, var(--danger) 10%, transparent);
     border-color: color-mix(in srgb, var(--danger) 35%, transparent);
-    color: var(--danger);
+    color: var(--danger-t);
   }
 
   /* PiP — anchored inside .main-body so it can never cover the strip/caption */
@@ -948,7 +1006,8 @@
     padding: 12px;
     border-radius: var(--r-lg);
     border: 0.8px solid color-mix(in srgb, var(--live) 40%, transparent);
-    background: #171923;
+    background: var(--overlay);
+    box-shadow: var(--overlay-shadow);
     display: none;
   }
   .pip.on { display: block; animation: rise .28s var(--ease); }
@@ -973,7 +1032,7 @@
     font: 600 10px/1 var(--ui);
     color: var(--muted);
   }
-  .pip .pip-actions button:hover { color: var(--text); border-color: rgba(255,255,255,.22); }
+  .pip .pip-actions button:hover { color: var(--text); border-color: var(--line-strong); }
   .pip .pip-actions button.hand.on {
     color: var(--live-t);
     border-color: color-mix(in srgb, var(--live) 50%, transparent);
@@ -1075,11 +1134,12 @@
     animation: demo-ripple .45s var(--ease) forwards;
   }
   @keyframes demo-ripple { to { transform: scale(1.1); opacity: 0; } }
+  /* Ring pulse instead of a brightness flash so the press reads on both themes. */
   .demo-pressed { animation: demo-pressed .18s var(--ease); }
   @keyframes demo-pressed {
-    0% { transform: scale(1); filter: brightness(1); }
-    40% { transform: scale(.96); filter: brightness(1.4); }
-    100% { transform: scale(1); filter: brightness(1); }
+    0% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+    40% { transform: scale(.96); box-shadow: 0 0 0 3px color-mix(in srgb, var(--live) 35%, transparent); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
   }
   @media (prefers-reduced-motion: reduce) {
     .demo-cursor-layer { display: none !important; }
@@ -1124,6 +1184,12 @@
     <div class="beat-title" id="beat-title">—</div>
     <span class="hub-op empty" id="hub-op">—</span>
     <span class="badge shipped" id="maturity">shipped</span>
+  </div>
+  <div class="player-controls">
+    <button type="button" id="btn-theme" title="Toggle theme" aria-label="Switch to dark theme">
+      <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    </button>
   </div>
   <div class="player-progress" aria-hidden="true"><i id="player-progress-fill"></i></div>
 </header>
@@ -2438,6 +2504,17 @@
 
   // ---- Wire controls ----
   document.getElementById("btn-play").addEventListener("click", togglePlay);
+  const themeBtn = document.getElementById("btn-theme");
+  function syncThemeLabel() {
+    const dark = document.documentElement.classList.contains("dark");
+    themeBtn.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+  }
+  themeBtn.addEventListener("click", function () {
+    const dark = document.documentElement.classList.toggle("dark");
+    syncThemeLabel();
+    try { localStorage.setItem("drive-demo-theme", dark ? "dark" : "light"); } catch (e) { /* ignore */ }
+  });
+  syncThemeLabel();
   document.getElementById("btn-next").addEventListener("click", function () {
     pause();
     goTo(index + 1, false);
