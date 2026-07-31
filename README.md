@@ -20,7 +20,7 @@ Stay on a call with your agents. See what they are doing. Steer.
 </p>
 
 <p align="center">
-<sub>2× speed · <a href="docs/drivecode/design/canvases/drive-product-demo.html">open the interactive demo</a> (36 scripted beats, keyboard: ←/→/Space)</sub>
+<sub>2× speed · <a href="docs/drivecode/design/canvases/drive-product-demo.html">open the interactive demo</a> (44 scripted beats, keyboard: ←/→/Space)</sub>
 </p>
 
 ---
