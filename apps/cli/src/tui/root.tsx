@@ -640,13 +640,6 @@ function App(props: TuiProps) {
 		setSessionLastTotalTokens,
 	]);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
-	useEffect(() => {
-		if (props.initialView === "config") {
-			openConfig();
-		}
-	}, []);
-
 	const {
 		source: statusSource,
 		bootstrap: statusBootstrap,
