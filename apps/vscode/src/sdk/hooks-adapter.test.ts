@@ -133,6 +133,18 @@ describe("buildAgentHooks", () => {
 		)
 	})
 
+	it("maps TaskResume cancel to AgentStopControl (BL-7.6)", async () => {
+		mocks.run.mockResolvedValue({ cancel: true, errorMessage: "resume cancelled" })
+		const hooks = buildAgentHooks(makeStateManager(), undefined, { isResume: true })
+		const control = await hooks.beforeRun?.(makeLifecycleCtx())
+
+		expect(mocks.create).toHaveBeenCalledWith("TaskResume")
+		expect(control).toEqual({
+			stop: true,
+			reason: "resume cancelled",
+		})
+	})
+
 	it("fires TaskResume when CLINE_HOOK_AGENT_RESUME=1 (CLI env parity)", async () => {
 		process.env.CLINE_HOOK_AGENT_RESUME = "1"
 		const hooks = buildAgentHooks(makeStateManager())

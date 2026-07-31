@@ -214,7 +214,7 @@ export class SdkCompactionCoordinator {
 
 		const cwd = await this.options.getWorkspaceRoot()
 		const mode = this.getCurrentMode()
-		const config = await this.options.sessionConfigBuilder.build({ cwd, mode })
+		const config = await this.options.sessionConfigBuilder.build({ cwd, mode, isResume: true })
 
 		// A live divider row, updated in place (same ts) from "started" to its
 		// terminal state — the same UX as the CLI's compaction divider.

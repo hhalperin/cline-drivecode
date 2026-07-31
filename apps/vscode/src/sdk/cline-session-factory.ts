@@ -9,6 +9,7 @@
 // The factory does NOT handle UI concerns — that's the SdkController's job.
 
 import {
+	buildSessionExtensionWorkspace,
 	type ClineCoreStartInput,
 	type CoreSessionConfig,
 	getProviderAuthHandler,
@@ -956,6 +957,13 @@ export async function buildSessionConfig(input: SessionConfigInput): Promise<Cor
 		applyDefaultMaxIterations: true,
 	})
 	const pluginPaths = resolveSessionPluginPaths({ cwd, workspaceRoot })
+	const workspace = buildSessionExtensionWorkspace({
+		cwd,
+		workspaceRoot,
+		workspaceName: resolveWorkspaceName(workspaceRoot),
+		ide: "VS Code",
+		mode: mode === "plan" ? "plan" : "act",
+	})
 
 	const config: CoreSessionConfig = {
 		providerId: sdkProviderId,
@@ -1004,14 +1012,7 @@ export async function buildSessionConfig(input: SessionConfigInput): Promise<Cor
 				platformVersion: hostIdentity?.version || undefined,
 				isMultiRoot,
 			},
-			workspace: {
-				rootPath: workspaceRoot,
-				cwd,
-				workspaceName: resolveWorkspaceName(workspaceRoot),
-				ide: "VS Code",
-				platform: process.platform,
-				mode: mode === "plan" ? "plan" : "act",
-			},
+			workspace,
 			logger: sdkLogger,
 		},
 		hooks: buildAgentHooks(StateManager.get(), undefined, {

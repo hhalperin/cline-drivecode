@@ -26,6 +26,21 @@ import { broadcastHubState, hubStatePayload } from "./state-payloads";
 import type { BrowserPeer, SessionContext } from "./types";
 import { asNumber, asString } from "./utils";
 
+/**
+ * Hub Chat session plugin + workspace injection (D3 / SDK-4.2).
+ * Thin helper for tests — prefer over exporting full start-input builders.
+ */
+export function buildHubSessionPluginInjection(
+	cwd: string,
+	workspaceRoot: string = cwd,
+) {
+	return buildSessionPluginInjection({
+		cwd,
+		workspaceRoot,
+		ide: "Cline Hub",
+	});
+}
+
 function toRuntimeReasoningOptions(
 	reasonLevel?: WebviewReasonLevel,
 ): Pick<ClineCoreStartInput["config"], "reasoningEffort" | "thinking"> {
@@ -110,11 +125,10 @@ export function buildSessionStartInput(
 			? { enableAgentTeams: options.enableTeams }
 			: {}),
 	});
-	const sessionPlugins = buildSessionPluginInjection({
-		cwd: context.cwd,
-		workspaceRoot: context.workspaceRoot,
-		ide: "Cline Hub",
-	});
+	const sessionPlugins = buildHubSessionPluginInjection(
+		context.cwd,
+		context.workspaceRoot,
+	);
 	return {
 		source: options?.source ?? SessionSource.WEB,
 		interactive: true,

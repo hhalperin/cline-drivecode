@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { buildSessionStartInput } from "./sessions";
+import { buildHubSessionPluginInjection, buildSessionStartInput } from "./sessions";
 
 const mocks = vi.hoisted(() => ({
 	readCompactionModeGlobally: vi.fn(),
@@ -39,6 +39,29 @@ function makeFixturePluginRoot(): string {
 	);
 	return root;
 }
+
+describe("buildHubSessionPluginInjection (BL-4.1)", () => {
+	it("returns empty pluginPaths and Hub workspace for an empty cwd", () => {
+		const root = mkdtempSync(join(tmpdir(), "hub-thin-empty-"));
+		mkdirSync(join(root, ".cline", "plugins"), { recursive: true });
+
+		const injected = buildHubSessionPluginInjection(root);
+		expect(injected.pluginPaths).toEqual([]);
+		expect(injected.workspace).toMatchObject({
+			rootPath: root,
+			cwd: root,
+			ide: "Cline Hub",
+		});
+	});
+
+	it("discovers fixture plugins under .cline/plugins/", () => {
+		const root = makeFixturePluginRoot();
+		const injected = buildHubSessionPluginInjection(root);
+		expect(injected.pluginPaths.some((p) => p.endsWith("index.ts"))).toBe(
+			true,
+		);
+	});
+});
 
 describe("buildSessionStartInput plugin injection (SDK-4.2)", () => {
 	beforeEach(() => {
