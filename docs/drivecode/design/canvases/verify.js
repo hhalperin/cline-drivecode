@@ -35,7 +35,17 @@
 //      and never clamp words away: every beat's narration slot and
 //      caption strip fit inside the reserve at 1280x640 AND 390x844;
 //  13. contrast: the --dim text tier clears WCAG AA 4.5:1 against --bg
-//      and --panel in both themes (computed from live tokens).
+//      and --panel in both themes (computed from live tokens);
+//  14) contain-fit: on every beat that floats a presented/held artifact
+//      card over the workspace WHILE the deck is visible, the card has
+//      no internal vertical overflow at 1280x640 and an SVG artifact's
+//      rendered box stays inside the screen body (rescale, not crop);
+//  15) large viewports: at 1920x1080 the app column caps at ~1440px and
+//      the VS Code window fills >= 85% of the screen body it gets;
+//  16) end packet: the a7-end-packet handoff panel hugs its content
+//      (no more than 25% dead space) instead of sizing to the room;
+//  17) maturity badges: PLANNED must not wear the amber live/voice hue
+//      in either theme (probed against the retired amber styling).
 //      The battery's LAST check compares every `bun verify.js`
 //      success line the demo shows against this run's real beat/check
 //      counts.
@@ -579,6 +589,129 @@ async function main() {
           theme + " --dim on --" + surface + " is " + ratio.toFixed(2) + ":1, below WCAG AA 4.5:1");
       });
     });
+
+    // 14) Contain-fit: sticky-hold floats an artifact card over the
+    // workspace while the deck compresses the screen — the card must
+    // shrink-and-rescale, never crop, at the 1280x640 floor.
+    const fitRows = await page.evaluate(function () {
+      const D = window.__DRIVE_DEMO__;
+      const out = [];
+      for (let i = 0; i < D.beatCount; i++) {
+        D.goTo(i);
+        const card = document.querySelector("#spotlight .stage-overlay .ov-card");
+        const deck = document.querySelector("#spotlight .cards");
+        if (!card || !card.getClientRects().length) continue;
+        if (!deck || !deck.getClientRects().length) continue;
+        const body = document.querySelector("#spotlight .screen-body");
+        const svg = card.querySelector(".stage-diagram svg");
+        const br = body.getBoundingClientRect();
+        const sr = svg ? svg.getBoundingClientRect() : null;
+        out.push({
+          id: D.beats[i].id,
+          sh: card.scrollHeight,
+          ch: card.clientHeight,
+          svgIn: sr === null ? null :
+            sr.top >= br.top - 1 && sr.bottom <= br.bottom + 1 &&
+            sr.left >= br.left - 1 && sr.right <= br.right + 1,
+        });
+      }
+      return out;
+    });
+    check(fitRows.length >= 3,
+      "contain-fit: expected at least 3 held-card+deck beats (a3-edit/command/test), saw " + fitRows.length);
+    fitRows.forEach(function (r) {
+      check(r.sh <= r.ch + 1,
+        "contain-fit " + r.id + ": overlay card overflows vertically - content " + r.sh + "px > box " + r.ch + "px");
+      if (r.svgIn !== null) {
+        check(r.svgIn, "contain-fit " + r.id + ": artifact SVG spills outside the screen body");
+      }
+    });
+
+    // 15) Large viewports: the monitor illusion — the app column caps at
+    // ~1440px and the VS Code window fills the screen body it gets.
+    await page.setViewport({ width: 1920, height: 1080 });
+    await new Promise(function (res) { setTimeout(res, 300); });
+    const wsIdx = beats.findIndex(function (b) { return b.id === "a5-sharer"; });
+    check(wsIdx > 0, "large viewport: workspace beat a5-sharer not found");
+    const big = await page.evaluate(function (i) {
+      window.__DRIVE_DEMO__.goTo(i);
+      const main = document.querySelector(".main-body");
+      const body = document.querySelector("#spotlight .screen-body");
+      const vsc = document.querySelector("#spotlight .vsc");
+      return {
+        main: main.getBoundingClientRect().width,
+        body: body ? body.clientWidth : 0,
+        vsc: vsc ? vsc.getBoundingClientRect().width : 0,
+      };
+    }, wsIdx);
+    check(big.main <= 1441,
+      "large viewport: main column is " + Math.round(big.main) + "px wide, expected <= 1440");
+    check(big.vsc >= big.body * 0.85,
+      "large viewport: .vsc " + Math.round(big.vsc) + "px < 85% of screen body " + Math.round(big.body) + "px");
+    await page.setViewport({ width: 1280, height: 640 });
+    await new Promise(function (res) { setTimeout(res, 300); });
+
+    // 16) End packet: the handoff panel hugs its content, centered over
+    // the dimmed room — not a room-sized sheet of dead space.
+    const packetIdx = beats.findIndex(function (b) { return b.id === "a7-end-packet"; });
+    check(packetIdx > 0, "end packet: beat a7-end-packet not found");
+    const pk = await page.evaluate(function (i) {
+      window.__DRIVE_DEMO__.goTo(i);
+      const panel = document.querySelector("#handoff .handoff-panel");
+      if (!panel || !panel.getClientRects().length) return null;
+      const cs = getComputedStyle(panel);
+      let top = Infinity;
+      let bottom = -Infinity;
+      Array.prototype.forEach.call(panel.children, function (c) {
+        const r = c.getBoundingClientRect();
+        if (!r.height) return;
+        top = Math.min(top, r.top);
+        bottom = Math.max(bottom, r.bottom);
+      });
+      const content = (bottom > top ? bottom - top : 0) +
+        parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+      return { h: panel.getBoundingClientRect().height, content: content };
+    }, packetIdx);
+    check(!!pk, "end packet: .handoff-panel not rendered at a7-end-packet");
+    if (pk) {
+      check(pk.h <= pk.content * 1.25,
+        "end packet: panel " + Math.round(pk.h) + "px vs content " + Math.round(pk.content) +
+        "px - more than 25% dead space");
+    }
+
+    // 17) Maturity badges: PLANNED must not wear the amber live hue in
+    // either theme — the probe reproduces the retired amber styling.
+    for (const theme of ["light", "dark"]) {
+      await page.evaluate(function (t) {
+        document.documentElement.classList.toggle("dark", t === "dark");
+      }, theme);
+      const badge = await page.evaluate(function () {
+        const el = document.querySelector(".badge.planned");
+        if (!el) return null;
+        const probe = document.createElement("span");
+        probe.style.cssText =
+          "position:absolute;color:var(--live-t);" +
+          "border:0.8px solid color-mix(in srgb, var(--live) 45%, transparent);" +
+          "background:color-mix(in srgb, var(--live) 12%, transparent);";
+        document.body.appendChild(probe);
+        const pc = getComputedStyle(probe);
+        const bc = getComputedStyle(el);
+        const out = {
+          color: [bc.color, pc.color],
+          border: [bc.borderTopColor, pc.borderTopColor],
+          bg: [bc.backgroundColor, pc.backgroundColor],
+        };
+        probe.remove();
+        return out;
+      });
+      check(!!badge, theme + " badge: no .badge.planned in the DOM");
+      if (badge) {
+        check(badge.color[0] !== badge.color[1], theme + " badge: PLANNED text is still the amber live tint");
+        check(badge.border[0] !== badge.border[1], theme + " badge: PLANNED border is still the amber live mix");
+        check(badge.bg[0] !== badge.bg[1], theme + " badge: PLANNED background is still the amber live mix");
+      }
+    }
+    await page.evaluate(function () { document.documentElement.classList.remove("dark"); });
 
     check(pageErrors.length === 0, "pageerrors: " + pageErrors.join(" | "));
 
