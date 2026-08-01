@@ -105,6 +105,28 @@ Pass `voiceSlotId` from the speaking participant's `AgentMediaBag` (biased by
 spotlight owner, per share-and-router PLAN.md) into `speak()` as
 `TtsSpeakOptions.voiceSlot`. Plumbing only; the option and schema field already exist.
 
+### 7. Dead-air design
+
+A real call is mostly within-turn silence while the agent works. The demo canvas
+compresses minutes of diagnosis into seconds, so nothing yet designs the waiting
+experience between narration beats. Three parts:
+
+- **Low-key screen activity from real tool events.** While the agent is mid-turn,
+  the screen should visibly breathe without narration — the demo's thin activity
+  label plus terminal spinner is the reference pattern, driven here by real tool
+  events instead of a script.
+- **Stall earcon + posture change.** The repo already ships a stall subsystem —
+  `classifyStall` (`sdk/packages/drive/src/stallClassifier.ts`, stable reason
+  codes from session rollups + open-task failures), recovery proposals
+  (`apps/cline-hub/src/webview/src/drive/stuckRecovery.ts`), and the
+  recovery-fork UI (`apps/cline-hub/src/webview/src/drive/StuckRecoveryFork.tsx`)
+  — but the call chrome never sells it. When the classifier fires, play a quiet
+  earcon (slice 3 kit) and shift the partner's posture, instead of silent
+  stillness until the recovery offer appears.
+- **Honest-speed rule.** Any future demo cut that compresses time must show
+  visible timestamps, so compression reads as editing rather than claimed
+  latency.
+
 ## Constraints
 
 Quoted from the feature docs; every slice must hold these.

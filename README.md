@@ -46,8 +46,10 @@ The same features ship in two clients against one hub:
 | **Hub UI** | Drive tab in the Cline Hub dashboard |
 | **CLI (TUI)** | Interactive OpenTUI (`bun run cli -i`) |
 
-Everything Drive adds lives under one **Drive** tab in the hub, so it is never
-scattered across the app. The CLI auto-spawns the same hub daemon.
+Everything Drive adds lives together — today under one **Drive** tab in the
+hub, headed toward a customizable rail of Drive surfaces (resize, reorder,
+hide) rather than submenus buried across the app. The CLI auto-spawns the same
+hub daemon.
 
 ![The Drive tab](docs/drivecode/assets/hub/drive-tab.png)
 
@@ -58,7 +60,7 @@ scattered across the app. The CLI auto-spawns the same hub daemon.
 
 - [Drive Mode](#drive-mode) — Hub call + TUI join/leave
 - [Spotlight](#spotlight) — shared surface (Hub + demo)
-- [Status Hub](#status-hub) — Board, Changelog, Dependency map (Hub + TUI)
+- [Status Hub](#status-hub) — Board, Changelog, Dependency map, Sessions (Hub + TUI)
 - [`report_status`](#the-report_status-tool) — how agents publish
 - [Quickstart](#quickstart)
 - [How it fits together](#how-it-fits-together)
@@ -129,9 +131,11 @@ plan/act, so nothing about the underlying agent changes:
 ### Room ownership
 
 Rooms are owned by the hub, which is the single writer for room state — roster,
-who holds the Spotlight, mute flags, sub-mode. Every client renders a projection
-of that state rather than keeping its own copy, so two people looking at the same
-room always see the same thing.
+who holds the Spotlight, mute flags, sub-mode. Every client of your hub renders
+a projection of that state rather than keeping its own copy, so the same room
+looks the same from every surface you open — Hub tab, TUI, a client that
+reconnects late. Drive today is one developer driving many agents; multi-human
+rooms are an explicit non-goal for now.
 
 Room truth is partitioned into three lanes ([ARD-0013](docs/drivecode/plans/cline-drivemode/ard/ARD-0013-state-partition.md)):
 an append-only event log (survives hub restart), one live `RoomSnapshot` in
@@ -200,8 +204,8 @@ updates land quietly in the Hub, where they are found on demand — and where
 *other agents* read them to understand the state of the project. Only genuinely
 urgent updates interrupt you.
 
-Three lenses over the same status surface. Each lens below shows **Hub UI** and
-**CLI (TUI)** together.
+Four lenses over the same status surface. Each lens below shows **Hub UI** and,
+where the TUI ships it, **CLI (TUI)**.
 
 ### Board — "where is everything, and what needs me?"
 
@@ -264,6 +268,13 @@ you can see how the map reads with a real plan. In the hub, open
 Docs demos can compose a separate adapter from `@cline/drivecode-demo` at the CLI
 root when `CLINE_DEMO_STATUS_PLANS=1` (optional lens / auto-open via
 `CLINE_DEMO_STATUS_LENS` / `CLINE_DEMO_OPEN_STATUS`).
+
+### Sessions — "did Drive sessions get work done?"
+
+The fourth lens lists recent Drive call sessions as one row each — duration,
+tasks completed, mid-plan churn — computed from local room and bank event logs
+only. Nothing phones home; select a session to drill into its room and plan.
+Hub UI only for now.
 
 ### How it works
 
