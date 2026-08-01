@@ -30,6 +30,42 @@ Each canvas produces two files:
 | `media.dir` / `media.ext` / `media.mime` | media | Directory to inline, extension filter, MIME for the data URI. |
 | `media.legacyAudioPatch` | media | Escape hatch for canvases predating the media contract — see below. |
 
+## Recording (`capture`)
+
+`record-canvas.mjs` plays a canvas and cuts a GIF from it:
+
+```bash
+bun record-canvas.mjs --canvas drive-product-demo
+bun record-canvas.mjs --canvas drive-product-demo --max-seconds 45   # quick check
+```
+
+**The cut is declared by beat id, never by frame number.** Frame numbers rot the
+moment pacing changes — which happens every time narration is re-recorded — so
+a frame-indexed cut silently produces a different story after every re-timing.
+Beat ids survive it.
+
+```json
+"capture": {
+  "width": 1280, "height": 720, "intervalMs": 250,
+  "gifWidth": 820, "frameMs": 110,
+  "cut": [{ "from": "a2-message", "to": "a2-narration", "step": 2 }]
+}
+```
+
+| Field | Meaning |
+|---|---|
+| `width` / `height` | Capture viewport. |
+| `intervalMs` | Frame capture period during autoplay. |
+| `cut[]` | Ordered `{from, to, step}` beat-id ranges. A range naming an unknown or unplayed beat warns and is skipped — it never fails the run. |
+| `gifWidth` / `frameMs` | Output width and per-frame hold. |
+| `maxSeconds` | Recording cap (default 240); `--max-seconds` overrides. |
+
+Frames are mapped to beats by the canvas's SayClock beat id when it exposes
+one, falling back to matching the caption strip forward (autoplay only moves
+forward, so duplicate captions resolve correctly). Assembly uses ffmpeg
+`palettegen`. Requires puppeteer-core installed on demand, system Chrome
+(`CHROME_PATH` to override), and ffmpeg.
+
 ## Media contract
 
 A canvas that needs its media inlined resolves URLs through a lookup the

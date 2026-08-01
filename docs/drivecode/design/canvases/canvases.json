@@ -9,6 +9,22 @@
     "drive-product-demo": {
       "file": "drive-product-demo.html",
       "title": "Drive · product demo",
+      "capture": {
+        "$comment": "Hero-GIF cut, declared by beat id so it survives re-timing. Frame numbers rot every time narration is re-recorded.",
+        "width": 1280,
+        "height": 720,
+        "intervalMs": 250,
+        "gifWidth": 820,
+        "frameMs": 110,
+        "cut": [
+          { "from": "a2-message", "to": "a2-narration", "step": 2 },
+          { "from": "a3-bug", "to": "a3-bug", "step": 1 },
+          { "from": "a3-plan", "to": "a3-arch", "step": 2 },
+          { "from": "a3-edit", "to": "a3-test", "step": 2 },
+          { "from": "a3-walk", "to": "a3-demo", "step": 2 },
+          { "from": "a9-approved", "to": "a9-approved", "step": 2 }
+        ]
+      },
       "media": {
         "dir": "../../assets/demos/voice",
         "ext": ".mp3",
