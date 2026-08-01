@@ -1856,6 +1856,133 @@
   }
   .vsc-status .sp { flex: 1; }
   .vsc-status .cline { color: var(--drive-t); }
+  /* ---- Debug session (walkthrough.code presents as a paused debugger) ----
+     Same one-clock pattern as .anim-diagram: every rule below loops on
+     var(--dbg-total), and keyframe percentages carve the step sequence —
+     step onto the compute (s1), land on the compare (s2, inline values in),
+     the early return taken (ret hint), then release and loop — tracking
+     the ~10s a3-walk clip. Dark-Modern debug literals: #e51400 breakpoint,
+     yellow-tinted current line + gutter arrow, dim italic inline values,
+     #cc6633 status bar. Reduced motion settles on the return line. */
+  .vsc-debug { --dbg-total: 10s; }
+  /* The debugger is about the code: rows tighten to VS Code's real
+     leading and the panel toggles away (the Ctrl+J look), so the whole
+     guard — through the skipped rebuildFeed line — stays in view even
+     in the guided layout's shortest editor. */
+  .vsc-debug .vsc-panel { display: none; }
+  .vsc-debug .vsc-code { padding: 5px 0; }
+  /* Wider gutter: room for the breakpoint dot left of the line numbers.
+     The debug step highlight replaces the amber walk hl (never stacked). */
+  .vsc-debug .ws-cl { grid-template-columns: 44px 1fr; font: 400 11px/1.5 var(--mono); }
+  .vsc-debug .ws-cl.hl { background: none; color: #d4d4d4; }
+  .vsc-debug .ws-cl.hl .ln { color: #6e7681; }
+  .vsc-debug .ws-cl .ln { position: relative; }
+  .vsc-debug .ws-cl.dbg-bp .ln::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    margin-top: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e51400;
+  }
+  .vsc-debug .ws-cl.dbg-s1 .ln::after,
+  .vsc-debug .ws-cl.dbg-s2 .ln::after {
+    content: "";
+    position: absolute;
+    left: 3px;
+    top: 50%;
+    margin-top: -4px;
+    border-left: 7px solid #ffcc00;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    opacity: 0;
+  }
+  .vsc-debug .ws-cl.dbg-s1 { animation: dbg-line-s1 var(--dbg-total) linear infinite; }
+  .vsc-debug .ws-cl.dbg-s1 .ln::after { animation: dbg-mark-s1 var(--dbg-total) linear infinite; }
+  .vsc-debug .ws-cl.dbg-s2 { animation: dbg-line-s2 var(--dbg-total) linear infinite; }
+  .vsc-debug .ws-cl.dbg-s2 .ln::after { animation: dbg-mark-s2 var(--dbg-total) linear infinite; }
+  @keyframes dbg-line-s1 {
+    0%, 2% { background: transparent; }
+    4%, 19% { background: rgba(255, 255, 0, 0.06); }
+    22%, 100% { background: transparent; }
+  }
+  @keyframes dbg-mark-s1 {
+    0%, 2% { opacity: 0; }
+    4%, 19% { opacity: 1; }
+    22%, 100% { opacity: 0; }
+  }
+  @keyframes dbg-line-s2 {
+    0%, 22% { background: transparent; }
+    24%, 93% { background: rgba(255, 255, 0, 0.07); }
+    96%, 100% { background: transparent; }
+  }
+  @keyframes dbg-mark-s2 {
+    0%, 22% { opacity: 0; }
+    24%, 93% { opacity: 1; }
+    96%, 100% { opacity: 0; }
+  }
+  /* Inline values: VS Code's dimmed italic ghost decorations. */
+  .vsc-debug .dbg-ghost {
+    margin-left: 14px;
+    font-style: italic;
+    font-size: 10px;
+    color: #8a8f98;
+    opacity: 0;
+  }
+  .vsc-debug .dbg-s1 .dbg-ghost { animation: dbg-ghost-s1 var(--dbg-total) linear infinite; }
+  .vsc-debug .dbg-s2 .dbg-ghost { animation: dbg-ghost-s2 var(--dbg-total) linear infinite; }
+  .vsc-debug .dbg-s2 .dbg-ret { margin-left: 8px; animation: dbg-ghost-ret var(--dbg-total) linear infinite; }
+  @keyframes dbg-ghost-s1 {
+    0%, 8% { opacity: 0; }
+    11%, 95% { opacity: 1; }
+    99%, 100% { opacity: 0; }
+  }
+  @keyframes dbg-ghost-s2 {
+    0%, 30% { opacity: 0; }
+    33%, 95% { opacity: 1; }
+    99%, 100% { opacity: 0; }
+  }
+  @keyframes dbg-ghost-ret {
+    0%, 55% { opacity: 0; }
+    58%, 95% { opacity: 1; }
+    99%, 100% { opacity: 0; }
+  }
+  /* Floating debug toolbar: centered under the tab bar, straddling the
+     breadcrumbs row so it never covers code or inline values. */
+  .vsc-debug .vsc-ed { position: relative; }
+  .vsc-dbgbar {
+    position: absolute;
+    top: 26px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 6px;
+    background: #252526;
+    border: 0.8px solid rgba(255, 255, 255, 0.09);
+    border-radius: 4px;
+  }
+  .vsc-dbgbar .dbg-btn {
+    width: 20px;
+    height: 20px;
+    display: grid;
+    place-items: center;
+    color: #75beff;
+  }
+  .vsc-dbgbar .dbg-btn.restart { color: #89d185; }
+  .vsc-dbgbar .dbg-btn.stop { color: #f48771; }
+  /* Debugging status bar: VS Code's orange, every item legible on it. */
+  .vsc-debug .vsc-status {
+    background: #cc6633;
+    border-top-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .vsc-debug .vsc-status .cline { color: #ffffff; }
   /* Presented artifacts float over the dimmed VS Code window. */
   .stage-overlay {
     position: absolute;
@@ -1902,6 +2029,16 @@
     /* Degrade to static: no blink/spin loops, typed line fully revealed,
        terminal lines visible without stagger. */
     .ws-caret, .ws-spin { animation: none !important; }
+    /* Debug session settles: breakpoint + paused on the return line,
+       inline values shown, no stepping. */
+    .vsc-debug .ws-cl.dbg-s1,
+    .vsc-debug .ws-cl.dbg-s2,
+    .vsc-debug .ws-cl.dbg-s1 .ln::after,
+    .vsc-debug .ws-cl.dbg-s2 .ln::after,
+    .vsc-debug .dbg-ghost { animation: none !important; }
+    .vsc-debug .ws-cl.dbg-s2 { background: rgba(255, 255, 0, 0.07); }
+    .vsc-debug .ws-cl.dbg-s2 .ln::after { opacity: 1; }
+    .vsc-debug .dbg-ghost { opacity: 1; }
     .ws-cl .type { animation: none !important; width: 100%; border-right-color: transparent; }
     .ws-tl { animation: none !important; opacity: 1; }
     .member-row.needs-you .member-dot { animation: none !important; }
@@ -3744,9 +3881,13 @@
     body: {
       file: "drive-product-demo.html",
       range: "L4705–L4708",
+      // debug presents the walkthrough as a paused debug session: bp is
+      // the breakpoint line, step orders the CSS step-through, ghost/ret
+      // are inline-value decorations (both hashes match — the skip path).
+      debug: true,
       lines: [
-        { n: 4705, t: "    const sig = JSON.stringify([msgs, since]);" },
-        { n: 4706, t: "    if (sig === R.feedSig) return; // skip the repaint", hl: true },
+        { n: 4705, t: "    const sig = JSON.stringify([msgs, since]);", step: 1, ghost: 'sig = "…9f41"' },
+        { n: 4706, t: "    if (sig === R.feedSig) return; // skip the repaint", hl: true, bp: true, step: 2, ghost: 'R.feedSig = "…9f41"', ret: "→ equal · returns early" },
         { n: 4707, t: "    R.feedSig = sig;", hl: true },
         { n: 4708, t: "    rebuildFeed();" },
       ],
@@ -4160,7 +4301,7 @@
       id: "a3-walk",
       act: 3,
       title: "Code walkthrough · review the fix",
-      caption: "walkthrough.code — rubber-duck slides over file + range, lines highlighted.",
+      caption: "walkthrough.code — the guard replayed as a debug session: breakpoint, step, early return.",
       hubOp: "render_code_walkthrough",
       maturity: "shipped",
       dwellMs: 2000,
@@ -6462,6 +6603,21 @@
   function vscIco(paths) {
     return '<svg class="vsc-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
   }
+  /** Debug-toolbar icon: same stroke language as vscIco, toolbar-sized. */
+  function dbgIco(paths) {
+    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
+  }
+  /** Floating debug toolbar (decorative — the simulated cursor never
+   *  targets it, so plain spans, hidden from the a11y tree wholesale). */
+  const VSC_DBGBAR =
+    '<div class="vsc-dbgbar" aria-hidden="true">' +
+      '<span class="dbg-btn">' + dbgIco('<path d="M7 4v16"/><path d="m12 6 8 6-8 6V6Z"/>') + "</span>" +
+      '<span class="dbg-btn">' + dbgIco('<path d="M4 12a8 8 0 0 1 15-4"/><path d="M19 3v5h-5"/><circle cx="12" cy="18" r="1.7"/>') + "</span>" +
+      '<span class="dbg-btn">' + dbgIco('<path d="M12 3v9"/><path d="m8 8 4 4 4-4"/><circle cx="12" cy="18" r="1.7"/>') + "</span>" +
+      '<span class="dbg-btn">' + dbgIco('<path d="M12 12V3"/><path d="m8 7 4-4 4 4"/><circle cx="12" cy="18" r="1.7"/>') + "</span>" +
+      '<span class="dbg-btn restart">' + dbgIco('<path d="M3 12a9 9 0 1 0 2.8-6.5"/><path d="M3 3v5h5"/>') + "</span>" +
+      '<span class="dbg-btn stop">' + dbgIco('<rect x="6" y="6" width="12" height="12" rx="1"/>') + "</span>" +
+    "</div>";
   const VSC_ICOS = {
     files: vscIco('<path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/>'),
     search: vscIco('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
@@ -6526,15 +6682,21 @@
       : "TypeScript";
 
     // Editor lines: tokens + gutter (absolute numbers for a walkthrough),
-    // amber hl rows, current-line bg on the caret / type-in row.
+    // amber hl rows, current-line bg on the caret / type-in row. A debug
+    // walkthrough adds breakpoint / step / inline-value decorations; the
+    // step-through itself is pure CSS on the shared --dbg-total clock.
+    const dbg = !!(walk && walk.debug);
     const codeLines = walk ? (walk.lines || []) : (work.code || []);
     let lines = codeLines.map(function (l, i) {
       const n = walk ? l.n : i + 1;
       const cur = !walk && !work.typing && work.caret === i;
       let text = tok(l.t, lang);
       if (cur) text += '<span class="ws-caret" aria-hidden="true"></span>';
-      return '<div class="ws-cl' + (l.hl ? " hl" : "") + (cur ? " cur" : "") + '"><span class="ln">' + n +
-        '</span><span class="tx">' + text + "</span></div>";
+      if (dbg && l.ghost) text += '<span class="dbg-ghost">' + escapeHtml(l.ghost) + "</span>";
+      if (dbg && l.ret) text += '<span class="dbg-ghost dbg-ret">' + escapeHtml(l.ret) + "</span>";
+      return '<div class="ws-cl' + (l.hl ? " hl" : "") + (cur ? " cur" : "") +
+        (dbg && l.bp ? " dbg-bp" : "") + (dbg && l.step ? " dbg-s" + l.step : "") +
+        '"><span class="ln">' + n + '</span><span class="tx">' + text + "</span></div>";
     }).join("");
     if (!walk && work.typing) {
       lines += '<div class="ws-cl cur"><span class="ln">' + (codeLines.length + 1) +
@@ -6623,7 +6785,7 @@
     colC = Math.max(1, colC);
 
     return (
-      '<div class="vsc' + (cls ? " " + cls : "") + '">' +
+      '<div class="vsc' + (cls ? " " + cls : "") + (dbg ? " vsc-debug" : "") + '">' +
         '<div class="vsc-title"><span class="vsc-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
           '<span class="vsc-title-text">' + escapeHtml(file) + " — cline-drivecode</span></div>" +
         '<div class="vsc-main">' +
@@ -6634,7 +6796,7 @@
               (work.activity ? '<span class="vsc-activity">' + escapeHtml(work.activity) + "</span>" : "") +
             "</div>" +
             '<div class="vsc-crumbs">' + crumbs + "</div>" +
-            '<div class="vsc-body"><div class="vsc-code">' + lines + "</div>" +
+            '<div class="vsc-body">' + (dbg ? VSC_DBGBAR : "") + '<div class="vsc-code">' + lines + "</div>" +
               '<div class="vsc-map" aria-hidden="true">' + map + "</div></div>" +
             '<div class="vsc-panel">' +
               '<div class="vsc-panel-head"><span>Problems</span><span>Output</span><span class="on">Terminal</span></div>' +
