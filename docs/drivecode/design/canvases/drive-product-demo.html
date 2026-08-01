@@ -1177,6 +1177,137 @@
   .stage-diagram .e { stroke: var(--dim); stroke-width: 1.2; fill: none; }
   .stage-diagram .ah { fill: var(--dim); }
   .stage-diagram .elabel { fill: var(--danger-t); font-family: var(--mono); font-size: 9px; font-weight: 600; }
+  /* ---- Phased diagram animation (opt-in: .anim-diagram) ----
+     Reusable pattern: ONE shared clock. Every rule below runs for
+     var(--phase-total) on an infinite loop, and keyframe percentages
+     carve that loop into narration-sized phases — here 3s fold + 3s
+     fan-out + 3.5s rebuild-edge = 9.5s, tracking the a3-arch clip.
+     Traveling dots are <circle class="flow-dot"> elements drawn at the
+     SVG origin and driven along offset-path traces of the diagram's own
+     polyline coordinates; because they live inside the SVG's viewBox
+     they ride the edges at any rendered width. A future diagram adopts
+     the pattern by adding .anim-diagram to its .stage-diagram wrapper,
+     a .flow-dots layer with its own offset paths, and phase captions
+     keyed to the same clock. Reduced motion: dots hide, captions light
+     equally, the diagram holds still (media block below). */
+  .anim-diagram { --phase-total: 9.5s; }
+  .anim-diagram .flow-dot { fill: var(--live); opacity: 0; }
+  @supports (offset-path: path("M0 0 L4 4")) {
+    .anim-diagram .fd-fold {
+      offset-path: path("M168 150 L240 150");
+      animation: fd-fold var(--phase-total) linear infinite;
+    }
+    .anim-diagram .fd-fan { animation: fd-fan var(--phase-total) linear infinite; }
+    .anim-diagram .fd-f1 { offset-path: path("M336 150 L516 144 L548 144 L548 58 L580 58"); }
+    .anim-diagram .fd-f2 { offset-path: path("M336 150 L516 148 L556 148 L556 116 L580 116"); }
+    .anim-diagram .fd-f3 { offset-path: path("M336 150 L516 152 L556 152 L556 174 L580 174"); }
+    .anim-diagram .fd-f4 { offset-path: path("M336 150 L516 156 L548 156 L548 232 L580 232"); }
+  }
+  /* Phase 1 (0–26%): state folds from BEATS into render(). */
+  @keyframes fd-fold {
+    0% { offset-distance: 0%; opacity: 0; }
+    3% { opacity: 1; }
+    23% { opacity: 1; }
+    26% { offset-distance: 100%; opacity: 0; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  /* Phase 2 (33–57%): four dots fan out through the wipe to the regions. */
+  @keyframes fd-fan {
+    0%, 33% { offset-distance: 0%; opacity: 0; }
+    36% { opacity: 1; }
+    54% { opacity: 1; }
+    57% { offset-distance: 100%; opacity: 0; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+  .anim-diagram .fn-fold rect { animation: fn-glow-fold var(--phase-total) linear infinite; }
+  @keyframes fn-glow-fold {
+    0%, 8% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 14%, var(--panel)); }
+    14%, 100% { stroke: var(--line); fill: var(--panel); }
+  }
+  .anim-diagram .fn-render rect { animation: fn-glow-render var(--phase-total) linear infinite; }
+  @keyframes fn-glow-render {
+    0%, 22% { stroke: var(--line); fill: var(--panel); }
+    26%, 34% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 14%, var(--panel)); }
+    40%, 100% { stroke: var(--line); fill: var(--panel); }
+  }
+  .anim-diagram .fn-r1 rect,
+  .anim-diagram .fn-r2 rect,
+  .anim-diagram .fn-r3 rect,
+  .anim-diagram .fn-r4 rect { animation: fn-region-pulse var(--phase-total) linear infinite; }
+  @keyframes fn-region-pulse {
+    0%, 55% { stroke: var(--line); fill: var(--panel); }
+    58.5% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 16%, var(--panel)); }
+    64%, 100% { stroke: var(--line); fill: var(--panel); }
+  }
+  /* Fan-out stagger: each region's dot and arrival pulse share a delay.
+     (Placed AFTER the animation shorthands above — a shorthand resets
+     animation-delay, so these must win by source order.) */
+  .anim-diagram .fd-f2, .anim-diagram .fn-r2 rect { animation-delay: .1s; }
+  .anim-diagram .fd-f3, .anim-diagram .fn-r3 rect { animation-delay: .2s; }
+  .anim-diagram .fd-f4, .anim-diagram .fn-r4 rect { animation-delay: .3s; }
+  /* Phase 3 (65–100%): the rebuild edge — two danger pulses, then the
+     tell-tale flicker, the same flash language as the a3-bug animation. */
+  .anim-diagram .n.hot rect { animation: fn-hot-edge var(--phase-total) linear infinite; }
+  @keyframes fn-hot-edge {
+    0%, 65% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 10%, var(--panel)); }
+    69% { stroke: var(--danger); fill: color-mix(in srgb, var(--danger) 24%, var(--panel)); }
+    74% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 10%, var(--panel)); }
+    78% { stroke: var(--danger); fill: color-mix(in srgb, var(--danger) 24%, var(--panel)); }
+    83% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 10%, var(--panel)); }
+    85% { stroke: var(--danger); fill: color-mix(in srgb, var(--danger) 30%, var(--panel)); }
+    86.5% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 10%, var(--panel)); }
+    88% { stroke: var(--danger); fill: color-mix(in srgb, var(--danger) 30%, var(--panel)); }
+    90%, 100% { stroke: var(--live); fill: color-mix(in srgb, var(--live) 10%, var(--panel)); }
+  }
+  .anim-diagram .elabel { animation: fn-elabel var(--phase-total) linear infinite; }
+  @keyframes fn-elabel {
+    0%, 63% { opacity: .45; }
+    66%, 97% { opacity: 1; }
+    100% { opacity: .45; }
+  }
+  /* Phase captions (svg text in the diagram's empty bottom-left band),
+     lit amber in turn on the clock. */
+  .anim-diagram .anim-phase {
+    fill: var(--dim);
+    opacity: .6;
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 500;
+    animation-duration: var(--phase-total);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+  }
+  .anim-diagram .anim-phase.ph1 { animation-name: flow-cap-1; }
+  .anim-diagram .anim-phase.ph2 { animation-name: flow-cap-2; }
+  .anim-diagram .anim-phase.ph3 { animation-name: flow-cap-3; }
+  @keyframes flow-cap-1 {
+    0%, 29% { fill: var(--live-t); opacity: 1; }
+    33%, 100% { fill: var(--dim); opacity: .6; }
+  }
+  @keyframes flow-cap-2 {
+    0%, 29% { fill: var(--dim); opacity: .6; }
+    33%, 60% { fill: var(--live-t); opacity: 1; }
+    64%, 100% { fill: var(--dim); opacity: .6; }
+  }
+  @keyframes flow-cap-3 {
+    0%, 60% { fill: var(--dim); opacity: .6; }
+    64%, 100% { fill: var(--live-t); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* Static explanation: no dots, no pulses; the three phase captions
+       read equally lit and the diagram compares at rest. */
+    .anim-diagram .flow-dot { display: none; }
+    .anim-diagram .fn-fold rect,
+    .anim-diagram .fn-render rect,
+    .anim-diagram .fn-r1 rect,
+    .anim-diagram .fn-r2 rect,
+    .anim-diagram .fn-r3 rect,
+    .anim-diagram .fn-r4 rect,
+    .anim-diagram .n.hot rect,
+    .anim-diagram .elabel,
+    .anim-diagram .anim-phase { animation: none !important; }
+    .anim-diagram .anim-phase { fill: var(--live-t); opacity: 1; }
+  }
   .stage-capture .browser {
     border: 0.8px solid var(--line);
     border-radius: var(--r);
@@ -6205,21 +6336,25 @@
 
   // The demo's own render pipeline: beats fold state, render() pushes it
   // into four regions — and the old innerHTML wipe at the rebuild edge is
-  // where the flash lived. This is the diagram the a3-arch beat presents.
+  // where the flash lived. This is the diagram the a3-arch beat presents,
+  // and it animates its own explanation (.anim-diagram): the fn-* node
+  // classes and the .flow-dots layer are driven by the phased CSS clock —
+  // dot offset-paths trace the polyline coordinates below, so keep them
+  // in sync if edges move. DRIVE_ARCH_SVG stays static.
   const RENDER_FLOW_SVG =
-    '<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="demo render pipeline: beats fold into state, render reads it, and the old innerHTML wipe re-mounted every region on every beat — the flash lived at that rebuild edge">' +
+    '<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="demo render pipeline: beats fold into state, render reads it, and the old innerHTML wipe re-mounted every region on every beat — the flash lived at that rebuild edge. Animated in three phases: state folds in, render fans out to four regions, then the rebuild edge pulses.">' +
     '<rect class="grp" x="12" y="100" width="168" height="100" rx="8"/>' +
     '<text class="grp-label" x="22" y="116">State</text>' +
     '<rect class="grp" x="560" y="22" width="148" height="234" rx="8"/>' +
     '<text class="grp-label" x="570" y="38">Regions</text>' +
-    '<g class="n"><rect x="24" y="138" width="144" height="24" rx="6"/><text x="96" y="154" text-anchor="middle">BEATS · state fold</text></g>' +
-    '<g class="n"><rect x="240" y="138" width="96" height="24" rx="6"/><text x="288" y="154" text-anchor="middle">render()</text></g>' +
+    '<g class="n fn-fold"><rect x="24" y="138" width="144" height="24" rx="6"/><text x="96" y="154" text-anchor="middle">BEATS · state fold</text></g>' +
+    '<g class="n fn-render"><rect x="240" y="138" width="96" height="24" rx="6"/><text x="288" y="154" text-anchor="middle">render()</text></g>' +
     '<g class="n hot"><rect x="396" y="138" width="120" height="24" rx="6"/><text x="456" y="154" text-anchor="middle">innerHTML wipe</text></g>' +
     '<text class="elabel" x="456" y="128" text-anchor="middle">the flash lived here</text>' +
-    '<g class="n"><rect x="580" y="46" width="108" height="24" rx="6"/><text x="634" y="62" text-anchor="middle">feed</text></g>' +
-    '<g class="n"><rect x="580" y="104" width="108" height="24" rx="6"/><text x="634" y="120" text-anchor="middle">roster</text></g>' +
-    '<g class="n"><rect x="580" y="162" width="108" height="24" rx="6"/><text x="634" y="178" text-anchor="middle">screen</text></g>' +
-    '<g class="n"><rect x="580" y="220" width="108" height="24" rx="6"/><text x="634" y="236" text-anchor="middle">deck</text></g>' +
+    '<g class="n fn-r1"><rect x="580" y="46" width="108" height="24" rx="6"/><text x="634" y="62" text-anchor="middle">feed</text></g>' +
+    '<g class="n fn-r2"><rect x="580" y="104" width="108" height="24" rx="6"/><text x="634" y="120" text-anchor="middle">roster</text></g>' +
+    '<g class="n fn-r3"><rect x="580" y="162" width="108" height="24" rx="6"/><text x="634" y="178" text-anchor="middle">screen</text></g>' +
+    '<g class="n fn-r4"><rect x="580" y="220" width="108" height="24" rx="6"/><text x="634" y="236" text-anchor="middle">deck</text></g>' +
     '<polyline class="e" points="168,150 240,150"/>' +
     '<polygon class="ah" points="240,150 233,146.5 233,153.5"/>' +
     '<text class="edge-label" x="204" y="142" text-anchor="middle">every beat</text>' +
@@ -6235,6 +6370,22 @@
     '<polyline class="e" points="516,156 548,156 548,232 580,232"/>' +
     '<polygon class="ah" points="580,232 573,228.5 573,235.5"/>' +
     '<text class="edge-label" x="548" y="204" text-anchor="middle">re-mounts</text>' +
+    // Phase captions in the empty bottom-left band: one per phase of the
+    // shared clock, lit amber in turn. Living inside the viewBox keeps
+    // them visible wherever the diagram is (the overlay card crops the
+    // svg bottom margin at short viewports, so HTML below wouldn't be).
+    '<g class="anim-phases">' +
+    '<text class="anim-phase ph1" x="24" y="218">1 · state folds in</text>' +
+    '<text class="anim-phase ph2" x="24" y="232">2 · render fans out to four regions</text>' +
+    '<text class="anim-phase ph3" x="24" y="246">3 · the rebuild edge — where the flash lived</text>' +
+    "</g>" +
+    '<g class="flow-dots" aria-hidden="true">' +
+    '<circle class="flow-dot fd-fold" r="4"/>' +
+    '<circle class="flow-dot fd-fan fd-f1" r="3.5"/>' +
+    '<circle class="flow-dot fd-fan fd-f2" r="3.5"/>' +
+    '<circle class="flow-dot fd-fan fd-f3" r="3.5"/>' +
+    '<circle class="flow-dot fd-fan fd-f4" r="3.5"/>' +
+    "</g>" +
     "</svg>";
 
   /** The a3-bug explainer: one 4s clock, two mini feeds. BEFORE re-mounts
@@ -6281,8 +6432,13 @@
       }).join("") + "</div>";
     }
     if (show.kind === "diagram") {
-      const svg = show.body && show.body.svg === "arch" ? DRIVE_ARCH_SVG : RENDER_FLOW_SVG;
-      return '<div class="stage-diagram">' + svg + "</div>";
+      // The hub architecture diagram stays static; the render-pipeline
+      // diagram opts into the phased .anim-diagram explanation (traveling
+      // dots + phase captions on one shared CSS clock).
+      if (show.body && show.body.svg === "arch") {
+        return '<div class="stage-diagram">' + DRIVE_ARCH_SVG + "</div>";
+      }
+      return '<div class="stage-diagram anim-diagram">' + RENDER_FLOW_SVG + "</div>";
     }
     if (show.kind === "walk") {
       // No standalone widget: walkthroughs render inside the VS Code
