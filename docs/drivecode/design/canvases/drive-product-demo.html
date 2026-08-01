@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- Network silence, enforced: the demo is fully self-contained (inline
+     style/script, self-hosted fonts, relative voice mp3s, data: favicon).
+     file: keeps the same policy working when opened from disk. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; font-src 'self' file:; img-src data:; media-src 'self' file:" />
 <title>Drive · product demo</title>
 <script>
   // Apply a stored theme before first paint. Light is the default.
@@ -12,10 +16,31 @@
     }
   } catch (e) { /* storage unavailable — stay light */ }
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Schibsted+Grotesk:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
 <style>
+  /* Self-hosted fonts: variable-weight latin woff2 committed under
+     ../../assets/fonts/ — no request ever leaves the page. */
+  @font-face {
+    font-family: "Schibsted Grotesk";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("../../assets/fonts/schibsted-grotesk-latin-wght.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "DM Sans";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("../../assets/fonts/dm-sans-latin-wght.woff2") format("woff2");
+  }
+  @font-face {
+    font-family: "Space Grotesk";
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url("../../assets/fonts/space-grotesk-latin-wght.woff2") format("woff2");
+  }
+
   /* Light is the default, mirroring the shipped hub (:root in
      apps/cline-hub/src/webview/src/index.css); html.dark mirrors its .dark
      surface ladder. Text accents shift per theme the way the product does
@@ -3229,6 +3254,118 @@
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: none; }
   }
+
+  /* ---- Intro overlay: first-load orientation card ----
+     Sits UNDER the player bar (z 38 < .player's 40), so the transport —
+     #btn-play included — stays visible and directly clickable. Dismissed
+     by its Play, its ×, Esc, Space, or any beat navigation; dismissing
+     without playing leaves the demo in explore mode. */
+  .intro-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 38;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 58px 16px 48px;
+    background: color-mix(in srgb, var(--bg) 60%, transparent);
+    backdrop-filter: blur(2.5px);
+  }
+  .intro-scrim.gone {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .25s var(--ease), visibility 0s .25s;
+  }
+  .intro-card {
+    position: relative;
+    width: min(432px, 100%);
+    max-height: 100%;
+    overflow-y: auto;
+    background: var(--overlay);
+    border: 0.8px solid var(--line);
+    border-radius: var(--r);
+    box-shadow: var(--overlay-shadow);
+    padding: 22px 22px 18px;
+    animation: rise .45s var(--ease);
+  }
+  .intro-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--r);
+    color: var(--dim);
+  }
+  .intro-close:hover { color: var(--text); background: var(--hover-fill); }
+  .intro-close svg { width: 13px; height: 13px; display: block; }
+  .intro-eyebrow {
+    font: 600 10px/1 var(--eyebrow);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--drive-t);
+    margin-bottom: 10px;
+  }
+  .intro-title {
+    font: 700 19px/1.25 var(--display);
+    letter-spacing: -0.015em;
+    margin-bottom: 8px;
+  }
+  .intro-line { color: var(--muted); margin-bottom: 16px; }
+  .intro-play {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font: 600 13px/1 var(--ui);
+    color: #1B1D24;
+    background: var(--live);
+    border: 0.8px solid color-mix(in srgb, var(--live-t) 45%, transparent);
+    border-radius: var(--r);
+    padding: 9px 16px;
+    margin-bottom: 14px;
+    transition: filter .15s;
+  }
+  .intro-play:hover { filter: brightness(1.06); }
+  .intro-play svg { width: 11px; height: 11px; display: block; }
+  .intro-meta {
+    color: var(--dim);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  .intro-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    color: var(--dim);
+    font-size: 12px;
+    margin-bottom: 14px;
+  }
+  .intro-keys kbd {
+    font: 500 10.5px/1 var(--mono);
+    color: var(--muted);
+    border: 0.8px solid var(--line);
+    border-bottom-width: 1.6px;
+    border-radius: 5px;
+    padding: 2.5px 5px;
+    margin-right: 3px;
+  }
+  .intro-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    color: var(--dim);
+    font-size: 11.5px;
+    border-top: 0.8px solid var(--hair);
+    padding-top: 12px;
+  }
+  @media (max-width: 600px) {
+    .intro-card { padding: 18px 16px 14px; }
+    .intro-title { font-size: 17px; }
+  }
 </style>
 </head>
 <body>
@@ -3266,7 +3403,7 @@
   <div class="beat-meta">
     <div class="beat-title" id="beat-title">—</div>
     <span class="hub-op empty" id="hub-op">—</span>
-    <span class="badge shipped" id="maturity">shipped</span>
+    <span class="badge shipped" id="maturity" title="SHIPPED = exists in the product today · PLANNED = design intent" aria-label="Maturity: shipped — exists in the product today">shipped</span>
   </div>
   <div class="player-controls">
     <button type="button" id="btn-theme" title="Toggle theme" aria-label="Switch to dark theme">
@@ -3690,6 +3827,34 @@
 
 <div class="rail-scrim" id="rail-scrim" aria-hidden="true"></div>
 
+<!-- First-load orientation card. Never covers the player bar (z 38 < 40);
+     wired in the script block: Play shares #btn-play's start path, and
+     Esc / Space / any beat navigation dismisses into explore mode. -->
+<div class="intro-scrim" id="intro-overlay" role="dialog" aria-label="About this demo">
+  <div class="intro-card">
+    <button type="button" class="intro-close" id="intro-close" title="Close (Esc)" aria-label="Close intro">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
+    </button>
+    <div class="intro-eyebrow">Drive · product demo</div>
+    <h1 class="intro-title">Watch a real bug get fixed, live on a call</h1>
+    <p class="intro-line">A scripted reenactment of a real session: the page you're watching is the page being fixed.</p>
+    <button type="button" class="intro-play" id="intro-play">
+      <svg viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M4 2l8 5-8 5z"/></svg>
+      Play the demo
+    </button>
+    <div class="intro-meta">≈3 minutes · sound on — narration starts at half volume</div>
+    <div class="intro-keys">
+      <span><kbd>Space</kbd> play / pause</span>
+      <span><kbd>←</kbd><kbd>→</kbd> step beats</span>
+      <span><kbd>Esc</kbd> explore on your own</span>
+    </div>
+    <div class="intro-legend">
+      <span class="badge shipped">shipped</span> exists in the product today
+      <span class="badge planned">planned</span> design intent
+    </div>
+  </div>
+</div>
+
 <div class="demo-cursor-layer" id="demo-cursor-layer" aria-hidden="true">
   <div id="demo-cursor">
     <svg width="22" height="22" viewBox="0 0 24 24">
@@ -3935,7 +4100,7 @@
     title: "drive-product-demo.html · the guard",
     body: {
       file: "drive-product-demo.html",
-      range: "L6047–L6050",
+      range: "L6215–L6218",
       // debug presents the walkthrough as a paused debug session: bp is
       // the breakpoint line, step orders the CSS step-through, ghost/ret
       // are inline-value decorations (both strings match — the skip path,
@@ -3944,10 +4109,10 @@
       // asserts both stay true.
       debug: true,
       lines: [
-        { n: 6047, t: "    const feedSig = JSON.stringify(feedSlice);", step: 1, ghost: "feedSig = '{\"m\":[{\"id\":\"m0\",…'" },
-        { n: 6048, t: "    if (feedSig !== R.feedSig) {", hl: true, bp: true, step: 2, ghost: "R.feedSig = '{\"m\":[{\"id\":\"m0\",…'", ret: "→ equal · block skipped" },
-        { n: 6049, t: "      R.feedSig = feedSig;", hl: true },
-        { n: 6050, t: '      feed.innerHTML = "";' },
+        { n: 6215, t: "    const feedSig = JSON.stringify(feedSlice);", step: 1, ghost: "feedSig = '{\"m\":[{\"id\":\"m0\",…'" },
+        { n: 6216, t: "    if (feedSig !== R.feedSig) {", hl: true, bp: true, step: 2, ghost: "R.feedSig = '{\"m\":[{\"id\":\"m0\",…'", ret: "→ equal · block skipped" },
+        { n: 6217, t: "      R.feedSig = feedSig;", hl: true },
+        { n: 6218, t: '      feed.innerHTML = "";' },
       ],
     },
   };
@@ -4009,7 +4174,7 @@
       id: "a0-hub",
       act: 0,
       title: "Empty Chat / hub rail",
-      caption: "Instant join. No lobby. Chat Join is a shortcut into the active room.",
+      caption: "The product at rest: an empty chat and the hub rail. Cline is already at work on a bug you reported.",
       maturity: "shipped",
       dwellMs: 1400,
       patch: { surface: "chat", driveOn: false, inCall: false },
@@ -4018,7 +4183,7 @@
       id: "a0-drive-tab",
       act: 0,
       title: "Open Drive tab (rooms list)",
-      caption: "Drive tab lists call rooms. Opening a room is the product home path.",
+      caption: "The Drive tab lists live rooms — one call per piece of work. Yours is demo-polish.",
       maturity: "shipped",
       dwellMs: 1200,
       cursor: { target: "#rail-drive", action: "click" },
@@ -4028,7 +4193,7 @@
       id: "a1-join",
       act: 1,
       title: "Join call / Drive on",
-      caption: "call_join createOrAttach. Hub is the single writer of room state.",
+      caption: "You join the call — Cline is already there, working on its shared screen.",
       hubOp: "call_join",
       maturity: "shipped",
       dwellMs: 1600,
@@ -4072,7 +4237,7 @@
       id: "a1-roster",
       act: 1,
       title: "You + Cline seated; strip; mode Agent",
-      caption: "Participants project from RoomSnapshot. Call strip mounts while Drive is on.",
+      caption: "You and Cline share the room. The strip at the bottom is the call: mic, hand, share, captions.",
       hubOp: "call_get_room",
       maturity: "shipped",
       dwellMs: 1400,
@@ -4095,7 +4260,7 @@
       id: "a2-address",
       act: 2,
       title: "Address chip → Cline",
-      caption: "Address is a first-class send parameter: one, many, everyone, or a pack.",
+      caption: "Click a name to pick who you're talking to — here, just Cline.",
       hubOp: "addressSet",
       maturity: "shipped",
       dwellMs: 1200,
@@ -4109,9 +4274,9 @@
             // and text are literal (verify.js re-runs the search).
             term: [
               { t: '$ rg -n \'^ {6}\\w+\\.innerHTML = "";$\' drive-product-demo.html' },
-              { t: '6050:      feed.innerHTML = "";', cls: "dim" },
-              { t: '6089:      memberList.innerHTML = "";', cls: "dim" },
-              { t: '6125:      spot.innerHTML = "";', cls: "dim" },
+              { t: '6218:      feed.innerHTML = "";', cls: "dim" },
+              { t: '6257:      memberList.innerHTML = "";', cls: "dim" },
+              { t: '6293:      spot.innerHTML = "";', cls: "dim" },
             ],
             activity: "locating the flash",
           },
@@ -4122,7 +4287,7 @@
       id: "a2-message",
       act: 2,
       title: "User message in feed",
-      caption: "Feed stays the default work surface while Drive is on.",
+      caption: "You say the bug out loud — voice input transcribes it straight into the chat.",
       maturity: "shipped",
       dwellMs: 1600,
       // Real dictation: the cursor clicks the mic, Harrison's recorded line
@@ -4144,7 +4309,7 @@
       id: "a2-narration",
       act: 2,
       title: "Cline narrates; Now/Next set",
-      caption: "Partner narrates decisions, not keystrokes. Now/Next orients the plan cursor.",
+      caption: "Cline talks through what it found — decisions, not keystrokes — and lines up what's next.",
       hubOp: "narration",
       maturity: "shipped",
       dwellMs: 1600,
@@ -4187,7 +4352,7 @@
       id: "a2-cc",
       act: 2,
       title: "Live captions · CC panel",
-      caption: "Live captions: everything said on the call, ephemeral by design — nothing persists.",
+      caption: "Live captions of everything said on the call. Nothing is recorded — close them and they're gone.",
       hubOp: "captions",
       maturity: "planned",
       dwellMs: 1600,
@@ -4504,7 +4669,7 @@
             caret: null,
             term: [
               { t: "$ bun verify.js" },
-              { t: "OK: 46 beats, 346 checks", cls: "ok" },
+              { t: "OK: 46 beats, 353 checks", cls: "ok" },
             ],
             spin: false,
             activity: "explaining the fix",
@@ -4553,7 +4718,7 @@
             typing: "// assert: same node before and after a beat",
             term: [
               { t: "$ bun verify.js" },
-              { t: "OK: 46 beats, 346 checks", cls: "ok" },
+              { t: "OK: 46 beats, 353 checks", cls: "ok" },
             ],
             spin: false,
             activity: "adding regression checks",
@@ -4634,7 +4799,7 @@
             typing: null,
             term: [
               { t: "$ bun verify.js" },
-              { t: "OK: 46 beats, 346 checks", cls: "ok" },
+              { t: "OK: 46 beats, 353 checks", cls: "ok" },
             ],
             spin: false,
             activity: "pinning the caption slot",
@@ -5882,6 +6047,7 @@
 
   function goTo(i, fromAuto) {
     advanceGen++; // any navigation invalidates gated advances in flight
+    if (introArmed) dismissIntro(); // any navigation closes the intro card
     if (!fromAuto) Cursor.hide();
     // Any beat landing clears the composer: an input beat's just-sent text
     // returns to the placeholder as its message appears in the feed, and
@@ -5994,6 +6160,8 @@
     const maturity = beat.maturity || "shipped";
     mat.textContent = maturity;
     mat.className = "badge " + (maturity === "planned" ? "planned" : "shipped");
+    mat.setAttribute("aria-label", "Maturity: " + maturity + " — " +
+      (maturity === "planned" ? "design intent" : "exists in the product today"));
 
     // Scrubber active states
     document.querySelectorAll("#scrubber button[data-act]").forEach(function (btn) {
@@ -7164,6 +7332,20 @@
 
   // ---- Wire controls ----
   document.getElementById("btn-play").addEventListener("click", togglePlay);
+
+  // Intro overlay: its Play shares the #btn-play start path; × / Esc just
+  // close into explore mode. introArmed flips only after the boot render,
+  // so init's goTo(0) cannot self-dismiss — every navigation after that
+  // (transport, scrubber, keyboard, console goTo) closes the card.
+  let introArmed = false;
+  function dismissIntro() {
+    document.getElementById("intro-overlay").classList.add("gone");
+  }
+  document.getElementById("intro-play").addEventListener("click", function () {
+    dismissIntro();
+    if (!playing) play();
+  });
+  document.getElementById("intro-close").addEventListener("click", dismissIntro);
   const themeBtn = document.getElementById("btn-theme");
   function syncThemeLabel() {
     const dark = document.documentElement.classList.contains("dark");
@@ -7593,6 +7775,8 @@
     } else if (e.key === " ") {
       e.preventDefault();
       togglePlay();
+    } else if (e.key === "Escape") {
+      dismissIntro();
     }
   });
 
@@ -7618,6 +7802,7 @@
   applyRailWidth();
   applyDrawerWidth();
   goTo(0, false);
+  introArmed = true; // boot render done — navigation now dismisses the intro
 
   // Expose for smoke / console
   window.__DRIVE_DEMO__ = {

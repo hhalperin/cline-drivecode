@@ -20,7 +20,11 @@ Stay on a call with your agents. See what they are doing. Steer.
 </p>
 
 <p align="center">
-<sub>≈2.3× speed · <a href="docs/drivecode/design/canvases/drive-product-demo.html">open the interactive demo</a> (46 scripted beats with voice, keyboard: ←/→/Space)</sub>
+<sub>≈2.3× speed · <a href="https://hhalperin.github.io/cline-drivecode/drivecode/design/canvases/drive-product-demo.html">watch the interactive demo</a> (46 scripted beats with voice, keyboard: ←/→/Space)</sub>
+<br>
+<sub>No network needed: clone the repo and open <code>docs/drivecode/design/canvases/drive-product-demo.html</code> in a browser.</sub>
+<br>
+<sub>Every beat wears a maturity chip: <b>SHIPPED</b> exists in the product today, <b>PLANNED</b> is design intent.</sub>
 </p>
 
 ---

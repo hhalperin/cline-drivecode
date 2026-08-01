@@ -15,7 +15,13 @@
 //   5. node identity: a beat that leaves the feed slice unchanged keeps
 //      the same message node — the differential guard's own regression;
 //   6. a ~15s autoplay smoke from beat 0: playback starts and beats
-//      advance. The battery's LAST check compares every `bun verify.js`
+//      advance;
+//   7. intro overlay: visible on fresh load, dismissed into playback by
+//      #btn-play, dismissed into explore mode (not playing) by Esc;
+//   8. network silence: across the whole run (loads, beat walk, autoplay)
+//      no request ever leaves file:// — the canvas self-hosts its fonts
+//      and pins itself with a CSP, so any http(s) request is a regression.
+//      The battery's LAST check compares every `bun verify.js`
 //      success line the demo shows against this run's real beat/check
 //      counts.
 //
@@ -172,6 +178,11 @@ async function main() {
     const page = await browser.newPage();
     const pageErrors = [];
     page.on("pageerror", function (e) { pageErrors.push(String((e && e.message) || e)); });
+    // 8) collected across the ENTIRE run; asserted just before the last check.
+    const extRequests = [];
+    page.on("request", function (r) {
+      if (/^https?:/i.test(r.url())) extRequests.push(r.url());
+    });
     await page.goto(url, { waitUntil: "load" });
     // A canvas broken badly enough to never install the hook (e.g. a JS
     // syntax error) should fail with the page's own errors, not a timeout.
@@ -180,6 +191,35 @@ async function main() {
         throw new Error("__DRIVE_DEMO__ hook never appeared" +
           (pageErrors.length ? " - pageerrors: " + pageErrors.join(" | ") : ""));
       });
+
+    // 7) Intro overlay: orient the cold viewer, then get out of the way.
+    // #btn-play dismisses into playback; Esc (on a fresh reload) dismisses
+    // into explore mode. The rest of the battery runs on the reloaded page.
+    function introState() {
+      const el = document.getElementById("intro-overlay");
+      const cs = el ? getComputedStyle(el) : null;
+      return {
+        present: !!el,
+        visible: !!cs && cs.display !== "none" && cs.visibility !== "hidden" && Number(cs.opacity) > 0,
+        playing: document.getElementById("btn-play").classList.contains("on"),
+      };
+    }
+    let intro = await page.evaluate(introState);
+    check(intro.present && intro.visible, "intro overlay not visible on fresh load");
+    await page.click("#btn-play");
+    await new Promise(function (res) { setTimeout(res, 500); });
+    intro = await page.evaluate(introState);
+    check(!intro.visible, "intro overlay still visible after clicking #btn-play");
+    check(intro.playing, "intro overlay: #btn-play click did not start playback");
+    await page.reload({ waitUntil: "load" });
+    await page.waitForFunction("!!window.__DRIVE_DEMO__", { timeout: 15000 });
+    intro = await page.evaluate(introState);
+    check(intro.present && intro.visible, "intro overlay not visible on fresh reload");
+    await page.keyboard.press("Escape");
+    await new Promise(function (res) { setTimeout(res, 500); });
+    intro = await page.evaluate(introState);
+    check(!intro.visible, "intro overlay still visible after Esc");
+    check(!intro.playing, "Esc dismissal must leave explore mode, not start playback");
 
     const beatCount = await page.evaluate(function () { return window.__DRIVE_DEMO__.beatCount; });
     check(beatCount === EXPECTED_BEATS,
@@ -294,6 +334,12 @@ async function main() {
     check(auto.playing, "autoplay: player not in playing state after 15s");
     check(auto.idx > 0, "autoplay: still on beat " + auto.idx + " after 15s - beats not advancing");
     check(pageErrors.length === 0, "pageerrors: " + pageErrors.join(" | "));
+
+    // 8) Network silence: nothing in the whole run may leave file://.
+    check(extRequests.length === 0,
+      "network silence: external request(s) attempted: " +
+      extRequests.slice(0, 5).join(", ") +
+      (extRequests.length > 5 ? " (+" + (extRequests.length - 5) + " more)" : ""));
 
     // MUST stay the battery's LAST check: the demo's terminals claim this
     // battery's own success line, so the claimed count is compared against
