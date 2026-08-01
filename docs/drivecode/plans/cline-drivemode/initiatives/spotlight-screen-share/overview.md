@@ -99,6 +99,27 @@ roots only; the fixture never becomes a production gate.
 
 **Order**: S1 → S2, then S3/S4/S5 in parallel, then S6 → S7 → S8.
 
+## Addendum (2026-07-31, post-demo learnings)
+
+The demo canvas (PR #91) evolved past this plan's original scope; the build-out
+should absorb these decisions:
+
+- **The screen is a VS Code window.** The demo's `composeScreen` precedence —
+  VS Code base ⊕ amber artifact overlay (StickyStagePane model) ⊕ walkthroughs
+  rendered IN the editor at absolute line numbers — is the shape `Spotlight.tsx`
+  + `StickyStagePane.tsx` should converge on in S2/S6. Cline purple appears only
+  on Cline items (activity-bar mark, status-bar `Cline: on call`).
+- **Pacing**: DirectorScript `advance: auto_after_say` is proven in the demo
+  (a voiced beat holds until its audio ends). The Narrator slice in the
+  drive-audio initiative (PR #93) should reuse that gate.
+- **New surfaces demoed** (all `planned`): customizable rail (resize / reorder /
+  add-remove), Rooms (durable sessions via ARD-0013), Agents & teams
+  ("call a team once"), Tasks (first-class dependency map), Artifacts gallery,
+  member-status sidebar in the drawer, CC transcript. Each needs its own
+  initiative slice before product work; they are NOT in S1–S8.
+- **Voice**: Kokoro-82M decision + clips live in the drive-audio plan and
+  `docs/drivecode/assets/demos/voice/`.
+
 ## Constraints (unchanged, load-bearing)
 
 - Events, not pixels; human share is a structured pin. No WebRTC.
