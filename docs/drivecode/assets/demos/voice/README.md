@@ -19,6 +19,7 @@ very canvas — differential region rendering + the fixed caption slot, PR #91.
 |---|---|---|---|
 | v3-01-cline-looking-at-flashing | a1-join | Cline | Hey — good timing. I'm looking at that flashing you reported. Give me a second and I'll show you what's going on. |
 | v3-02-cline-found-it | a2-narration | Cline | Okay, found it. Every beat, we rebuild the whole page — so everything replays its entrance animation. That's the flash. Let me put it on the screen. |
+| v3-17-cline-watch-the-flash | a3-bug | Cline | Watch this — every beat, the whole page rebuilds, and everything animates back in. That's the flash. Now the fixed path: fingerprint matches, nothing moves — only the new message animates. |
 | v3-03-cline-the-plan | a3-plan | Cline | Here's the plan. Fingerprint what each region shows, skip the repaint when nothing changed, and only animate what's actually new. |
 | v3-04-cline-render-map | a3-arch | Cline | Quick map of how the demo renders. State folds in from the left, and render pushes it into these four regions. The flash lives right here — at this rebuild edge. |
 | v3-05-cline-fingerprint-check | a3-edit | Cline | I'll keep the map up while I make the change. Adding the fingerprint check now — if the region's state didn't change, we don't touch it. |

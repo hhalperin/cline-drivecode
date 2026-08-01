@@ -1212,6 +1212,192 @@
     border-radius: 999px;
     padding: 4px 8px;
   }
+  /* Explanatory bug animation (walkthrough.animation · the a3-bug beat):
+     two mini feeds on one 4s clock. BEFORE re-mounts all three message
+     blocks on the beat tick and flickers a white flash — the literal bug.
+     AFTER holds perfectly still on a fingerprint match (the sig chip
+     glows green), and on the second tick only a NEW fourth block animates
+     in. Pure CSS keyframes; the AFTER panel runs .35s behind so the flash
+     reads first. Reduced motion degrades to a static comparison. */
+  .stage-anim { display: flex; gap: 12px; width: 100%; max-width: 620px; }
+  .stage-anim .anim-panel {
+    flex: 1;
+    min-width: 0;
+    border: 0.8px solid var(--line);
+    border-radius: var(--r);
+    background: var(--panel);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .stage-anim .anim-panel.before { border-color: color-mix(in srgb, var(--danger) 35%, transparent); }
+  .stage-anim .anim-panel.after { border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+  .stage-anim .anim-head { display: flex; align-items: center; gap: 7px; min-height: 18px; }
+  .stage-anim .anim-name {
+    font: 600 9px/1.3 var(--eyebrow);
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    flex: 1;
+    min-width: 0;
+  }
+  .stage-anim .before .anim-name { color: var(--danger-t); }
+  .stage-anim .after .anim-name { color: var(--ok-soft); }
+  /* The beat tick — the demo clock, amber like the live chrome. */
+  .stage-anim .anim-tick {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--live);
+    opacity: .55;
+    flex: none;
+  }
+  .stage-anim .before .anim-tick { animation: anim-tick-one 4s linear infinite; }
+  .stage-anim .after .anim-tick { animation: anim-tick-two 4s linear infinite; animation-delay: .35s; }
+  @keyframes anim-tick-one {
+    0%, 2% { transform: scale(1); opacity: .55; box-shadow: 0 0 0 0 transparent; }
+    5% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 30%, transparent); }
+    12%, 100% { transform: scale(1); opacity: .55; box-shadow: 0 0 0 0 transparent; }
+  }
+  @keyframes anim-tick-two {
+    0%, 2% { transform: scale(1); opacity: .55; box-shadow: 0 0 0 0 transparent; }
+    5% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 30%, transparent); }
+    12%, 52% { transform: scale(1); opacity: .55; box-shadow: 0 0 0 0 transparent; }
+    55% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 30%, transparent); }
+    62%, 100% { transform: scale(1); opacity: .55; box-shadow: 0 0 0 0 transparent; }
+  }
+  /* Fingerprint chip: sits in the feed's top band (the head stays a
+     single line on both panels); rests dim, glows green on the skipped
+     tick. */
+  .stage-anim .anim-sig {
+    position: absolute;
+    top: 5px;
+    right: 6px;
+    z-index: 2;
+    font: 600 9px/1 var(--mono);
+    color: var(--dim);
+    border: 0.8px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 6px;
+    white-space: nowrap;
+    animation: anim-sig 4s var(--ease) infinite;
+    animation-delay: .35s;
+  }
+  @keyframes anim-sig {
+    0%, 4% { color: var(--dim); border-color: var(--line); background: transparent; box-shadow: 0 0 0 0 transparent; }
+    10%, 26% {
+      color: var(--ok-soft);
+      border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 14%, transparent);
+    }
+    40%, 100% { color: var(--dim); border-color: var(--line); background: transparent; box-shadow: 0 0 0 0 transparent; }
+  }
+  .stage-anim .anim-feed {
+    position: relative;
+    border: 0.8px solid var(--hair);
+    border-radius: 7px;
+    background: var(--well);
+    /* Top band hosts the AFTER panel's sig chip; both panels share it so
+       the message blocks stay row-aligned across the comparison. */
+    padding: 26px 8px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 136px;
+    overflow: hidden;
+  }
+  .stage-anim .anim-slot { position: relative; }
+  .stage-anim .anim-msg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border: 0.8px solid var(--hair);
+    border-radius: 6px;
+    background: var(--panel);
+  }
+  .stage-anim .anim-msg .av {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--drive) 55%, transparent);
+    flex: none;
+  }
+  .stage-anim .anim-msg .bars { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .stage-anim .anim-msg .bars i { display: block; height: 4px; border-radius: 2px; background: var(--line); }
+  .stage-anim .anim-msg .bars .w70 { width: 70%; }
+  .stage-anim .anim-msg .bars .w45 { width: 45%; }
+  /* BEFORE: every block blinks out and re-enters together — one shared
+     keyframe, zero stagger. That simultaneity IS the bug. */
+  .stage-anim .before .anim-msg { animation: anim-remount 4s var(--ease) infinite; }
+  @keyframes anim-remount {
+    0%, 4% { opacity: 1; transform: translateY(0); }
+    7%, 13% { opacity: 0; transform: translateY(7px); }
+    24%, 100% { opacity: 1; transform: translateY(0); }
+  }
+  /* The literal flash: a white sheet flickering over the feed. */
+  .stage-anim .anim-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: #fff;
+    opacity: 0;
+    pointer-events: none;
+    animation: anim-flash 4s linear infinite;
+  }
+  @keyframes anim-flash {
+    0%, 4% { opacity: 0; }
+    6% { opacity: .5; }
+    8% { opacity: .1; }
+    10% { opacity: .34; }
+    14%, 100% { opacity: 0; }
+  }
+  /* AFTER: the fourth block is the only thing that ever moves. */
+  .stage-anim .after .anim-msg.new {
+    opacity: 0;
+    border-color: color-mix(in srgb, var(--ok) 45%, transparent);
+    animation: anim-new 4s var(--ease) infinite;
+    animation-delay: .35s;
+  }
+  .stage-anim .after .anim-msg.new .av { background: color-mix(in srgb, var(--ok) 55%, transparent); }
+  @keyframes anim-new {
+    0%, 52% { opacity: 0; transform: translateY(8px); }
+    64%, 94% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(8px); }
+  }
+  /* Ghost outline of the previous mount — reduced-motion only. */
+  .stage-anim .anim-ghost {
+    display: none;
+    position: absolute;
+    inset: 0;
+    border: 1px dashed color-mix(in srgb, var(--danger) 45%, transparent);
+    border-radius: 6px;
+    opacity: .6;
+    pointer-events: none;
+  }
+  .stage-anim .anim-cap { font: 500 10px/1.35 var(--mono); color: var(--dim); }
+  .stage-anim .before .anim-cap { color: var(--danger-t); }
+  @media (max-width: 700px) { .stage-anim { flex-direction: column; } }
+  @media (prefers-reduced-motion: reduce) {
+    /* Static comparison: BEFORE freezes mid-re-entry over ghosted
+       duplicates of the settled blocks; AFTER shows the still feed with
+       the chip lit and the new block landed. No loops anywhere. */
+    .stage-anim .anim-tick,
+    .stage-anim .anim-sig,
+    .stage-anim .anim-flash,
+    .stage-anim .before .anim-msg,
+    .stage-anim .after .anim-msg.new { animation: none !important; }
+    .stage-anim .anim-flash { opacity: 0; }
+    .stage-anim .before .anim-msg { opacity: .55; transform: translateY(5px); }
+    .stage-anim .anim-ghost { display: block; }
+    .stage-anim .after .anim-msg.new { opacity: 1; transform: none; }
+    .stage-anim .anim-sig {
+      color: var(--ok-soft);
+      border-color: color-mix(in srgb, var(--ok) 55%, transparent);
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+    }
+  }
 
   /* The sharer's screen is a faithful VS Code window (Cline is a VS Code
      extension): title bar / activity bar / explorer / editor group with
@@ -3203,7 +3389,7 @@
   /** @typedef {{ id: string, kind: 'edit'|'command'|'test', title: string, summary: string, diff?: Array<{t:'add'|'del',s:string}> }} StageCard */
   /** Director layer: the presented show artifact (StickyStagePane analogue) and
    *  the Show backlog the director is staging from.
-   * @typedef {{ kind: 'plan'|'diagram'|'walk'|'capture', kindLabel: string, sticky: 'replace'|'hold', maturity?: string, title: string, body: object }} ShowArtifact
+   * @typedef {{ kind: 'plan'|'diagram'|'walk'|'capture'|'anim', kindLabel: string, sticky: 'replace'|'hold', maturity?: string, title: string, body: object }} ShowArtifact
    * @typedef {{ id: string, label: string, status: 'planned'|'ready'|'showing'|'shown' }} ShowBacklogItem */
   /** Session artifact: a row on the Artifacts surface. Grown by RESTATING
    *  the full array in each beat's patch (deepMerge replaces arrays wholesale).
@@ -3363,6 +3549,11 @@
 
   /** Session artifacts (Artifacts surface). Titles/sticky/maturity mirror the
    *  show object of the beat that presented each one. @type {SessionArtifact[]} */
+  // Presented FIRST (a3-bug): the explanatory animation of the bug itself.
+  // walkthrough.animation is a real ShowArtifactKind member
+  // (sdk/packages/shared drive director schema) that the product has not
+  // built yet — beat and artifact both carry the planned badge.
+  const ART_ANIM = { id: "art-anim", kindLabel: "walkthrough.animation", title: "the flash · before and after", presenter: "Cline", act: 3, sticky: "replace", maturity: "planned" };
   const ART_PLAN = { id: "art-plan", kindLabel: "doc.plan", title: "Fix plan · demo-polish", presenter: "Cline", act: 3, sticky: "replace" };
   const ART_RENDER = { id: "art-render", kindLabel: "diagram.render", title: "demo render pipeline · where the flash lived", presenter: "Cline", act: 3, sticky: "hold" };
   // The hub architecture stays in the session library as an explorable
@@ -3377,6 +3568,16 @@
    *  the explore-mode ART_SHOWS map, so a clicked artifact card presents the
    *  exact object the director staged. State is never mutated, so sharing
    *  the reference is safe. */
+  // The bug, explained with motion: buildScreenBody renders FLASH_ANIM_HTML
+  // (a self-contained CSS-animated before/after) for kind "anim".
+  const SHOW_ANIM = {
+    kind: "anim",
+    kindLabel: "walkthrough.animation",
+    sticky: "replace",
+    maturity: "planned",
+    title: "the flash · before and after",
+    body: {},
+  };
   const SHOW_PLAN = {
     kind: "plan",
     kindLabel: "doc.plan",
@@ -3446,6 +3647,7 @@
 
   /** Explore mode: artifact id → the ShowArtifact a card click presents. */
   const ART_SHOWS = {
+    "art-anim": SHOW_ANIM,
     "art-plan": SHOW_PLAN,
     "art-render": SHOW_RENDER,
     "art-arch": SHOW_ARCH,
@@ -3673,11 +3875,53 @@
       id: "a3-focus",
       act: 3,
       title: "Fold the feed · stage is the screen",
-      caption: "Voice-first: tuck the chat away. The shared screen takes the whole room.",
+      caption: "Voice-first: tuck the chat away. The shared screen takes the whole room — and the director's queue appears, staged.",
       maturity: "shipped",
       dwellMs: 1400,
       cursor: { target: "#feed-toggle", action: "click" },
-      patch: { feedCollapsed: true },
+      patch: {
+        feedCollapsed: true,
+        // The Show backlog appears fully staged before anything presents —
+        // the walkthrough.animation chip starts its planned → showing →
+        // shown arc here.
+        stage: {
+          backlog: [
+            { id: "s0", label: "walkthrough.animation", status: "planned" },
+            { id: "s1", label: "doc.plan", status: "planned" },
+            { id: "s2", label: "diagram.render", status: "planned" },
+            { id: "s3", label: "walkthrough.code", status: "planned" },
+            { id: "s4", label: "capture.screenshot", status: "planned" },
+          ],
+        },
+      },
+    },
+    {
+      // The director's opening move: EXPLAIN the bug with motion before any
+      // plan or code. walkthrough.animation is a real ShowArtifactKind the
+      // product hasn't built yet — the beat and its artifact wear the
+      // planned badge. No cursor: the director presents, nobody clicks.
+      id: "a3-bug",
+      act: 3,
+      title: "The bug, animated · before and after",
+      caption: "walkthrough.animation — the director explains with motion: every-beat rebuild vs fingerprint skip, side by side.",
+      hubOp: "drive.show.present",
+      maturity: "planned",
+      dwellMs: 2400,
+      patch: {
+        showHowInset: false,
+        narration: "Watch this — every beat, the whole page rebuilds, and everything animates back in. That's the flash. Now the fixed path: fingerprint matches, nothing moves — only the new message animates.",
+        artifacts: [ART_ANIM],
+        stage: {
+          show: SHOW_ANIM,
+          backlog: [
+            { id: "s0", label: "walkthrough.animation", status: "showing" },
+            { id: "s1", label: "doc.plan", status: "ready" },
+            { id: "s2", label: "diagram.render", status: "planned" },
+            { id: "s3", label: "walkthrough.code", status: "planned" },
+            { id: "s4", label: "capture.screenshot", status: "planned" },
+          ],
+        },
+      },
     },
     {
       id: "a3-plan",
@@ -3691,10 +3935,11 @@
       patch: {
         showHowInset: false,
         narration: "Here's the plan. Fingerprint what each region shows, skip the repaint when nothing changed, and only animate what's actually new.",
-        artifacts: [ART_PLAN],
+        artifacts: [ART_ANIM, ART_PLAN],
         stage: {
           show: SHOW_PLAN,
           backlog: [
+            { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "showing" },
             { id: "s2", label: "diagram.render", status: "ready" },
             { id: "s3", label: "walkthrough.code", status: "planned" },
@@ -3714,10 +3959,11 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         narration: "Quick map of how the demo renders. State folds in from the left, and render pushes it into these four regions. The flash lives right here — at this rebuild edge.",
-        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH],
+        artifacts: [ART_ANIM, ART_PLAN, ART_RENDER, ART_ARCH],
         stage: {
           show: SHOW_RENDER,
           backlog: [
+            { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "shown" },
             { id: "s2", label: "diagram.render", status: "showing" },
             { id: "s3", label: "walkthrough.code", status: "ready" },
@@ -3790,10 +4036,11 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         narration: "Let me walk you through it. This guard is the whole fix — compare the fingerprint, skip the rebuild, remember the new one.",
-        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK],
+        artifacts: [ART_ANIM, ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK],
         stage: {
           show: SHOW_WALK,
           backlog: [
+            { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "shown" },
             { id: "s2", label: "diagram.render", status: "shown" },
             { id: "s3", label: "walkthrough.code", status: "showing" },
@@ -3813,10 +4060,11 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         narration: "And here it is live — beats advancing, zero flashes. Smooth.",
-        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE],
+        artifacts: [ART_ANIM, ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE],
         stage: {
           show: SHOW_CAPTURE,
           backlog: [
+            { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "shown" },
             { id: "s2", label: "diagram.render", status: "shown" },
             { id: "s3", label: "walkthrough.code", status: "shown" },
@@ -4167,7 +4415,7 @@
           { ...CLINE, wstatus: "working", task: "pinning the caption slot" },
           { ...RILEY, wstatus: "working", task: "checks review" },
         ],
-        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
+        artifacts: [ART_ANIM, ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
         feedMessages: [
           { id: "m7", from: "system", who: "Hub", text: "call_end · building Tier-0 handoff from typed events." },
         ],
@@ -4456,7 +4704,7 @@
             activity: "idle — take the wheel",
           },
         },
-        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
+        artifacts: [ART_ANIM, ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
         feedMessages: [
           { id: "m8", from: "system", who: "Hub", text: "Rejoined demo-polish · createOrAttach (idempotent)." },
           { id: "m9", from: "system", who: "Hub", text: "pr_create approved — PR #91 opened." },
@@ -4639,6 +4887,7 @@
   const CLIPS = {
     "a1-join": "v3-01-cline-looking-at-flashing.mp3",
     "a2-narration": "v3-02-cline-found-it.mp3",
+    "a3-bug": "v3-17-cline-watch-the-flash.mp3",
     "a3-plan": "v3-03-cline-the-plan.mp3",
     "a3-arch": "v3-04-cline-render-map.mp3",
     "a3-edit": "v3-05-cline-fingerprint-check.mp3",
@@ -4759,7 +5008,7 @@
     // chime AudioContext unlocks) plus every input beat's human clip —
     // their durations pace the STT chunk reveal. The rest load lazily.
     function preload() {
-      ["a1-join", "a2-narration", "a3-plan"].forEach(function (k) {
+      ["a1-join", "a2-narration", "a3-bug", "a3-plan"].forEach(function (k) {
         if (CLIPS[k]) clipEl(CLIPS[k]);
       });
       BEATS.forEach(function (b) {
@@ -5810,11 +6059,14 @@
 
   // ---- Artifacts surface ----
   // Small kind glyphs keyed by the kindLabel family (doc / diagram /
-  // walkthrough / capture), lucide-style strokes.
+  // walkthrough / capture), lucide-style strokes. An exact-label key wins
+  // over its family: walkthrough.animation gets a film glyph while
+  // walkthrough.code keeps the code chevrons.
   const ART_GLYPHS = {
     doc: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
     diagram: '<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>',
     walkthrough: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+    "walkthrough.animation": '<rect x="2" y="3" width="20" height="18" rx="2"/><path d="M7 3v18"/><path d="M17 3v18"/><path d="M2 9h5"/><path d="M2 15h5"/><path d="M17 9h5"/><path d="M17 15h5"/><path d="m10.5 9.5 4 2.5-4 2.5z"/>',
     capture: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   };
 
@@ -5825,7 +6077,7 @@
       return;
     }
     grid.innerHTML = artifacts.map(function (a) {
-      const glyph = ART_GLYPHS[a.kindLabel.split(".")[0]] || ART_GLYPHS.doc;
+      const glyph = ART_GLYPHS[a.kindLabel] || ART_GLYPHS[a.kindLabel.split(".")[0]] || ART_GLYPHS.doc;
       return (
         '<button type="button" class="art-card" data-art-id="' + escapeHtml(a.id) + '" title="Present on the shared screen">' +
           '<div class="art-head"><span class="art-kind">' + escapeHtml(a.kindLabel) + "</span>" +
@@ -5985,7 +6237,43 @@
     '<text class="edge-label" x="548" y="204" text-anchor="middle">re-mounts</text>' +
     "</svg>";
 
+  /** The a3-bug explainer: one 4s clock, two mini feeds. BEFORE re-mounts
+   *  everything on the tick (white flash, simultaneous re-entry); AFTER
+   *  skips on the fingerprint match and animates only the new block. All
+   *  motion is CSS keyframes on .stage-anim (reduced motion → static
+   *  comparison with ghosted duplicates). */
+  const FLASH_ANIM_HTML =
+    '<div class="stage-anim" role="img" aria-label="Before the fix, every beat re-mounts all messages and the panel flashes white. After the fix, a fingerprint match skips the repaint and only the new message animates in.">' +
+      '<div class="anim-panel before">' +
+        '<div class="anim-head"><span class="anim-tick" aria-hidden="true"></span>' +
+          '<span class="anim-name">Before · every beat rebuilds</span></div>' +
+        '<div class="anim-feed"><div class="anim-flash" aria-hidden="true"></div>' +
+          '<div class="anim-slot"><span class="anim-ghost" aria-hidden="true"></span>' +
+            '<div class="anim-msg"><span class="av"></span><span class="bars"><i class="w70"></i><i class="w45"></i></span></div></div>' +
+          '<div class="anim-slot"><span class="anim-ghost" aria-hidden="true"></span>' +
+            '<div class="anim-msg"><span class="av"></span><span class="bars"><i class="w45"></i><i class="w70"></i></span></div></div>' +
+          '<div class="anim-slot"><span class="anim-ghost" aria-hidden="true"></span>' +
+            '<div class="anim-msg"><span class="av"></span><span class="bars"><i class="w70"></i><i class="w70"></i></span></div></div>' +
+        "</div>" +
+        '<div class="anim-cap">everything re-animates — that’s the flash</div>' +
+      "</div>" +
+      '<div class="anim-panel after">' +
+        '<div class="anim-head"><span class="anim-tick" aria-hidden="true"></span>' +
+          '<span class="anim-name">After · fingerprint match → skip</span></div>' +
+        '<div class="anim-feed"><span class="anim-sig">sig ✓ unchanged</span>' +
+          '<div class="anim-msg"><span class="av"></span><span class="bars"><i class="w70"></i><i class="w45"></i></span></div>' +
+          '<div class="anim-msg"><span class="av"></span><span class="bars"><i class="w45"></i><i class="w70"></i></span></div>' +
+          '<div class="anim-msg"><span class="av"></span><span class="bars"><i class="w70"></i><i class="w70"></i></span></div>' +
+          '<div class="anim-msg new"><span class="av"></span><span class="bars"><i class="w70"></i><i class="w45"></i></span></div>' +
+        "</div>" +
+        '<div class="anim-cap">nothing re-mounts — only new items animate</div>' +
+      "</div>" +
+    "</div>";
+
   function buildScreenBody(show) {
+    if (show.kind === "anim") {
+      return FLASH_ANIM_HTML;
+    }
     if (show.kind === "plan") {
       return '<div class="stage-plan">' + show.body.steps.map(function (s) {
         const mark = s.state === "done" ? "✓" : s.state === "now" ? "●" : "○";
