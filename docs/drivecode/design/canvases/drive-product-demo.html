@@ -3057,6 +3057,7 @@
         surface: "drive-in-call",
         driveOn: true,
         inCall: true,
+        narration: "Welcome to router-fix — that's my live workspace on screen.",
         participants: [{ ...YOU, wstatus: "idle", task: "on the call" }],
         stage: {
           sharer: "Adam",
@@ -3097,6 +3098,8 @@
       dwellMs: 1400,
       cursor: { target: "#members", action: "move" },
       patch: {
+        // Talk track is silent here — clear the inherited a1-join line.
+        narration: "",
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
           { ...ADAM, wstatus: "working", task: "finding the race" },
@@ -3137,7 +3140,7 @@
       title: "User message in feed",
       caption: "Feed stays the default work surface while Drive is on.",
       maturity: "shipped",
-      dwellMs: 1200,
+      dwellMs: 1600,
       cursor: { target: "#composer-send", action: "click" },
       speech: { who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
       patch: {
@@ -3159,7 +3162,7 @@
       dwellMs: 1600,
       cursor: { target: "#spotlight", action: "move" },
       patch: {
-        narration: "Found the race. Watch the spotlight — I will walk the pending-flag path.",
+        narration: "Found the race — scheduleRetry fires twice. Watch the Spotlight.",
         nowLabel: "running router unit tests",
         nextLabel: "explain the race, then commit",
         participants: [
@@ -3188,7 +3191,7 @@
           { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
           { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
           { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Found the race. Watch the spotlight — I will walk the pending-flag path." },
+          { id: "m4", from: "agent", who: "Adam", text: "Found the race — scheduleRetry fires twice. Watch the Spotlight." },
         ],
       },
     },
@@ -3201,7 +3204,7 @@
       maturity: "planned",
       dwellMs: 1600,
       cursor: { target: "#strip-cc", action: "click" },
-      patch: { ccOpen: true },
+      patch: { ccOpen: true, narration: "" },
     },
     {
       id: "a3-how",
@@ -3230,11 +3233,11 @@
       caption: "Show backlog → rank → present. doc.plan takes the stage before any code.",
       hubOp: "drive.show.present",
       maturity: "shipped",
-      dwellMs: 1800,
+      dwellMs: 2200,
       cursor: { target: "#spotlight", action: "move" },
       patch: {
         showHowInset: false,
-        narration: "Plan first — three steps. Watch the stage.",
+        narration: "Before code, the plan — three steps, we're on two.",
         artifacts: [ART_PLAN],
         stage: {
           show: {
@@ -3269,7 +3272,7 @@
       dwellMs: 2200,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "The hub is the single writer. Our race lived in scheduleRetry — right there.",
+        narration: "This diagram is the whole system — the race lives in the amber box.",
         artifacts: [ART_PLAN, ART_ARCH],
         stage: {
           show: {
@@ -3295,11 +3298,11 @@
       caption: "sticky: hold — the diagram stays up while call_record_work folds the edit into the deck.",
       hubOp: "call_record_work",
       maturity: "shipped",
-      dwellMs: 1600,
+      dwellMs: 2000,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         showHowInset: false,
-        narration: "Guarding the pending flag now.",
+        narration: "Diagram stays up while the edit lands below — guarding the pending flag.",
         stage: {
           sharer: "Adam",
           sharerId: "adam",
@@ -3318,6 +3321,7 @@
       dwellMs: 1400,
       cursor: { target: "#spotlight .card.edit", action: "move" },
       patch: {
+        narration: "",
         stage: {
           cards: [CARD_EDIT, CARD_CMD],
         },
@@ -3334,6 +3338,7 @@
       cursor: { target: "#spotlight .card.command", action: "move" },
       chime: "complete",
       patch: {
+        narration: "Green — one retry per timeout, proven.",
         stage: {
           cards: [CARD_EDIT, CARD_CMD, CARD_TEST],
         },
@@ -3349,7 +3354,7 @@
       dwellMs: 2000,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "Walking the guard — line 43 is the whole fix.",
+        narration: "Now the walkthrough — line 43 is the whole fix.",
         artifacts: [ART_PLAN, ART_ARCH, ART_WALK],
         stage: {
           show: {
@@ -3389,7 +3394,7 @@
       dwellMs: 1800,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "And the behavior: one retry, then success.",
+        narration: "And the proof — one retry, then a clean 200.",
         artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE],
         stage: {
           show: {
@@ -3420,6 +3425,7 @@
       patch: {
         feedCollapsed: false,
         ccOpen: false,
+        narration: "",
       },
     },
     {
@@ -3438,7 +3444,7 @@
           { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
           { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
           { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Found the race. Watch the spotlight — I will walk the pending-flag path." },
+          { id: "m4", from: "agent", who: "Adam", text: "Found the race — scheduleRetry fires twice. Watch the Spotlight." },
           { id: "m5", from: "you", who: "You", text: "Steer: keep the guard in router.ts only — retry.ts stays docs-only.", chips: ["steer queued"] },
         ],
       },
@@ -3471,7 +3477,7 @@
       patch: {
         muted: false,
         posture: "paused_after_tool",
-        narration: "Pausing after this tool. Your turn.",
+        narration: "Heard — pausing after this tool. Floor's yours.",
       },
     },
     {
@@ -3485,6 +3491,7 @@
       cursor: { target: "#members", action: "move" },
       patch: {
         posture: null,
+        narration: "",
         stage: {
           show: null,
           backlog: [],
@@ -3519,7 +3526,7 @@
           { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
           { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
           { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Found the race. Watch the spotlight — I will walk the pending-flag path." },
+          { id: "m4", from: "agent", who: "Adam", text: "Found the race — scheduleRetry fires twice. Watch the Spotlight." },
           { id: "m5", from: "you", who: "You", text: "Steer: keep the guard in router.ts only — retry.ts stays docs-only.", chips: ["steer queued"] },
           { id: "m6", from: "system", who: "Room", text: "Riley joined the call." },
         ],
@@ -3558,7 +3565,7 @@
             activity: "tightening retry docs",
           },
         },
-        narration: "Riley taking Spotlight to tighten the docs.",
+        narration: "Riley here — borrowing Spotlight to tighten the retry docs.",
       },
     },
     {
@@ -3571,6 +3578,7 @@
       dwellMs: 1400,
       cursor: { target: "#spotlight .card.test", action: "move" },
       patch: {
+        narration: "",
         stage: {
           cards: [CARD_RILEY, CARD_CMD, CARD_TEST],
         },
@@ -3585,6 +3593,7 @@
       maturity: "shipped",
       dwellMs: 1800,
       cursor: { target: "#strip-share", action: "click" },
+      speech: { who: "You", text: "Here's what I mean — pinning my selection." },
       patch: {
         stage: {
           sharer: "You",
@@ -3594,7 +3603,6 @@
             ref: "Keep the guard in router.ts only — retry.ts stays docs-only. Add a regression test for the double-retry path.",
           },
         },
-        narration: "You pinned a selection. Agent cards dimmed.",
       },
     },
     {
@@ -3610,6 +3618,34 @@
         statusLens: "board",
         pipVisible: true,
         showHowInset: false,
+        narration: "Step away — the call follows. I'm still working.",
+        // You navigated away — the pin moment is over. Spotlight returns to
+        // Adam, so the act-6/7 narration lines (his clips) attribute to him
+        // in the derived CC transcript (attribution follows stage.sharer).
+        stage: {
+          sharer: "Adam",
+          sharerId: "adam",
+          pin: null,
+          work: {
+            file: "router.ts",
+            code: [
+              { t: "function onTimeout(req) {" },
+              { t: "  if (!req.active) return;" },
+              { t: "  if (req.pending) return; // guard: retry queued", hl: true },
+              { t: "  req.pending = true;" },
+              { t: "  scheduleRetry(req);" },
+              { t: "}" },
+            ],
+            caret: null,
+            typing: null,
+            term: [
+              { t: "$ bun -F @cline/core test:unit" },
+              { t: "router retry · once per timeout — pass", cls: "ok" },
+            ],
+            spin: false,
+            activity: "explaining the race",
+          },
+        },
       },
     },
     {
@@ -3619,7 +3655,7 @@
       caption: "Board: where is everything, and what needs me?",
       maturity: "shipped",
       dwellMs: 1400,
-      patch: { statusLens: "board" },
+      patch: { statusLens: "board", narration: "" },
     },
     {
       id: "a6-changelog",
@@ -3657,9 +3693,9 @@
       title: "Artifacts surface",
       caption: "Artifacts: the session's Show backlog, kept reviewable — every plan, diagram, and capture in one place.",
       maturity: "shipped",
-      dwellMs: 1600,
+      dwellMs: 2000,
       cursor: { target: "#rail-artifacts", action: "click" },
-      patch: { surface: "artifacts" },
+      patch: { surface: "artifacts", narration: "Everything I showed is saved here — plan to capture." },
     },
     {
       id: "a7-leave-choice",
@@ -3674,6 +3710,7 @@
         pipVisible: false,
         showLeaveChoice: true,
         handoff: false,
+        narration: "Leave keeps the room alive; End builds your handoff.",
       },
     },
     {
@@ -3690,6 +3727,7 @@
         inCall: false,
         driveOn: false,
         surface: "drive",
+        narration: "",
         participants: [
           { ...ADAM, wstatus: "working", task: "explaining the race" },
           { ...RILEY, wstatus: "working", task: "tightening retry docs" },
@@ -3712,6 +3750,7 @@
         driveOn: true,
         handoff: true,
         showLeaveChoice: false,
+        narration: "End packs it up — done, open, resume-next.",
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
           { ...ADAM, wstatus: "working", task: "explaining the race" },
@@ -3730,7 +3769,7 @@
       caption: "Idempotent re-attach. Same call_join createOrAttach path.",
       hubOp: "call_join",
       maturity: "shipped",
-      dwellMs: 1400,
+      dwellMs: 1800,
       cursor: { target: "#rail-drive", action: "click" },
       patch: {
         handoff: false,
@@ -3767,7 +3806,7 @@
           },
         },
         sinceYouLeft: null,
-        narration: "Welcome back. Room state intact.",
+        narration: "Welcome back — nothing torn down. Drafting the PR body.",
         feedMessages: [
           { id: "m8", from: "system", who: "Hub", text: "Rejoined router-fix · createOrAttach (idempotent)." },
         ],
@@ -3786,7 +3825,7 @@
         sinceYouLeft: "Riley published 1 edit card. Tests still green. Now: explain race.",
         nowLabel: "explain the race, then commit",
         nextLabel: "open PR",
-        narration: "Catch-up is one factual line — not a handoff packet.",
+        narration: "While you were out — Riley shipped one edit; tests stayed green.",
       },
     },
     {
@@ -3803,6 +3842,7 @@
       patch: {
         sinceYouLeft: null,
         mode: "Plan",
+        narration: "",
         stage: {
           work: {
             code: [
@@ -3846,9 +3886,10 @@
       caption: "High-impact tools surface an approval card (taxonomy shipped; feed UI planned).",
       hubOp: "approval",
       maturity: "planned",
-      dwellMs: 1800,
+      dwellMs: 2200,
       chime: "attention",
       patch: {
+        narration: "The PR needs your sign-off — approval card's up.",
         showGatesCard: true,
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
@@ -3868,6 +3909,7 @@
       cursor: { target: ".gates-card .approve", action: "click" },
       chime: "complete",
       patch: {
+        narration: "Approved — PR twelve is open, handoff attached.",
         showGatesCard: false,
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
@@ -3899,7 +3941,7 @@
       maturity: "planned",
       dwellMs: 1800,
       cursor: { target: "#rail-agents", action: "click" },
-      patch: { surface: "agents" },
+      patch: { surface: "agents", narration: "Call a team once — the whole roster seats itself." },
     },
     {
       id: "a10-tasks",
@@ -3910,7 +3952,7 @@
       maturity: "shipped",
       dwellMs: 1600,
       cursor: { target: "#rail-tasks", action: "click" },
-      patch: { surface: "tasks" },
+      patch: { surface: "tasks", narration: "" },
     },
     {
       id: "a10-rooms",
@@ -3935,6 +3977,7 @@
       patch: {
         inCall: false,
         driveOn: false,
+        narration: "Stopping the room — config and history kept. Tomorrow, we resume.",
         participants: [],
         rooms: [
           { id: "router-fix", name: "router-fix", status: "paused", meta: "paused · config + history kept" },
@@ -4074,7 +4117,7 @@
     return { perform: perform, cancel: cancel, hide: hide, show: show, travelEstimate: travelEstimate };
   })();
 
-  // ---- Voice (TTS narration) + Chimes ----
+  // ---- Voice (pre-rendered narration clips) + Chimes ----
   // Device preference only — {enabled, volume} persists to localStorage;
   // nothing transcript-related is ever stored (privacy-strict).
   const VOICE_STORE_KEY = "drive-demo-volume";
@@ -4102,16 +4145,50 @@
   // ring lands on the right member row (presence.speaking, demoed).
   let sharerIdNow = "";
 
-  /** TTS narration wrapper. Queue depth 1: narration is ambient, not
-   *  archival — a new line cancels the one in flight. `speaking` is set
-   *  synchronously on speak() and cleared on cancel so the indicator works
-   *  in headless engines that never fire utterance events; real voice
-   *  events refine it when they exist. Every attempted speak lands in
-   *  Voice.log ({beatId, text}) so e2e can assert without audio. */
+  /** Pre-rendered narration clips (Kokoro-82M — see the manifest at
+   *  assets/demos/voice/README.md): beatId → filename, one per talk-track
+   *  line. The canvas lives in design/canvases/, so clips resolve two
+   *  levels up. */
+  const CLIP_BASE = "../../assets/demos/voice/";
+  const CLIPS = {
+    "a1-join": "01-adam-welcome-router-fix.mp3",
+    "a2-narration": "03-adam-found-the-race.mp3",
+    "a3-plan": "04-adam-plan-first.mp3",
+    "a3-arch": "05-adam-whole-system-amber-box.mp3",
+    "a3-edit": "06-adam-diagram-stays-up.mp3",
+    "a3-test": "07-adam-green-proven.mp3",
+    "a3-walk": "08-adam-walkthrough-line-43.mp3",
+    "a3-demo": "09-adam-proof-clean-200.mp3",
+    "a4-pause": "11-adam-pausing-floor-yours.mp3",
+    "a5-sharer": "12-riley-borrowing-spotlight.mp3",
+    "a6-status": "14-adam-call-follows-you.mp3",
+    "a6-artifacts": "15-adam-saved-here.mp3",
+    "a7-leave-choice": "16-adam-leave-vs-end.mp3",
+    "a7-end-packet": "17-adam-end-packs-it-up.mp3",
+    "a8-rejoin": "18-adam-welcome-back.mp3",
+    "a8-since": "19-adam-since-you-left.mp3",
+    "a9-gates": "20-adam-needs-your-signoff.mp3",
+    "a9-approved": "21-adam-pr-twelve-open.mp3",
+    "a10-agents": "22-adam-call-a-team.mp3",
+    "a10-stop": "23-adam-stop-resume-tomorrow.mp3",
+  };
+
+  /** Narration player. Plays the pre-rendered clip for the beat (CLIPS);
+   *  speechSynthesis survives only as the per-line error fallback (e.g.
+   *  the canvas opened standalone without the assets directory). Queue
+   *  depth 1: narration is ambient, not archival — a new line cancels the
+   *  one in flight. `speaking` is set synchronously on speak() and cleared
+   *  on cancel so the indicator works in headless engines that never fire
+   *  media events; real play/ended/error events refine it when they exist.
+   *  Every attempt lands in Voice.log ({beatId, text, mode:"clip"|"synth"})
+   *  so e2e can assert without audio; with the voice toggle off nothing is
+   *  attempted, so nothing is logged. */
   const Voice = (function () {
-    const supported = typeof speechSynthesis !== "undefined";
+    const synthSupported = typeof speechSynthesis !== "undefined";
     const log = [];
-    let current = null;
+    const clipEls = {}; // beatId → HTMLAudioElement, created lazily
+    let current = null; // in-flight SpeechSynthesisUtterance (fallback path)
+    let currentClip = null; // in-flight Audio clip
     let speaking = false;
 
     function syncUi() {
@@ -4123,23 +4200,43 @@
       });
     }
 
+    function clipEl(beatId) {
+      let a = clipEls[beatId];
+      if (!a) {
+        a = new Audio(CLIP_BASE + CLIPS[beatId]);
+        a.preload = "auto";
+        clipEls[beatId] = a;
+      }
+      return a;
+    }
+
+    // Warm the opening clips on the Play gesture (the same moment the
+    // chime AudioContext unlocks); the rest are created lazily by speak().
+    function preload() {
+      Object.keys(CLIPS).slice(0, 3).forEach(clipEl);
+    }
+
     function dropUtterance() {
       current = null;
-      if (supported) {
+      if (synthSupported) {
         try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
       }
     }
 
-    function speak(text, beatId) {
-      if (!text) return;
-      // Log before the enabled gate (same order as Chime.fire) so e2e can
-      // assert narration attempts even with the voice toggle off.
-      log.push({ beatId: beatId, text: text });
-      if (!voicePrefs.enabled) return;
-      dropUtterance();
+    function dropClip() {
+      const a = currentClip;
+      currentClip = null;
+      if (a) {
+        a.onplay = a.onended = a.onerror = null;
+        try { a.pause(); a.currentTime = 0; } catch (e) { /* ignore */ }
+      }
+    }
+
+    function speakSynth(text, beatId) {
+      log.push({ beatId: beatId, text: text, mode: "synth" });
       speaking = true;
       syncUi();
-      if (!supported) return;
+      if (!synthSupported) return;
       try {
         const u = new SpeechSynthesisUtterance(text);
         u.volume = voicePrefs.volume / 100;
@@ -4154,7 +4251,43 @@
       } catch (e) { /* speech unavailable — indicator still cycles via cancel */ }
     }
 
+    function speak(text, beatId) {
+      if (!text || !voicePrefs.enabled) return;
+      dropClip();
+      dropUtterance();
+      if (!CLIPS[beatId]) {
+        // No clip mapped for this line — synth carries it.
+        speakSynth(text, beatId);
+        return;
+      }
+      log.push({ beatId: beatId, text: text, mode: "clip" });
+      speaking = true;
+      syncUi();
+      const a = clipEl(beatId);
+      const fallBack = function () {
+        // Clip unavailable (missing file / blocked playback) — the synth
+        // speaks the same text so the talk track survives standalone.
+        if (currentClip !== a) return;
+        currentClip = null;
+        speakSynth(text, beatId);
+      };
+      a.onplay = function () {
+        if (currentClip === a) { speaking = true; syncUi(); }
+      };
+      a.onended = function () {
+        if (currentClip === a) { currentClip = null; speaking = false; syncUi(); }
+      };
+      a.onerror = fallBack;
+      a.volume = voicePrefs.volume / 100;
+      currentClip = a;
+      try { a.currentTime = 0; } catch (e) { /* not yet loaded — starts at 0 */ }
+      let played;
+      try { played = a.play(); } catch (e) { fallBack(); return; }
+      if (played && typeof played.catch === "function") played.catch(fallBack);
+    }
+
     function cancel() {
+      dropClip();
       dropUtterance();
       speaking = false;
       syncUi();
@@ -4163,8 +4296,10 @@
     return {
       speak: speak,
       cancel: cancel,
+      preload: preload,
       syncUi: syncUi,
       log: log,
+      clips: CLIPS,
       isSpeaking: function () { return speaking; },
     };
   })();
@@ -4311,6 +4446,7 @@
   function play() {
     if (playing) return;
     Chime.unlock(); // first Play gesture — AudioContext allowed from here on
+    Voice.preload(); // warm the opening narration clips on the same gesture
     if (index >= BEATS.length - 1) index = 0;
     setPlaying(true);
     goTo(index, true);

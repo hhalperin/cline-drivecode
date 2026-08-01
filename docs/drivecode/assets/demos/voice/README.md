@@ -30,4 +30,4 @@ Pre-rendered narration for `docs/drivecode/design/canvases/drive-product-demo.ht
 | 22-adam-call-a-team | a10-agents | Adam | Call a team once — the whole roster seats itself. |
 | 23-adam-stop-resume-tomorrow | a10-stop | Adam | Stopping the room — config and history kept. Tomorrow, we resume. |
 
-Human speech (caption-only): a2-message "Adam, find the race in scheduleRetry — show me the fix on Spotlight." · a4-steer-send "One thing — keep the new join logic in App.tsx only." · a5-you-pin "Here's what I mean — pinning my selection."
+Human speech (caption-only): a2-message "Adam, find the race in scheduleRetry — show me the fix on Spotlight." · a4-steer-send "Steer: keep the guard in router.ts only — retry.ts stays docs-only." · a5-you-pin "Here's what I mean — pinning my selection."
