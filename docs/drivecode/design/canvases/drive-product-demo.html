@@ -732,18 +732,44 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
-  /* presence.speaking, demoed: while a narration utterance is live the
-     sharer's member row wears an amber speaking ring (amber = live). */
+  /* presence.speaking, demoed: while a clip is live the SPEAKER's member
+     row wears a ring + a 3-bar EQ next to the name. Agents ring live-amber;
+     human rows ring hub-blue (--speak/--speak-t pick the family). */
   .member-row.speaking {
-    border-color: color-mix(in srgb, var(--live) 55%, transparent);
+    --speak: var(--live);
+    --speak-t: var(--live-t);
+    border-color: color-mix(in srgb, var(--speak) 55%, transparent);
+  }
+  .member-row.human.speaking {
+    --speak: var(--hub);
+    --speak-t: var(--hub-t);
   }
   .member-row.speaking .member-av {
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--live) 70%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--speak) 70%, transparent);
     animation: speak-ring 1.15s var(--ease) infinite;
   }
   @keyframes speak-ring {
-    50% { box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--live) 30%, transparent); }
+    50% { box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--speak, var(--live)) 30%, transparent); }
   }
+  .member-eq {
+    display: none;
+    align-items: flex-end;
+    gap: 2px;
+    height: 10px;
+    flex: none;
+    margin-left: 2px;
+  }
+  .member-row.speaking .member-eq { display: flex; }
+  .member-eq i {
+    width: 2.5px;
+    height: 4px;
+    border-radius: 1px;
+    background: var(--speak-t, var(--live-t));
+    animation: eq-bar .8s ease-in-out infinite;
+  }
+  .member-eq i:nth-child(2) { animation-delay: .14s; }
+  .member-eq i:nth-child(3) { animation-delay: .28s; }
+  @keyframes eq-bar { 50% { height: 10px; } }
   .feed-main {
     flex: 1;
     min-width: 0;
@@ -752,7 +778,9 @@
     min-height: 0;
   }
 
-  /* Composer — the room's message bar. The input is a mock; Send is real. */
+  /* Composer — the room's message bar. Input, mic, and Send are all real
+     buttons: the scripted cursor types into the input (or dictates through
+     the mic) before every send, so each click has visible causality. */
   .composer {
     display: flex;
     align-items: center;
@@ -775,18 +803,92 @@
   .composer-input {
     flex: 1;
     min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
     padding: 7px 11px;
     border-radius: 999px;
     border: 0.8px solid var(--line);
     background: var(--well);
     color: var(--dim);
     font-size: 12.5px;
+    text-align: left;
+    transition: border-color .15s var(--ease), box-shadow .15s var(--ease);
+  }
+  .composer-input .composer-text {
+    flex: 1;
+    min-width: 0;
+    color: var(--dim);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-align: left;
   }
-  .composer .mic-glyph { color: var(--dim); flex: none; display: grid; place-items: center; }
-  .composer .mic-glyph svg { width: 14px; height: 14px; display: block; }
+  /* Focus ring while the scripted cursor is typing; caret blinks at the end. */
+  .composer.focused .composer-input {
+    border-color: color-mix(in srgb, var(--hub) 60%, transparent);
+    background: var(--panel);
+    box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--hub) 16%, transparent);
+  }
+  /* While composing, the text shows its TAIL (scrolled to the end by the
+     choreography) so late chunks visibly land in the narrow pill. */
+  .composer.armed .composer-input .composer-text {
+    color: var(--text);
+    text-overflow: clip;
+  }
+  .composer-input .composer-caret {
+    display: none;
+    width: 1.5px;
+    height: 13px;
+    flex: none;
+    background: var(--text);
+    animation: caret-blink 1.06s steps(2, start) infinite;
+  }
+  .composer.focused .composer-input .composer-caret { display: block; }
+  @keyframes caret-blink { 50% { opacity: 0; } }
+  /* Live-dictation waveform — 4 bars in the input area while the mic is hot. */
+  .composer-input .composer-wave {
+    display: none;
+    align-items: center;
+    gap: 2.5px;
+    height: 14px;
+    flex: none;
+  }
+  .composer.listening .composer-input .composer-wave { display: flex; }
+  .composer-input .composer-wave i {
+    width: 2.5px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--live-t);
+    animation: wave-bar 1s ease-in-out infinite;
+  }
+  .composer-input .composer-wave i:nth-child(2) { animation-delay: .18s; }
+  .composer-input .composer-wave i:nth-child(3) { animation-delay: .36s; }
+  .composer-input .composer-wave i:nth-child(4) { animation-delay: .54s; }
+  @keyframes wave-bar { 50% { height: 13px; } }
+  .composer-mic {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    flex: none;
+    border-radius: 50%;
+    border: 0.8px solid transparent;
+    color: var(--dim);
+  }
+  .composer-mic svg { width: 14px; height: 14px; display: block; }
+  .composer-mic:hover { color: var(--text); }
+  /* Mic hot: live-amber tint + a soft pulse while speech is transcribing. */
+  .composer-mic.live {
+    color: var(--live-t);
+    border-color: color-mix(in srgb, var(--live) 55%, transparent);
+    background: color-mix(in srgb, var(--live) 14%, transparent);
+    animation: mic-pulse 1.3s var(--ease) infinite;
+  }
+  @keyframes mic-pulse {
+    50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--live) 22%, transparent); }
+  }
   #composer-send {
     width: 26px;
     height: 26px;
@@ -1487,6 +1589,12 @@
     .ws-tl { animation: none !important; opacity: 1; }
     .member-row.needs-you .member-dot { animation: none !important; }
     .live-dot.speaking, .member-row.speaking .member-av { animation: none !important; }
+    /* Input choreography degrades to static: no caret blink, waveform and
+       EQ bars hold still, no mic pulse — the gating logic still applies. */
+    .composer-input .composer-caret,
+    .composer-input .composer-wave i,
+    .composer-mic.live,
+    .member-eq i { animation: none !important; }
   }
 
   /* Show backlog rail: the director's queue, made visible */
@@ -2717,10 +2825,14 @@
                 <div class="feed" id="feed"></div>
                 <div class="composer" id="composer">
                   <span class="address-chip hide" id="composer-address">@Cline · one</span>
-                  <div class="composer-input" aria-hidden="true">Message the room…</div>
-                  <span class="mic-glyph" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
-                  </span>
+                  <button type="button" id="composer-input" class="composer-input" title="Message the room" aria-label="Message the room">
+                    <span class="composer-wave" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                    <span class="composer-text" data-placeholder="Message the room…">Message the room…</span>
+                    <span class="composer-caret" aria-hidden="true"></span>
+                  </button>
+                  <button type="button" id="composer-mic" class="composer-mic" title="Voice input" aria-label="Voice input">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+                  </button>
                   <button type="button" id="composer-send" title="Send" aria-label="Send message">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                   </button>
@@ -3348,10 +3460,18 @@
   /** Beat extras: `chime` fires a notification tone on beat entry during
    *  autoplay ('complete' = task done, 'attention' = needs you). `speech`
    *  marks a line the human SAYS on the call — it feeds the derived CC
-   *  transcript alongside narration transitions (nothing is stored).
-   *  `modeCycle` is render-only chrome: the mode pill cycles these labels
-   *  while the beat is on screen — it never folds into state.
-   * @type {Array<{id:string,act:number,title:string,caption:string,hubOp?:string,maturity?:string,dwellMs:number,cursor?:CursorSpec,chime?:'complete'|'attention',speech?:{who:string,text:string},modeCycle?:string[],patch:object}>} */
+   *  transcript alongside narration transitions (nothing is stored);
+   *  `after: true` files it after the beat's narration line (matching the
+   *  clip order when the human answers the agent). `input` choreographs a
+   *  REAL composer entry during autoplay: the cursor's first click is the
+   *  beat's cursor spec (input or mic), the text then types ('type') or
+   *  transcribes from the human clip ('stt'), and only after the sequence
+   *  completes does the cursor press Send and the patch land — so the send
+   *  click always has visible causality. `modeCycle` is render-only chrome:
+   *  the mode pill cycles these labels while the beat is on screen — it
+   *  never folds into state.
+   * @typedef {{ mode: 'type'|'stt', text: string, clip?: string }} InputSpec
+   * @type {Array<{id:string,act:number,title:string,caption:string,hubOp?:string,maturity?:string,dwellMs:number,cursor?:CursorSpec,chime?:'complete'|'attention',speech?:{who:string,text:string,after?:boolean},input?:InputSpec,modeCycle?:string[],patch:object}>} */
   const BEATS = [
     {
       id: "a0-hub",
@@ -3470,7 +3590,11 @@
       caption: "Feed stays the default work surface while Drive is on.",
       maturity: "shipped",
       dwellMs: 1600,
-      cursor: { target: "#composer-send", action: "click" },
+      // Real dictation: the cursor clicks the mic, Harrison's recorded line
+      // (you-01) plays while the words transcribe into the input in chunks,
+      // then the cursor presses Send — only then does the message land.
+      cursor: { target: "#composer-mic", action: "click" },
+      input: { mode: "stt", text: "Cline — the demo flashes and refreshes the whole page every time it updates. It feels jarring. Can you make it one smooth experience?", clip: "you-01-fix-the-flashing.mp3" },
       speech: { who: "You", text: "Cline — the demo flashes and refreshes the whole page every time it updates. It feels jarring. Can you make it one smooth experience?" },
       patch: {
         feedMessages: [
@@ -3723,7 +3847,11 @@
       hubOp: "steer queue",
       maturity: "shipped",
       dwellMs: 1400,
-      cursor: { target: "#composer-send", action: "click" },
+      // Deliberately TYPED, not spoken: Cline has the floor, so you steer
+      // in text without interrupting. The cursor clicks the input, the
+      // steer types out character by character, then Send.
+      cursor: { target: "#composer-input", action: "click" },
+      input: { mode: "type", text: "Also — the captions keep shifting around. Give them one consistent place." },
       speech: { who: "You", text: "Also — the captions keep shifting around. Give them one consistent place." },
       patch: {
         feedMessages: [
@@ -4192,6 +4320,9 @@
       dwellMs: 1800,
       cursor: { target: ".gates-card .approve", action: "click" },
       chime: "complete",
+      // Harrison's recorded sign-off (you-04) plays first, then Cline's
+      // v3-15 — sequenced by CLIP_SEQS; the beat holds for both clips.
+      speech: { who: "You", text: "Looks good — approved. Go ahead." },
       patch: {
         narration: "Thanks. PR ninety-one is up, with the before and after attached.",
         showGatesCard: false,
@@ -4282,6 +4413,9 @@
       caption: "Demo complete — this is a live surface now. Every rail item, lens, toggle, and card works. Press Play to run it again.",
       maturity: "shipped",
       dwellMs: 2400,
+      // Cline's v3-16 first, THEN Harrison's recorded handback (you-05) —
+      // `after` keeps the derived transcript in that spoken order.
+      speech: { who: "You", text: "Nice. I'll take it from here.", after: true },
       patch: {
         surface: "drive-in-call",
         inCall: true,
@@ -4496,10 +4630,11 @@
   // ring lands on the right member row (presence.speaking, demoed).
   let sharerIdNow = "";
 
-  /** Pre-rendered dialogue clips (Kokoro-82M, v3 story set — see the
-   *  manifest at assets/demos/voice/README.md): beatId → filename, one per
-   *  spoken line; narration display text matches clip text verbatim. The
-   *  canvas lives in design/canvases/, so clips resolve two levels up. */
+  /** Pre-rendered dialogue clips (agents: Kokoro-82M; "You": Harrison's
+   *  recorded voice — see the manifest at assets/demos/voice/README.md):
+   *  beatId → filename, one per spoken line; narration display text
+   *  matches clip text verbatim. The canvas lives in design/canvases/, so
+   *  clips resolve two levels up. */
   const CLIP_BASE = "../../assets/demos/voice/";
   const CLIPS = {
     "a1-join": "v3-01-cline-looking-at-flashing.mp3",
@@ -4516,34 +4651,66 @@
     "a8-rejoin": "v3-12-cline-welcome-back.mp3",
     "a8-since": "v3-13-cline-catch-up.mp3",
     "a9-gates": "v3-14-cline-signoff.mp3",
-    "a9-approved": "v3-15-cline-pr-ninety-one.mp3",
-    "a10-explore": "v3-16-cline-take-the-wheel.mp3",
   };
 
-  /** Dialogue player. Plays the pre-rendered clip for the beat (CLIPS);
-   *  speechSynthesis survives only as the per-line error fallback (e.g.
-   *  the canvas opened standalone without the assets directory). Queue
-   *  depth 1: narration is ambient, not archival — a new line cancels the
-   *  one in flight. `speaking` is set synchronously on speak() and cleared
-   *  on cancel so the indicator works in headless engines that never fire
-   *  media events; real play/ended/error events refine it when they exist.
-   *  Every attempt lands in Voice.log ({beatId, text, mode:"clip"|"synth"})
-   *  so e2e can assert without audio; with the voice toggle off nothing is
-   *  attempted, so nothing is logged. Each speak() also opens a completion
-   *  promise (done()/pending()) the player uses for auto_after_say pacing. */
+  /** Sequenced dialogue — beats where two voices speak in order. Each
+   *  segment: {file, text?, speaker?}; text defaults to the beat's
+   *  narration line, speaker (a member id) to the stage sharer. The beat
+   *  holds until the LAST clip ends — one completion promise spans the
+   *  sequence, and Voice.log records the segments in play order. */
+  const CLIP_SEQS = {
+    // Your recorded sign-off first, then Cline's "PR ninety-one is up".
+    "a9-approved": [
+      { file: "you-04-approved.mp3", text: "Looks good — approved. Go ahead.", speaker: "you" },
+      { file: "v3-15-cline-pr-ninety-one.mp3" },
+    ],
+    // Cline hands back first; your recorded "I'll take it from here" answers.
+    "a10-explore": [
+      { file: "v3-16-cline-take-the-wheel.mp3" },
+      { file: "you-05-take-it-from-here.mp3", text: "Nice. I'll take it from here.", speaker: "you" },
+    ],
+  };
+
+  /** Human speech clips that play on beat ENTRY without a composer input —
+   *  the pin gesture, where the click is the share button. Beats with an
+   *  `input` field carry their clip on beat.input.clip instead (the STT
+   *  flow plays it as the transcription source). */
+  const SPEECH_CLIPS = {
+    "a5-you-pin": { file: "you-03-jumps-here-to-here.mp3", speaker: "you" },
+  };
+
+  /** Dialogue player. Plays the pre-rendered clip(s) for the beat — one
+   *  per line for CLIPS, an ordered sequence for CLIP_SEQS — with
+   *  speechSynthesis surviving only as the per-segment error fallback
+   *  (e.g. the canvas opened standalone without the assets directory).
+   *  Queue depth 1 across beats: narration is ambient, not archival — a
+   *  new line cancels the one in flight. `speaking` is set synchronously
+   *  on speak() and cleared on cancel so the indicator works in headless
+   *  engines that never fire media events; real play/ended/error events
+   *  refine it when they exist. Every segment lands in Voice.log
+   *  ({beatId, text, mode:"clip"|"synth", clip}) in play order so e2e can
+   *  assert without audio; with the voice toggle off nothing is attempted,
+   *  so nothing is logged. Each speak()/speakSegs() opens ONE completion
+   *  promise (done()/pending()) spanning its whole sequence — the player
+   *  uses it for auto_after_say pacing. The speaking ring follows the
+   *  SEGMENT's speaker (human clips ring #member-you) and falls back to
+   *  the stage sharer. */
   const Voice = (function () {
     const synthSupported = typeof speechSynthesis !== "undefined";
     const log = [];
-    const clipEls = {}; // beatId → HTMLAudioElement, created lazily
+    const clipEls = {}; // filename → HTMLAudioElement, created lazily
     let current = null; // in-flight SpeechSynthesisUtterance (fallback path)
     let currentClip = null; // in-flight Audio clip
     let speaking = false;
+    let segQueue = []; // remaining segments of the current utterance
+    let currentSpeakerId = null; // member id of the in-flight segment's voice
 
     // auto_after_say pacing: every speak() opens a completion promise the
-    // player awaits before advancing a voiced beat. It settles on clip
-    // `ended`, synth `end`, the synth duration-estimate safety net, or
-    // cancel() — so pause/manual nav can never leave a zombie advance.
-    // Settles land in doneLog ({beatId, at}) for e2e pacing assertions.
+    // player awaits before advancing a voiced beat. It settles when the
+    // LAST segment ends (clip `ended`, synth `end`, the synth
+    // duration-estimate safety net) or on cancel() — so pause/manual nav
+    // can never leave a zombie advance. Settles land in doneLog
+    // ({beatId, at}) for e2e pacing assertions.
     const doneLog = [];
     let pendingFlag = false;
     let doneResolve = null;
@@ -4569,28 +4736,35 @@
     }
 
     function syncUi() {
+      const spk = currentSpeakerId || sharerIdNow;
       document.querySelectorAll("#spotlight .presenter-bar .live-dot").forEach(function (dot) {
         dot.classList.toggle("speaking", speaking);
       });
       document.querySelectorAll(".member-row").forEach(function (row) {
-        row.classList.toggle("speaking", speaking && row.id === "member-" + sharerIdNow);
+        row.classList.toggle("speaking", speaking && row.id === "member-" + spk);
       });
     }
 
-    function clipEl(beatId) {
-      let a = clipEls[beatId];
+    function clipEl(file) {
+      let a = clipEls[file];
       if (!a) {
-        a = new Audio(CLIP_BASE + CLIPS[beatId]);
+        a = new Audio(CLIP_BASE + file);
         a.preload = "auto";
-        clipEls[beatId] = a;
+        clipEls[file] = a;
       }
       return a;
     }
 
     // Warm the opening clips on the Play gesture (the same moment the
-    // chime AudioContext unlocks); the rest are created lazily by speak().
+    // chime AudioContext unlocks) plus every input beat's human clip —
+    // their durations pace the STT chunk reveal. The rest load lazily.
     function preload() {
-      Object.keys(CLIPS).slice(0, 3).forEach(clipEl);
+      ["a1-join", "a2-narration", "a3-plan"].forEach(function (k) {
+        if (CLIPS[k]) clipEl(CLIPS[k]);
+      });
+      BEATS.forEach(function (b) {
+        if (b.input && b.input.clip) clipEl(b.input.clip);
+      });
     }
 
     function dropUtterance() {
@@ -4609,21 +4783,36 @@
       }
     }
 
-    function speakSynth(text, beatId) {
-      log.push({ beatId: beatId, text: text, mode: "synth" });
+    /** Current segment finished — play the next one or settle the beat. */
+    function segDone() {
+      if (segQueue.length) {
+        playNextSeg();
+        return;
+      }
+      currentSpeakerId = null;
+      speaking = false;
+      syncUi();
+      settleUtterance();
+    }
+
+    /** One synth segment; continues the queue when it ends. Serves both
+     *  the no-clip narration path and the per-segment clip fallback. */
+    function speakSynthSeg(text) {
+      log.push({ beatId: currentBeatId, text: text, mode: "synth" });
       speaking = true;
       syncUi();
       // Duration-estimate safety net: if the engine never fires `end`
-      // (headless, no voices, immediate error), the estimate still settles
-      // the pacing promise so autoplay keeps a read-along cadence.
+      // (headless, no voices, immediate error), the estimate still moves
+      // the queue along so autoplay keeps a read-along cadence.
       const myTok = uttToken;
-      setTimeout(function () {
-        if (myTok !== uttToken) return;
+      let done = false;
+      const finish = function () {
+        if (done || myTok !== uttToken) return;
+        done = true;
         current = null;
-        speaking = false;
-        syncUi();
-        settleUtterance();
-      }, text.length * 90);
+        segDone();
+      };
+      setTimeout(finish, text.length * 90);
       if (!synthSupported) return;
       try {
         const u = new SpeechSynthesisUtterance(text);
@@ -4632,7 +4821,7 @@
           if (current === u) { speaking = true; syncUi(); }
         };
         u.onend = function () {
-          if (current === u) { current = null; speaking = false; syncUi(); settleUtterance(); }
+          if (current === u) finish();
         };
         u.onerror = function () {
           // No audio came out — the estimate above still paces the beat.
@@ -4643,47 +4832,80 @@
       } catch (e) { /* speech unavailable — indicator still cycles via cancel */ }
     }
 
-    function speak(text, beatId) {
-      if (!text || !voicePrefs.enabled) return;
-      dropClip();
-      dropUtterance();
-      beginUtterance(beatId);
-      if (!CLIPS[beatId]) {
-        // No clip mapped for this line — synth carries it.
-        speakSynth(text, beatId);
-        return;
-      }
-      log.push({ beatId: beatId, text: text, mode: "clip" });
+    /** Play the head of segQueue. Returns the Audio element driving it
+     *  (the STT flow reads its duration to pace the chunk reveal). */
+    function playNextSeg() {
+      const seg = segQueue.shift();
+      if (!seg) { segDone(); return null; }
+      log.push({ beatId: currentBeatId, text: seg.text, mode: "clip", clip: seg.file });
+      currentSpeakerId = seg.speaker || null;
       speaking = true;
       syncUi();
-      const a = clipEl(beatId);
+      const a = clipEl(seg.file);
       const fallBack = function () {
         // Clip unavailable (missing file / blocked playback) — the synth
         // speaks the same text so the talk track survives standalone. The
         // same completion promise keeps pacing the beat.
         if (currentClip !== a) return;
         currentClip = null;
-        speakSynth(text, beatId);
+        speakSynthSeg(seg.text);
       };
       a.onplay = function () {
         if (currentClip === a) { speaking = true; syncUi(); }
       };
       a.onended = function () {
-        if (currentClip === a) { currentClip = null; speaking = false; syncUi(); settleUtterance(); }
+        if (currentClip === a) { currentClip = null; segDone(); }
       };
       a.onerror = fallBack;
       a.volume = voicePrefs.volume / 100;
       currentClip = a;
       try { a.currentTime = 0; } catch (e) { /* not yet loaded — starts at 0 */ }
       let played;
-      try { played = a.play(); } catch (e) { fallBack(); return; }
+      try { played = a.play(); } catch (e) { fallBack(); return a; }
       if (played && typeof played.catch === "function") played.catch(fallBack);
+      return a;
+    }
+
+    /** Speak an explicit clip sequence for a beat. Segments: {file, text,
+     *  speaker?}. Opens ONE completion promise across the sequence; each
+     *  segment logs in play order. Returns the first segment's Audio
+     *  element, or null when the voice toggle is off (nothing plays). */
+    function speakSegs(segs, beatId) {
+      if (!segs || !segs.length || !voicePrefs.enabled) return null;
+      dropClip();
+      dropUtterance();
+      beginUtterance(beatId);
+      segQueue = segs.slice();
+      return playNextSeg();
+    }
+
+    function speak(text, beatId) {
+      if (!text || !voicePrefs.enabled) return;
+      const seq = CLIP_SEQS[beatId];
+      if (seq) {
+        speakSegs(seq.map(function (e) {
+          return { file: e.file, text: e.text || text, speaker: e.speaker || null };
+        }), beatId);
+        return;
+      }
+      if (CLIPS[beatId]) {
+        speakSegs([{ file: CLIPS[beatId], text: text, speaker: null }], beatId);
+        return;
+      }
+      // No clip mapped for this line — synth carries it.
+      dropClip();
+      dropUtterance();
+      beginUtterance(beatId);
+      segQueue = [];
+      speakSynthSeg(text);
     }
 
     function cancel() {
+      segQueue = [];
       dropClip();
       dropUtterance();
       uttToken++;
+      currentSpeakerId = null;
       settleUtterance();
       speaking = false;
       syncUi();
@@ -4691,6 +4913,7 @@
 
     return {
       speak: speak,
+      speakSegs: speakSegs,
       cancel: cancel,
       preload: preload,
       syncUi: syncUi,
@@ -4755,6 +4978,184 @@
     }
 
     return { complete: complete, attention: attention, unlock: unlock, log: log };
+  })();
+
+  // ---- Input choreography (typing / live dictation into the composer) ----
+  // Runs during autoplay between an input beat's FIRST click (the cursor
+  // spec: #composer-input or #composer-mic) and the Send press — against
+  // the previous beat's DOM, so the message the patch lands was visibly
+  // composed first. Cancel (pause / manual nav / scrub) resets the
+  // composer to its placeholder instantly: no zombie sends. Reduced
+  // motion: the text lands at once, but the gating (audio + sequence
+  // completion) still applies before Send.
+  const InputFX = (function () {
+    const TYPE_MS = 32; // per-character cadence for typed steers
+    const STT_FALLBACK_MS = 55; // per-char budget when clip duration is unknown
+    const CHUNK_PATTERN = [3, 2, 4, 3, 2, 4, 2, 3]; // irregular 2–4 word bursts
+    let gen = 0;
+    let timers = [];
+
+    function els() {
+      return {
+        composer: document.getElementById("composer"),
+        text: document.querySelector("#composer-input .composer-text"),
+        mic: document.getElementById("composer-mic"),
+      };
+    }
+
+    function later(fn, ms) {
+      timers.push(setTimeout(fn, ms));
+    }
+
+    function clearTimers() {
+      timers.forEach(clearTimeout);
+      timers = [];
+    }
+
+    /** Instant reset to the resting composer (placeholder text, mic cold).
+     *  Runs on every goTo — landing an input beat's patch clears the just-
+     *  sent text back to the placeholder in the same paint as the message
+     *  appearing in the feed. */
+    function reset() {
+      const e = els();
+      if (!e.composer || !e.text || !e.mic) return;
+      e.composer.classList.remove("focused", "listening", "armed");
+      e.mic.classList.remove("live");
+      e.text.textContent = e.text.getAttribute("data-placeholder");
+      e.text.scrollLeft = 0;
+    }
+
+    function cancel() {
+      gen++;
+      clearTimers();
+      reset();
+    }
+
+    function setText(t) {
+      const e = els();
+      e.composer.classList.add("armed");
+      e.text.textContent = t;
+      // Keep the tail in view — the caret end is where the action is.
+      e.text.scrollLeft = e.text.scrollWidth;
+    }
+
+    /** Split into 2–4 word bursts; `upto` marks the cumulative word count
+     *  so reveal times can spread proportionally across the clip. */
+    function chunkWords(text) {
+      const words = text.split(/\s+/).filter(Boolean);
+      const chunks = [];
+      let i = 0;
+      let p = 0;
+      while (i < words.length) {
+        i += Math.min(words.length - i, CHUNK_PATTERN[p % CHUNK_PATTERN.length]);
+        chunks.push({ upto: i });
+        p++;
+      }
+      return { words: words, chunks: chunks };
+    }
+
+    /** STT: mic hot + waveform; the beat's HUMAN clip plays (your recorded
+     *  voice is the transcription source) while the words land in
+     *  irregular chunks paced across the clip's duration (loadedmetadata;
+     *  length×55ms when unavailable). Resolves true once BOTH the audio
+     *  and the chunk reveal are done. */
+    function runStt(beat, myGen, instant) {
+      const e = els();
+      const input = beat.input;
+      e.composer.classList.add("listening");
+      e.mic.classList.add("live");
+      const audioEl = Voice.speakSegs(
+        [{ file: input.clip, text: input.text, speaker: "you" }],
+        beat.id,
+      );
+      const audioDone = Voice.pending() ? Voice.done() : Promise.resolve();
+      const chunksDone = new Promise(function (res) {
+        if (instant) {
+          setText(input.text);
+          res();
+          return;
+        }
+        const ck = chunkWords(input.text);
+        const total = ck.words.length;
+        let scheduled = false;
+        const schedule = function (durMs) {
+          if (scheduled || myGen !== gen) return;
+          scheduled = true;
+          // Short tail so the last words land before the clip ends.
+          const span = Math.max(600, durMs - 350);
+          let left = ck.chunks.length;
+          ck.chunks.forEach(function (c, i) {
+            // Proportional to words revealed, with a small alternating lag
+            // so the cadence reads as dictation, not a metronome.
+            const at = Math.min(span, Math.round(span * (c.upto / total)) + (i % 2 ? 90 : 0));
+            later(function () {
+              if (myGen !== gen) return;
+              setText(ck.words.slice(0, c.upto).join(" "));
+              left--;
+              if (!left) res();
+            }, at);
+          });
+        };
+        const fallbackMs = input.text.length * STT_FALLBACK_MS;
+        if (audioEl && isFinite(audioEl.duration) && audioEl.duration > 0) {
+          schedule(audioEl.duration * 1000);
+        } else if (audioEl) {
+          audioEl.addEventListener("loadedmetadata", function () {
+            if (isFinite(audioEl.duration) && audioEl.duration > 0) {
+              schedule(audioEl.duration * 1000);
+            }
+          }, { once: true });
+          later(function () { schedule(fallbackMs); }, 500);
+        } else {
+          // Voice muted — no clip; the fallback still paces the reveal.
+          schedule(fallbackMs);
+        }
+      });
+      return Promise.all([audioDone, chunksDone]).then(function () {
+        if (myGen !== gen) return false;
+        e.composer.classList.remove("listening");
+        e.mic.classList.remove("live");
+        return true;
+      });
+    }
+
+    /** Typed: focus ring + blinking caret, then the text lands character
+     *  by character (all at once under reduced motion). */
+    function runType(beat, myGen, instant) {
+      const e = els();
+      const text = beat.input.text;
+      e.composer.classList.add("focused");
+      return new Promise(function (res) {
+        if (instant) {
+          setText(text);
+          later(function () { res(myGen === gen); }, 150);
+          return;
+        }
+        let i = 0;
+        const tick = function () {
+          if (myGen !== gen) return; // cancelled — remaining timers cleared
+          i++;
+          setText(text.slice(0, i));
+          if (i < text.length) later(tick, TYPE_MS);
+          else later(function () { res(myGen === gen); }, 200);
+        };
+        later(tick, 120);
+      });
+    }
+
+    /** Perform the beat's input sequence. Resolves true when complete;
+     *  a cancelled run never resolves (its caller's gen check is moot). */
+    function run(beat, instant) {
+      const myGen = ++gen; // supersede any stale sequence
+      clearTimers();
+      const e = els();
+      if (!e.composer || !e.text || !e.mic) return Promise.resolve(true);
+      return beat.input.mode === "stt"
+        ? runStt(beat, myGen, instant)
+        : runType(beat, myGen, instant);
+    }
+
+    return { run: run, cancel: cancel, reset: reset };
   })();
 
   function clearTimer() {
@@ -4828,7 +5229,12 @@
 
   function advanceWithCursor(i) {
     const myGen = advanceGen;
-    const spec = BEATS[i].cursor;
+    const beat = BEATS[i];
+    if (beat.input) {
+      advanceWithInput(i, myGen);
+      return;
+    }
+    const spec = beat.cursor;
     if (reducedMotion || !spec || spec.action === "none") {
       audioGate().then(function () {
         if (!playing || myGen !== advanceGen) return;
@@ -4852,6 +5258,35 @@
     });
   }
 
+  /** Input beats: the first click (input or mic — the beat's cursor spec,
+   *  still audio-gated against the previous line) starts the typed or
+   *  dictated sequence; only when it completes does the cursor move to
+   *  Send and press — then the patch lands. Every leg re-checks playing +
+   *  advanceGen, so pause / manual nav kills the flow with no zombie send
+   *  (InputFX.cancel resets the composer). Reduced motion drops the
+   *  cursor legs but keeps the full gating. */
+  function advanceWithInput(i, myGen) {
+    const beat = BEATS[i];
+    const finish = function (ok) {
+      if (!ok || !playing || myGen !== advanceGen) return;
+      goTo(i, true);
+    };
+    if (reducedMotion) {
+      audioGate().then(function () {
+        if (!playing || myGen !== advanceGen) return;
+        InputFX.run(beat, true).then(finish);
+      });
+      return;
+    }
+    Cursor.perform(beat.cursor, audioGate).then(function (ok) {
+      if (!ok || !playing || myGen !== advanceGen) return;
+      InputFX.run(beat, false).then(function (ok2) {
+        if (!ok2 || !playing || myGen !== advanceGen) return;
+        Cursor.perform({ target: "#composer-send", action: "click" }).then(finish);
+      });
+    });
+  }
+
   function restCursorAtEnd() {
     setTimeout(function () {
       if (!playing) Cursor.hide();
@@ -4865,6 +5300,10 @@
   function goTo(i, fromAuto) {
     advanceGen++; // any navigation invalidates gated advances in flight
     if (!fromAuto) Cursor.hide();
+    // Any beat landing clears the composer: an input beat's just-sent text
+    // returns to the placeholder as its message appears in the feed, and
+    // manual nav / scrubs can never strand a half-typed line.
+    InputFX.reset();
     index = Math.max(0, Math.min(BEATS.length - 1, i));
     const state = seek(BEATS, index);
     const narr = state.narration || "";
@@ -4872,10 +5311,18 @@
     lastNarr = narr;
     render(state, BEATS[index]);
     if (fromAuto && playing) {
-      if (narrChanged && narr) Voice.speak(narr, BEATS[index].id);
-      const chime = BEATS[index].chime;
-      if (chime === "complete") Chime.complete(BEATS[index].id);
-      else if (chime === "attention") Chime.attention(BEATS[index].id);
+      const beat = BEATS[index];
+      if (narrChanged && narr) {
+        Voice.speak(narr, beat.id);
+      } else if (beat.speech && SPEECH_CLIPS[beat.id]) {
+        // Human line with a recorded clip and no composer input (the pin
+        // gesture): your voice plays on beat entry and paces the beat.
+        const sc = SPEECH_CLIPS[beat.id];
+        Voice.speakSegs([{ file: sc.file, text: beat.speech.text, speaker: sc.speaker }], beat.id);
+      }
+      const chime = beat.chime;
+      if (chime === "complete") Chime.complete(beat.id);
+      else if (chime === "attention") Chime.attention(beat.id);
     } else if (!fromAuto) {
       Voice.cancel();
     }
@@ -4898,6 +5345,7 @@
     setPlaying(false);
     Cursor.cancel();
     Voice.cancel();
+    InputFX.cancel(); // mid-entry pause: audio already stopped, text resets
   }
 
   function togglePlay() {
@@ -5066,7 +5514,8 @@
         el.title = p.role === "agent" ? "Address " + p.name : p.name;
         el.innerHTML =
           '<span class="member-id"><span class="member-av">' + escapeHtml(p.name.slice(0, 1)) + "</span>" +
-          '<span class="member-name">' + escapeHtml(p.name) + "</span></span>" +
+          '<span class="member-name">' + escapeHtml(p.name) + "</span>" +
+          '<span class="member-eq" aria-hidden="true"><i></i><i></i><i></i></span></span>' +
           '<span class="member-status"><span class="member-dot" aria-hidden="true"></span>' +
           '<span class="member-task">' + escapeHtml(p.task || (p.role === "agent" ? "idle" : "in the room")) + "</span></span>";
         memberList.appendChild(el);
@@ -5433,13 +5882,17 @@
       const b = BEATS[i];
       s = fold(s, b.patch);
       const at = i > 0 ? CUM_MS[i - 1] : 0;
-      if (b.speech && b.speech.text) {
-        lines.push({ at: at, who: b.speech.who, text: b.speech.text });
-      }
+      // speech.after files the human line after the beat's narration —
+      // matching the clip order when you ANSWER the agent (a10-explore).
+      const speech = b.speech && b.speech.text
+        ? { at: at, who: b.speech.who, text: b.speech.text }
+        : null;
+      if (speech && !b.speech.after) lines.push(speech);
       const narr = s.narration || "";
       if (narr && narr !== prevNarr) {
         lines.push({ at: at, who: s.stage.sharer || "Agent", text: narr });
       }
+      if (speech && b.speech.after) lines.push(speech);
       prevNarr = narr;
     }
     return lines;
@@ -6412,6 +6865,7 @@
     beats: BEATS,
     seek: seek,
     goTo: function (i) { pause(); goTo(i, false); },
+    getIndex: function () { return index; },
     beatCount: BEATS.length,
     cursor: Cursor,
     voice: Voice,

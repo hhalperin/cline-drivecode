@@ -9,7 +9,9 @@ very canvas — differential region rendering + the fixed caption slot, PR #91.
 
 - Engine: **Kokoro-82M** (`onnx-community/Kokoro-82M-v1.0-ONNX`, q8) via `kokoro-js` — Apache-2.0.
 - Voices: Cline = `am_michael`, Riley = `af_heart` (per-agent `voiceSlot` concept).
-- Human ("You") lines are caption/transcript-only — DRV-TTS: voice out is narration-only.
+- Human ("You") lines are Harrison's recorded voice (`you-*` below) — DRV-TTS still
+  holds for the product (agent voice out is narration-only); the demo plays the
+  human side because the human here is real.
 - Regenerate from a SHORT path (Windows MAX_PATH breaks the HF cache): `npm i kokoro-js`,
   render 24kHz WAV, `ffmpeg -q:a 4` to MP3. Narration display text must match clip text verbatim.
 
@@ -37,16 +39,27 @@ a7-end-packet, a9-mode, a9-privacy, a10-agents, a10-tasks, a10-rooms, a10-stop, 
 pure-UI beats.
 
 Human lines — Harrison's real voice, recorded by him (trimmed, loudness-matched
-to the Kokoro clips at -24 LUFS, 24kHz MP3). The first three carry the canvas
-`speech` fields (caption + transcript); see those fields for the authoritative
-display text:
+to the Kokoro clips at -24 LUFS, 24kHz MP3). The canvas `speech` fields carry the
+authoritative display text; wiring below is what the canvas actually plays:
 
-1. `you-01-fix-the-flashing` · a2-message · "Cline — the demo flashes and refreshes
-   the whole page every time it updates. It feels jarring. Can you make it one
-   smooth experience?"
-2. `you-02-captions-one-place` · a4-steer-send · "Also — the captions keep shifting
-   around. Give them one consistent place."
-3. `you-03-jumps-here-to-here` · a5-you-pin · "Here's what I mean — it jumps from
-   here to here."
-4. `you-04-approved` · a9-approved · the sign-off on the approval card.
-5. `you-05-take-it-from-here` · a10-explore · the handback as you take the wheel.
+1. `you-01-fix-the-flashing` · a2-message · **wired — the STT source.** The
+   scripted cursor clicks the mic, this clip plays while its words transcribe
+   into the composer in chunks, then the cursor presses Send
+   (`input: {mode:"stt"}` on the beat).
+   "Cline — the demo flashes and refreshes the whole page every time it updates.
+   It feels jarring. Can you make it one smooth experience?"
+2. `you-02-captions-one-place` · a4-steer-send · **held in reserve.** The steer is
+   deliberately TYPED (voice when you have the floor, text when you don't want to
+   interrupt), so this clip stays unwired. To swap the beat to dictation, change
+   its input field to
+   `input: {mode:"stt", text: <same>, clip: "you-02-captions-one-place.mp3"}`.
+   "Also — the captions keep shifting around. Give them one consistent place."
+3. `you-03-jumps-here-to-here` · a5-you-pin · **wired — plays on beat entry**
+   (`SPEECH_CLIPS`): the click is the share button, your voice lands over the pin.
+   "Here's what I mean — it jumps from here to here."
+4. `you-04-approved` · a9-approved · **wired — sequenced first** (`CLIP_SEQS`):
+   your sign-off ("Looks good — approved. Go ahead."), then Cline's `v3-15`; the
+   beat holds for both.
+5. `you-05-take-it-from-here` · a10-explore · **wired — sequenced second**
+   (`CLIP_SEQS`): Cline's `v3-16` hands back, then your "Nice. I'll take it from
+   here." closes the demo.
