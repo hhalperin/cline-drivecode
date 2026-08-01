@@ -488,11 +488,14 @@
   .surface { display: none; flex: 1; min-height: 0; }
   .surface.on { display: flex; }
 
-  /* Chat / in-call split: the stage owns the room; the feed is a right drawer */
+  /* Chat / in-call split: the stage owns the room; the feed is a right drawer.
+     min-width: 0 — long nowrap caption lines must not inflate the room's auto
+     minimum (the spotlight absorbs overflow internally). */
   .call-split {
     flex: 1;
     display: flex;
     min-height: 0;
+    min-width: 0;
   }
   @media (max-width: 960px) {
     .shell { grid-template-columns: 56px 1fr; }
@@ -1589,6 +1592,8 @@
     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 10px;
   }
+  /* Artifact cards are buttons: clicking one presents it on the shared
+     screen (explore mode — browse Artifacts, click, watch the stage). */
   .art-card {
     padding: 12px 14px;
     border-radius: var(--r);
@@ -1597,7 +1602,10 @@
     display: flex;
     flex-direction: column;
     gap: 7px;
+    text-align: left;
+    transition: border-color .15s var(--ease);
   }
+  .art-card:hover { border-color: color-mix(in srgb, var(--live) 55%, transparent); }
   .art-head {
     display: flex;
     align-items: center;
@@ -3014,6 +3022,81 @@
   const ART_CAPTURE = { id: "art-capture", kindLabel: "capture.screenshot", title: "router-lab · retry proof", presenter: "Adam", act: 3, sticky: "replace", maturity: "planned" };
   const ART_HANDOFF = { id: "art-handoff", kindLabel: "doc.handoff", title: "Tier-0 handoff · router-fix", presenter: "Hub", act: 7, sticky: "replace" };
 
+  /** Show objects (ShowArtifact) — shared between the presenting beats and
+   *  the explore-mode ART_SHOWS map, so a clicked artifact card presents the
+   *  exact object the director staged. State is never mutated, so sharing
+   *  the reference is safe. */
+  const SHOW_PLAN = {
+    kind: "plan",
+    kindLabel: "doc.plan",
+    sticky: "replace",
+    title: "Fix plan · router-fix",
+    body: {
+      steps: [
+        { label: "Reproduce the race", state: "done" },
+        { label: "Guard the pending flag in scheduleRetry", state: "now" },
+        { label: "Tests, walkthrough, demo", state: "next" },
+      ],
+    },
+  };
+  const SHOW_ARCH = {
+    kind: "diagram",
+    kindLabel: "diagram.architecture",
+    sticky: "hold",
+    title: "cline-drive · system architecture",
+    body: {},
+  };
+  const SHOW_WALK = {
+    kind: "walk",
+    kindLabel: "walkthrough.code",
+    sticky: "hold",
+    title: "router.ts · the guard",
+    body: {
+      file: "router.ts",
+      range: "L41–L46",
+      lines: [
+        { n: 41, t: "function onTimeout(req) {" },
+        { n: 42, t: "  if (!req.active) return;" },
+        { n: 43, t: "  if (req.pending) return; // guard: retry queued", hl: true },
+        { n: 44, t: "  req.pending = true;", hl: true },
+        { n: 45, t: "  scheduleRetry(req);" },
+        { n: 46, t: "}" },
+      ],
+    },
+  };
+  const SHOW_CAPTURE = {
+    kind: "capture",
+    kindLabel: "capture.screenshot",
+    sticky: "replace",
+    maturity: "planned",
+    title: "router-lab · retry proof",
+    body: { url: "localhost:3000/router-lab", toast: "1 retry → 200 OK" },
+  };
+  // The handoff packet as a stage show (plan renderer: done / open / next
+  // mirror the Tier-0 columns). Explore-only — no beat presents it.
+  const SHOW_HANDOFF = {
+    kind: "plan",
+    kindLabel: "doc.handoff",
+    sticky: "replace",
+    title: "Tier-0 handoff · router-fix",
+    body: {
+      steps: [
+        { label: "Done · guard scheduleRetry pending flag, tests green", state: "done" },
+        { label: "Open · explain race in PR body", state: "now" },
+        { label: "Resume next · commit + open PR", state: "next" },
+      ],
+    },
+  };
+
+  /** Explore mode: artifact id → the ShowArtifact a card click presents. */
+  const ART_SHOWS = {
+    "art-plan": SHOW_PLAN,
+    "art-arch": SHOW_ARCH,
+    "art-walk": SHOW_WALK,
+    "art-capture": SHOW_CAPTURE,
+    "art-handoff": SHOW_HANDOFF,
+  };
+
   /** Cursor spec: performed against the PREVIOUS beat's DOM during autoplay,
    *  so targets must be visible there.
    * @typedef {{ target: string, action: 'click'|'move'|'none', offset?: {dx?:number,dy?:number} }} CursorSpec */
@@ -3057,7 +3140,7 @@
         surface: "drive-in-call",
         driveOn: true,
         inCall: true,
-        narration: "Welcome to router-fix — that's my live workspace on screen.",
+        narration: "Hey — good timing. I'm on that double-retry bug in the router. Give me a second and I'll show you what I found.",
         participants: [{ ...YOU, wstatus: "idle", task: "on the call" }],
         stage: {
           sharer: "Adam",
@@ -3162,7 +3245,7 @@
       dwellMs: 1600,
       cursor: { target: "#spotlight", action: "move" },
       patch: {
-        narration: "Found the race — scheduleRetry fires twice. Watch the Spotlight.",
+        narration: "Okay, found it. If two timeouts overlap, schedule-retry fires twice. Let me put it on the screen.",
         nowLabel: "running router unit tests",
         nextLabel: "explain the race, then commit",
         participants: [
@@ -3191,7 +3274,7 @@
           { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
           { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
           { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Found the race — scheduleRetry fires twice. Watch the Spotlight." },
+          { id: "m4", from: "agent", who: "Adam", text: "Okay, found it — scheduleRetry can fire twice. Watch the Spotlight." },
         ],
       },
     },
@@ -3237,22 +3320,10 @@
       cursor: { target: "#spotlight", action: "move" },
       patch: {
         showHowInset: false,
-        narration: "Before code, the plan — three steps, we're on two.",
+        narration: "Here's my plan of attack. I've already reproduced it — next I guard the pending flag, and then the tests prove it.",
         artifacts: [ART_PLAN],
         stage: {
-          show: {
-            kind: "plan",
-            kindLabel: "doc.plan",
-            sticky: "replace",
-            title: "Fix plan · router-fix",
-            body: {
-              steps: [
-                { label: "Reproduce the race", state: "done" },
-                { label: "Guard the pending flag in scheduleRetry", state: "now" },
-                { label: "Tests, walkthrough, demo", state: "next" },
-              ],
-            },
-          },
+          show: SHOW_PLAN,
           backlog: [
             { id: "s1", label: "doc.plan", status: "showing" },
             { id: "s2", label: "diagram.architecture", status: "ready" },
@@ -3272,16 +3343,10 @@
       dwellMs: 2200,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "This diagram is the whole system — the race lives in the amber box.",
+        narration: "Quick map before I touch anything. Requests come through the router, and both timeout paths can reach schedule-retry. That amber box is where our race lives.",
         artifacts: [ART_PLAN, ART_ARCH],
         stage: {
-          show: {
-            kind: "diagram",
-            kindLabel: "diagram.architecture",
-            sticky: "hold",
-            title: "cline-drive · system architecture",
-            body: {},
-          },
+          show: SHOW_ARCH,
           backlog: [
             { id: "s1", label: "doc.plan", status: "shown" },
             { id: "s2", label: "diagram.architecture", status: "showing" },
@@ -3302,7 +3367,7 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         showHowInset: false,
-        narration: "Diagram stays up while the edit lands below — guarding the pending flag.",
+        narration: "I'll keep the map up while I make the change. Adding the guard now — if a retry is already pending, we just bail out.",
         stage: {
           sharer: "Adam",
           sharerId: "adam",
@@ -3338,7 +3403,7 @@
       cursor: { target: "#spotlight .card.command", action: "move" },
       chime: "complete",
       patch: {
-        narration: "Green — one retry per timeout, proven.",
+        narration: "There we go — green. One retry per timeout, exactly once.",
         stage: {
           cards: [CARD_EDIT, CARD_CMD, CARD_TEST],
         },
@@ -3354,27 +3419,10 @@
       dwellMs: 2000,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "Now the walkthrough — line 43 is the whole fix.",
+        narration: "Let me walk you through it. Line forty-three is the whole fix — if pending is set, we return before ever scheduling.",
         artifacts: [ART_PLAN, ART_ARCH, ART_WALK],
         stage: {
-          show: {
-            kind: "walk",
-            kindLabel: "walkthrough.code",
-            sticky: "hold",
-            title: "router.ts · the guard",
-            body: {
-              file: "router.ts",
-              range: "L41–L46",
-              lines: [
-                { n: 41, t: "function onTimeout(req) {" },
-                { n: 42, t: "  if (!req.active) return;" },
-                { n: 43, t: "  if (req.pending) return; // guard: retry queued", hl: true },
-                { n: 44, t: "  req.pending = true;", hl: true },
-                { n: 45, t: "  scheduleRetry(req);" },
-                { n: 46, t: "}" },
-              ],
-            },
-          },
+          show: SHOW_WALK,
           backlog: [
             { id: "s1", label: "doc.plan", status: "shown" },
             { id: "s2", label: "diagram.architecture", status: "shown" },
@@ -3394,17 +3442,10 @@
       dwellMs: 1800,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "And the proof — one retry, then a clean 200.",
+        narration: "And here it is live. The request times out, one retry, clean two hundred.",
         artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE],
         stage: {
-          show: {
-            kind: "capture",
-            kindLabel: "capture.screenshot",
-            sticky: "replace",
-            maturity: "planned",
-            title: "router-lab · retry proof",
-            body: { url: "localhost:3000/router-lab", toast: "1 retry → 200 OK" },
-          },
+          show: SHOW_CAPTURE,
           backlog: [
             { id: "s1", label: "doc.plan", status: "shown" },
             { id: "s2", label: "diagram.architecture", status: "shown" },
@@ -3444,7 +3485,7 @@
           { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
           { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
           { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Found the race — scheduleRetry fires twice. Watch the Spotlight." },
+          { id: "m4", from: "agent", who: "Adam", text: "Okay, found it — scheduleRetry can fire twice. Watch the Spotlight." },
           { id: "m5", from: "you", who: "You", text: "Steer: keep the guard in router.ts only — retry.ts stays docs-only.", chips: ["steer queued"] },
         ],
       },
@@ -3477,7 +3518,7 @@
       patch: {
         muted: false,
         posture: "paused_after_tool",
-        narration: "Heard — pausing after this tool. Floor's yours.",
+        narration: "Got it — the guard stays in the router. Let me finish this tool call, then you drive.",
       },
     },
     {
@@ -3526,7 +3567,7 @@
           { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
           { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
           { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Found the race — scheduleRetry fires twice. Watch the Spotlight." },
+          { id: "m4", from: "agent", who: "Adam", text: "Okay, found it — scheduleRetry can fire twice. Watch the Spotlight." },
           { id: "m5", from: "you", who: "You", text: "Steer: keep the guard in router.ts only — retry.ts stays docs-only.", chips: ["steer queued"] },
           { id: "m6", from: "system", who: "Room", text: "Riley joined the call." },
         ],
@@ -3565,7 +3606,7 @@
             activity: "tightening retry docs",
           },
         },
-        narration: "Riley here — borrowing Spotlight to tighten the retry docs.",
+        narration: "Riley here — grabbing the screen for a minute. The retry docs still promise the old behavior, so I'm fixing that.",
       },
     },
     {
@@ -3618,9 +3659,9 @@
         statusLens: "board",
         pipVisible: true,
         showHowInset: false,
-        narration: "Step away — the call follows. I'm still working.",
+        narration: "I'll keep working while you look around. Running the full suite in the background now.",
         // You navigated away — the pin moment is over. Spotlight returns to
-        // Adam, so the act-6/7 narration lines (his clips) attribute to him
+        // Adam, so this beat's dialogue line (his clip) attributes to him
         // in the derived CC transcript (attribution follows stage.sharer).
         stage: {
           sharer: "Adam",
@@ -3695,7 +3736,8 @@
       maturity: "shipped",
       dwellMs: 2000,
       cursor: { target: "#rail-artifacts", action: "click" },
-      patch: { surface: "artifacts", narration: "Everything I showed is saved here — plan to capture." },
+      // Deliberately silent — the caption carries the product story.
+      patch: { surface: "artifacts" },
     },
     {
       id: "a7-leave-choice",
@@ -3710,7 +3752,6 @@
         pipVisible: false,
         showLeaveChoice: true,
         handoff: false,
-        narration: "Leave keeps the room alive; End builds your handoff.",
       },
     },
     {
@@ -3727,7 +3768,6 @@
         inCall: false,
         driveOn: false,
         surface: "drive",
-        narration: "",
         participants: [
           { ...ADAM, wstatus: "working", task: "explaining the race" },
           { ...RILEY, wstatus: "working", task: "tightening retry docs" },
@@ -3750,7 +3790,6 @@
         driveOn: true,
         handoff: true,
         showLeaveChoice: false,
-        narration: "End packs it up — done, open, resume-next.",
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
           { ...ADAM, wstatus: "working", task: "explaining the race" },
@@ -3806,7 +3845,7 @@
           },
         },
         sinceYouLeft: null,
-        narration: "Welcome back — nothing torn down. Drafting the PR body.",
+        narration: "Welcome back — nothing was torn down. I'm drafting the PR body while it's fresh.",
         feedMessages: [
           { id: "m8", from: "system", who: "Hub", text: "Rejoined router-fix · createOrAttach (idempotent)." },
         ],
@@ -3825,7 +3864,7 @@
         sinceYouLeft: "Riley published 1 edit card. Tests still green. Now: explain race.",
         nowLabel: "explain the race, then commit",
         nextLabel: "open PR",
-        narration: "While you were out — Riley shipped one edit; tests stayed green.",
+        narration: "Quick catch-up: Riley shipped the docs fix, and the tests stayed green the whole time.",
       },
     },
     {
@@ -3889,7 +3928,7 @@
       dwellMs: 2200,
       chime: "attention",
       patch: {
-        narration: "The PR needs your sign-off — approval card's up.",
+        narration: "One thing before I open the PR — I need your sign-off. The approval card is on your screen.",
         showGatesCard: true,
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
@@ -3909,7 +3948,7 @@
       cursor: { target: ".gates-card .approve", action: "click" },
       chime: "complete",
       patch: {
-        narration: "Approved — PR twelve is open, handoff attached.",
+        narration: "Thanks. PR twelve is up, with the handoff attached.",
         showGatesCard: false,
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
@@ -3941,7 +3980,8 @@
       maturity: "planned",
       dwellMs: 1800,
       cursor: { target: "#rail-agents", action: "click" },
-      patch: { surface: "agents", narration: "Call a team once — the whole roster seats itself." },
+      // Deliberately silent — clears the a9-approved line the fold would carry.
+      patch: { surface: "agents", narration: "" },
     },
     {
       id: "a10-tasks",
@@ -3952,7 +3992,7 @@
       maturity: "shipped",
       dwellMs: 1600,
       cursor: { target: "#rail-tasks", action: "click" },
-      patch: { surface: "tasks", narration: "" },
+      patch: { surface: "tasks" },
     },
     {
       id: "a10-rooms",
@@ -3974,15 +4014,73 @@
       maturity: "planned",
       dwellMs: 2000,
       cursor: { target: "#room-stop-router", action: "click" },
+      // Deliberately silent — the caption carries the product story.
       patch: {
         inCall: false,
         driveOn: false,
-        narration: "Stopping the room — config and history kept. Tomorrow, we resume.",
         participants: [],
         rooms: [
           { id: "router-fix", name: "router-fix", status: "paused", meta: "paused · config + history kept" },
           { id: "bootstrap-flag", name: "bootstrap-flag", status: "paused", meta: "config + history kept" },
           { id: "payments-audit", name: "payments-audit", status: "ended", meta: "handoff saved" },
+        ],
+      },
+    },
+    {
+      // Explore epilogue: the run's proof of "Stop ≠ lose" — the live room
+      // restores intact, and when playback idles here the page is a freely
+      // explorable surface (artifact cards present, rooms toggle, every
+      // control works). No cursor spec: nothing is scripted past this point.
+      id: "a10-explore",
+      act: 10,
+      title: "Explore · the surface is yours",
+      caption: "Demo complete — this is a live surface now. Every rail item, lens, toggle, and card works. Press Play to run it again.",
+      maturity: "shipped",
+      dwellMs: 2400,
+      patch: {
+        surface: "drive-in-call",
+        inCall: true,
+        driveOn: true,
+        narration: "And we're back — everything right where we left it. Take the wheel.",
+        participants: [
+          { ...YOU, wstatus: "idle", task: "on the call" },
+          { ...ADAM, wstatus: "working", task: "watching CI on PR #12" },
+          { ...RILEY, wstatus: "working", task: "reviewing PR #12" },
+        ],
+        rooms: [
+          { id: "router-fix", name: "router-fix", status: "live", meta: "Adam + Riley · resumed just now" },
+          { id: "bootstrap-flag", name: "bootstrap-flag", status: "paused", meta: "config + history kept" },
+          { id: "payments-audit", name: "payments-audit", status: "ended", meta: "handoff saved" },
+        ],
+        stage: {
+          sharer: "Adam",
+          sharerId: "adam",
+          pin: null,
+          cards: [CARD_RILEY, CARD_CMD, CARD_TEST],
+          // Adam's post-fix workspace — PR open, suite green, nothing lost.
+          work: {
+            file: "PR_BODY.md",
+            code: [
+              { t: "## router-fix · pending-flag race" },
+              { t: "" },
+              { t: "– one retry per timeout window, proven by unit test" },
+              { t: "– Riley tightened the scheduleRetry docs" },
+              { t: "– guard prevents double scheduleRetry" },
+            ],
+            caret: null,
+            typing: null,
+            term: [
+              { t: "$ gh pr checks 12" },
+              { t: "PR #12 open · suite green", cls: "ok" },
+            ],
+            spin: false,
+            activity: "idle — take the wheel",
+          },
+        },
+        artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
+        feedMessages: [
+          { id: "m8", from: "system", who: "Hub", text: "Rejoined router-fix · createOrAttach (idempotent)." },
+          { id: "m9", from: "system", who: "Hub", text: "pr_create approved — PR #12 opened." },
         ],
       },
     },
@@ -4096,14 +4194,22 @@
       });
     }
 
-    function perform(spec) {
+    /** `holdGate` (optional, promise-returning): awaited between cursor
+     *  landing and the press — auto_after_say holds the click until the
+     *  beat's audio finishes. A cancel during the hold drops the press. */
+    function perform(spec, holdGate) {
       if (!spec || spec.action === "none") return Promise.resolve(true);
       const hit = resolve(spec);
       if (!hit) return Promise.resolve(true);
       return moveTo(hit.px, hit.py).then(function (ok) {
         if (!ok) return false;
-        if (spec.action === "click") return click(hit.el, hit.px, hit.py);
-        return true;
+        if (spec.action !== "click") return true;
+        if (!holdGate) return click(hit.el, hit.px, hit.py);
+        const myGen = gen;
+        return holdGate().then(function () {
+          if (myGen !== gen) return false;
+          return click(hit.el, hit.px, hit.py);
+        });
       });
     }
 
@@ -4145,35 +4251,31 @@
   // ring lands on the right member row (presence.speaking, demoed).
   let sharerIdNow = "";
 
-  /** Pre-rendered narration clips (Kokoro-82M — see the manifest at
-   *  assets/demos/voice/README.md): beatId → filename, one per talk-track
-   *  line. The canvas lives in design/canvases/, so clips resolve two
-   *  levels up. */
+  /** Pre-rendered dialogue clips (Kokoro-82M, v2 in-world set — see the
+   *  manifest at assets/demos/voice/README.md): beatId → filename, one per
+   *  spoken line; narration display text matches clip text verbatim. The
+   *  canvas lives in design/canvases/, so clips resolve two levels up. */
   const CLIP_BASE = "../../assets/demos/voice/";
   const CLIPS = {
-    "a1-join": "01-adam-welcome-router-fix.mp3",
-    "a2-narration": "03-adam-found-the-race.mp3",
-    "a3-plan": "04-adam-plan-first.mp3",
-    "a3-arch": "05-adam-whole-system-amber-box.mp3",
-    "a3-edit": "06-adam-diagram-stays-up.mp3",
-    "a3-test": "07-adam-green-proven.mp3",
-    "a3-walk": "08-adam-walkthrough-line-43.mp3",
-    "a3-demo": "09-adam-proof-clean-200.mp3",
-    "a4-pause": "11-adam-pausing-floor-yours.mp3",
-    "a5-sharer": "12-riley-borrowing-spotlight.mp3",
-    "a6-status": "14-adam-call-follows-you.mp3",
-    "a6-artifacts": "15-adam-saved-here.mp3",
-    "a7-leave-choice": "16-adam-leave-vs-end.mp3",
-    "a7-end-packet": "17-adam-end-packs-it-up.mp3",
-    "a8-rejoin": "18-adam-welcome-back.mp3",
-    "a8-since": "19-adam-since-you-left.mp3",
-    "a9-gates": "20-adam-needs-your-signoff.mp3",
-    "a9-approved": "21-adam-pr-twelve-open.mp3",
-    "a10-agents": "22-adam-call-a-team.mp3",
-    "a10-stop": "23-adam-stop-resume-tomorrow.mp3",
+    "a1-join": "v2-01-adam-good-timing.mp3",
+    "a2-narration": "v2-02-adam-found-it.mp3",
+    "a3-plan": "v2-03-adam-plan-of-attack.mp3",
+    "a3-arch": "v2-04-adam-quick-map.mp3",
+    "a3-edit": "v2-05-adam-keep-the-map-up.mp3",
+    "a3-test": "v2-06-adam-green.mp3",
+    "a3-walk": "v2-07-adam-line-forty-three.mp3",
+    "a3-demo": "v2-08-adam-live-clean-200.mp3",
+    "a4-pause": "v2-09-adam-you-drive.mp3",
+    "a5-sharer": "v2-10-riley-grabbing-screen.mp3",
+    "a6-status": "v2-11-adam-keep-working.mp3",
+    "a8-rejoin": "v2-12-adam-welcome-back.mp3",
+    "a8-since": "v2-13-adam-quick-catch-up.mp3",
+    "a9-gates": "v2-14-adam-need-your-signoff.mp3",
+    "a9-approved": "v2-15-adam-pr-twelve-up.mp3",
+    "a10-explore": "v2-16-adam-take-the-wheel.mp3",
   };
 
-  /** Narration player. Plays the pre-rendered clip for the beat (CLIPS);
+  /** Dialogue player. Plays the pre-rendered clip for the beat (CLIPS);
    *  speechSynthesis survives only as the per-line error fallback (e.g.
    *  the canvas opened standalone without the assets directory). Queue
    *  depth 1: narration is ambient, not archival — a new line cancels the
@@ -4182,7 +4284,8 @@
    *  media events; real play/ended/error events refine it when they exist.
    *  Every attempt lands in Voice.log ({beatId, text, mode:"clip"|"synth"})
    *  so e2e can assert without audio; with the voice toggle off nothing is
-   *  attempted, so nothing is logged. */
+   *  attempted, so nothing is logged. Each speak() also opens a completion
+   *  promise (done()/pending()) the player uses for auto_after_say pacing. */
   const Voice = (function () {
     const synthSupported = typeof speechSynthesis !== "undefined";
     const log = [];
@@ -4190,6 +4293,35 @@
     let current = null; // in-flight SpeechSynthesisUtterance (fallback path)
     let currentClip = null; // in-flight Audio clip
     let speaking = false;
+
+    // auto_after_say pacing: every speak() opens a completion promise the
+    // player awaits before advancing a voiced beat. It settles on clip
+    // `ended`, synth `end`, the synth duration-estimate safety net, or
+    // cancel() — so pause/manual nav can never leave a zombie advance.
+    // Settles land in doneLog ({beatId, at}) for e2e pacing assertions.
+    const doneLog = [];
+    let pendingFlag = false;
+    let doneResolve = null;
+    let donePromise = Promise.resolve();
+    let uttToken = 0; // invalidates stale estimate timers across utterances
+    let currentBeatId = null;
+
+    function settleUtterance() {
+      if (!pendingFlag) return;
+      pendingFlag = false;
+      doneLog.push({ beatId: currentBeatId, at: performance.now() });
+      const res = doneResolve;
+      doneResolve = null;
+      if (res) res();
+    }
+
+    function beginUtterance(beatId) {
+      settleUtterance(); // a new line cancels the one in flight
+      uttToken++;
+      currentBeatId = beatId;
+      pendingFlag = true;
+      donePromise = new Promise(function (res) { doneResolve = res; });
+    }
 
     function syncUi() {
       document.querySelectorAll("#spotlight .presenter-bar .live-dot").forEach(function (dot) {
@@ -4236,6 +4368,17 @@
       log.push({ beatId: beatId, text: text, mode: "synth" });
       speaking = true;
       syncUi();
+      // Duration-estimate safety net: if the engine never fires `end`
+      // (headless, no voices, immediate error), the estimate still settles
+      // the pacing promise so autoplay keeps a read-along cadence.
+      const myTok = uttToken;
+      setTimeout(function () {
+        if (myTok !== uttToken) return;
+        current = null;
+        speaking = false;
+        syncUi();
+        settleUtterance();
+      }, text.length * 90);
       if (!synthSupported) return;
       try {
         const u = new SpeechSynthesisUtterance(text);
@@ -4243,7 +4386,11 @@
         u.onstart = function () {
           if (current === u) { speaking = true; syncUi(); }
         };
-        u.onend = u.onerror = function () {
+        u.onend = function () {
+          if (current === u) { current = null; speaking = false; syncUi(); settleUtterance(); }
+        };
+        u.onerror = function () {
+          // No audio came out — the estimate above still paces the beat.
           if (current === u) { current = null; speaking = false; syncUi(); }
         };
         current = u;
@@ -4255,6 +4402,7 @@
       if (!text || !voicePrefs.enabled) return;
       dropClip();
       dropUtterance();
+      beginUtterance(beatId);
       if (!CLIPS[beatId]) {
         // No clip mapped for this line — synth carries it.
         speakSynth(text, beatId);
@@ -4266,7 +4414,8 @@
       const a = clipEl(beatId);
       const fallBack = function () {
         // Clip unavailable (missing file / blocked playback) — the synth
-        // speaks the same text so the talk track survives standalone.
+        // speaks the same text so the talk track survives standalone. The
+        // same completion promise keeps pacing the beat.
         if (currentClip !== a) return;
         currentClip = null;
         speakSynth(text, beatId);
@@ -4275,7 +4424,7 @@
         if (currentClip === a) { speaking = true; syncUi(); }
       };
       a.onended = function () {
-        if (currentClip === a) { currentClip = null; speaking = false; syncUi(); }
+        if (currentClip === a) { currentClip = null; speaking = false; syncUi(); settleUtterance(); }
       };
       a.onerror = fallBack;
       a.volume = voicePrefs.volume / 100;
@@ -4289,6 +4438,8 @@
     function cancel() {
       dropClip();
       dropUtterance();
+      uttToken++;
+      settleUtterance();
       speaking = false;
       syncUi();
     }
@@ -4301,6 +4452,11 @@
       log: log,
       clips: CLIPS,
       isSpeaking: function () { return speaking; },
+      // auto_after_say hooks (extend-only): the player gates advancement on
+      // done(); doneLog lets e2e assert pacing without an audio device.
+      pending: function () { return pendingFlag; },
+      done: function () { return donePromise; },
+      doneLog: doneLog,
     };
   })();
 
@@ -4371,13 +4527,35 @@
     modeCycleIdx = 0;
   }
 
+  /** After a completed run the idle button reads Replay — pressing it
+   *  restarts from beat 0 (play() already resets the index at the end). */
+  function syncPlayLabel() {
+    const btn = document.getElementById("btn-play");
+    const label = playing ? "Pause" : (index >= BEATS.length - 1 ? "Replay" : "Play");
+    btn.setAttribute("aria-label", label);
+    btn.title = label + " (Space)";
+  }
+
   function setPlaying(next) {
     playing = next;
-    const btn = document.getElementById("btn-play");
-    btn.setAttribute("aria-label", playing ? "Pause" : "Play");
-    btn.title = (playing ? "Pause" : "Play") + " (Space)";
-    btn.classList.toggle("on", playing);
+    document.getElementById("btn-play").classList.toggle("on", playing);
+    syncPlayLabel();
     if (!playing) clearTimer();
+  }
+
+  // auto_after_say: during autoplay a voiced beat advances only after BOTH
+  // its dwell elapsed AND its audio finished (+ a breathing pad). Beats
+  // without audio in flight pace exactly on dwell, as before. advanceGen
+  // bumps on every navigation/pause so a gated advance that outlives its
+  // beat dies quietly (cancel resolves the promise; the gen check aborts).
+  const VOICE_PAD_MS = 250;
+  let advanceGen = 0;
+
+  function audioGate() {
+    if (!Voice.pending()) return Promise.resolve();
+    return Voice.done().then(function () {
+      return new Promise(function (res) { setTimeout(res, VOICE_PAD_MS); });
+    });
   }
 
   function scheduleAdvance() {
@@ -4390,7 +4568,9 @@
     }
     const ms = dwellFor(BEATS[index]);
     // Start the next beat's cursor leg early so the click impact lands
-    // where the plain render used to happen — total runtime stays ~constant.
+    // where the plain render used to happen. The lead is computed against
+    // the dwell only — if audio is still playing when the cursor lands,
+    // advanceWithCursor holds the press until the clip completes.
     const next = BEATS[index + 1];
     const est = (!reducedMotion && next.cursor)
       ? Cursor.travelEstimate(next.cursor)
@@ -4402,14 +4582,28 @@
   }
 
   function advanceWithCursor(i) {
+    const myGen = advanceGen;
     const spec = BEATS[i].cursor;
     if (reducedMotion || !spec || spec.action === "none") {
-      goTo(i, true);
+      audioGate().then(function () {
+        if (!playing || myGen !== advanceGen) return;
+        goTo(i, true);
+      });
       return;
     }
-    Cursor.perform(spec).then(function (ok) {
-      if (!playing || !ok) return;
-      goTo(i, true);
+    // Click specs gate INSIDE perform (between landing and press) so the
+    // press-then-render illusion holds; move specs gate after landing.
+    const isClick = spec.action === "click";
+    Cursor.perform(spec, isClick ? audioGate : null).then(function (ok) {
+      if (!playing || !ok || myGen !== advanceGen) return;
+      if (isClick) {
+        goTo(i, true);
+        return;
+      }
+      audioGate().then(function () {
+        if (!playing || myGen !== advanceGen) return;
+        goTo(i, true);
+      });
     });
   }
 
@@ -4424,6 +4618,7 @@
   let lastNarr = "";
 
   function goTo(i, fromAuto) {
+    advanceGen++; // any navigation invalidates gated advances in flight
     if (!fromAuto) Cursor.hide();
     index = Math.max(0, Math.min(BEATS.length - 1, i));
     const state = seek(BEATS, index);
@@ -4441,6 +4636,7 @@
     }
     if (fromAuto || playing) scheduleAdvance();
     else clearTimer();
+    syncPlayLabel();
   }
 
   function play() {
@@ -4453,6 +4649,7 @@
   }
 
   function pause() {
+    advanceGen++;
     setPlaying(false);
     Cursor.cancel();
     Voice.cancel();
@@ -4940,7 +5137,7 @@
     grid.innerHTML = artifacts.map(function (a) {
       const glyph = ART_GLYPHS[a.kindLabel.split(".")[0]] || ART_GLYPHS.doc;
       return (
-        '<div class="art-card">' +
+        '<button type="button" class="art-card" data-art-id="' + escapeHtml(a.id) + '" title="Present on the shared screen">' +
           '<div class="art-head"><span class="art-kind">' + escapeHtml(a.kindLabel) + "</span>" +
             '<span class="art-glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + glyph + "</svg></span>" +
           "</div>" +
@@ -4949,7 +5146,7 @@
             '<span class="sticky-chip">sticky · ' + escapeHtml(a.sticky) + "</span>" +
             (a.maturity === "planned" ? '<span class="badge planned">planned</span>' : "") +
           "</div>" +
-        "</div>"
+        "</button>"
       );
     }).join("");
   }
@@ -4965,10 +5162,10 @@
           (r.id === "router-fix" ? ' id="room-stop-router"' : "") + ">Stop</button>"
         : '<button type="button" class="sess-btn start">Start</button>';
       return (
-        '<div class="sess-card ' + r.status + '">' +
+        '<div class="sess-card ' + r.status + '" data-room-id="' + escapeHtml(r.id) + '">' +
           '<span class="dot" aria-hidden="true"></span>' +
           '<div><div class="name">' + escapeHtml(r.name) + '</div><div class="meta">' + escapeHtml(r.meta) + "</div></div>" +
-          '<div class="sess-actions"><button type="button" class="sess-btn">Open</button>' + second + "</div>" +
+          '<div class="sess-actions"><button type="button" class="sess-btn open">Open</button>' + second + "</div>" +
         "</div>"
       );
     }).join("");
@@ -5582,6 +5779,78 @@
     this.classList.toggle("on", open);
     this.setAttribute("aria-pressed", String(open));
     if (open) renderTranscript(index);
+  });
+
+  // ---- Explore previews ----
+  // Same manual-preview contract as the rail: a real click flips the UI
+  // directly, and the invalidated signatures make the next scripted render
+  // re-assert beat state. Nothing here folds into state or persists.
+
+  /** Front the call surface (the room with the shared screen). */
+  function previewCallSurface() {
+    Object.keys(RAIL_SURFACE_IDS).forEach(function (s) {
+      document.getElementById(RAIL_SURFACE_IDS[s]).classList.toggle("on", s === "chat");
+    });
+    syncRailActive("drive");
+  }
+
+  /** Present an artifact on the shared screen — the core explore move:
+   *  browse Artifacts, click a card, watch the stage. */
+  function previewArtifact(id) {
+    const show = ART_SHOWS[id];
+    if (!show || !R.el) return;
+    // Invalidate the screen signatures so the next scripted render
+    // re-asserts the beat's own stage.
+    R.screenSig = null;
+    R.barHtml = null;
+    R.bodyHtml = null;
+    R.el.screen.classList.remove("human");
+    R.el.bar.innerHTML =
+      '<span class="live-dot" aria-hidden="true"></span><b>You</b>' +
+      '<span>are presenting ·</span><span class="pk">' + escapeHtml(show.kindLabel) + "</span>" +
+      '<span class="sticky-chip">sticky · ' + escapeHtml(show.sticky) + "</span>" +
+      '<span class="pb-spacer"></span>' +
+      (show.maturity === "planned" ? '<span class="badge planned">planned</span>' : "");
+    R.el.body.classList.remove("ws-host");
+    R.el.body.innerHTML = buildScreenBody(show);
+    R.el.body.classList.remove("swap");
+    void R.el.body.offsetWidth;
+    R.el.body.classList.add("swap");
+    Voice.syncUi();
+    previewCallSurface();
+  }
+
+  document.getElementById("art-grid").addEventListener("click", function (e) {
+    const card = e.target.closest ? e.target.closest(".art-card") : null;
+    if (card) previewArtifact(card.getAttribute("data-art-id"));
+  });
+
+  // Room cards: Start/Stop flip the card's status dot + meta in place;
+  // Open on router-fix returns you to the live call.
+  document.getElementById("sess-grid").addEventListener("click", function (e) {
+    const btn = e.target.closest ? e.target.closest(".sess-btn") : null;
+    if (!btn) return;
+    const card = btn.closest(".sess-card");
+    if (!card) return;
+    R.roomsSig = null; // next scripted render re-asserts beat state
+    const meta = card.querySelector(".meta");
+    if (btn.classList.contains("stop")) {
+      card.classList.remove("live", "ended");
+      card.classList.add("paused");
+      if (meta) meta.textContent = "paused · config + history kept";
+      btn.classList.remove("stop");
+      btn.classList.add("start");
+      btn.textContent = "Start";
+    } else if (btn.classList.contains("start")) {
+      card.classList.remove("paused", "ended");
+      card.classList.add("live");
+      if (meta) meta.textContent = "live · resumed just now";
+      btn.classList.remove("start");
+      btn.classList.add("stop");
+      btn.textContent = "Stop";
+    } else if (btn.classList.contains("open")) {
+      if (card.getAttribute("data-room-id") === "router-fix") previewCallSurface();
+    }
   });
 
   // Voice controls: toggle + volume, persisted together as {enabled, volume}.
