@@ -909,6 +909,7 @@
     --danger-t: #F87171;
     --hub-t: #85ABD9;
     --neutral-t: #D1D5DB;
+    --drive-t: #B98AFF;
   }
   .screen.human { border-color: color-mix(in srgb, var(--live) 55%, transparent); }
   .presenter-bar {
@@ -953,6 +954,7 @@
   .screen-body {
     flex: 1;
     min-height: 0;
+    position: relative; /* stage overlays anchor to the body box */
     overflow: auto;
     padding: 14px 16px;
     display: grid;
@@ -1015,7 +1017,7 @@
   }
   .screen-pin .title { font: 600 13px/1.2 var(--display); color: var(--text); margin-bottom: 4px; }
   .screen-pin .summary { color: var(--muted); font-size: 12px; font-family: var(--mono); }
-  .stage-plan, .stage-walk { max-width: 560px; }
+  .stage-plan { max-width: 560px; }
   .stage-plan .step {
     display: flex;
     align-items: center;
@@ -1073,26 +1075,6 @@
   .stage-diagram .e { stroke: var(--dim); stroke-width: 1.2; fill: none; }
   .stage-diagram .ah { fill: var(--dim); }
   .stage-diagram .elabel { fill: var(--danger-t); font-family: var(--mono); font-size: 9px; font-weight: 600; }
-  .stage-walk .walk-head {
-    font: 500 10px/1 var(--mono);
-    color: var(--dim);
-    margin-bottom: 6px;
-  }
-  .stage-walk .wl {
-    display: grid;
-    grid-template-columns: 26px 1fr;
-    gap: 8px;
-    font: 400 11px/1.7 var(--mono);
-    color: var(--muted);
-    padding: 0 4px;
-  }
-  .stage-walk .wl .ln { color: var(--dim); text-align: right; user-select: none; }
-  .stage-walk .wl.hl {
-    background: color-mix(in srgb, var(--live) 10%, transparent);
-    border-radius: 4px;
-    color: var(--text);
-  }
-  .stage-walk .wl.hl .ln { color: var(--live-t); }
   .stage-capture .browser {
     border: 0.8px solid var(--line);
     border-radius: var(--r);
@@ -1129,77 +1111,249 @@
     padding: 4px 8px;
   }
 
-  /* Live workspace: the sharer's actual work when nothing is staged.
-     Two full-bleed panes (editor over terminal) instead of the centered
-     artifact layout — toggled on the body via .ws-host. */
+  /* The sharer's screen is a faithful VS Code window (Cline is a VS Code
+     extension): title bar / activity bar / explorer / editor group with
+     tabs + breadcrumbs + minimap / panel / status bar. Dark-Modern-adapted
+     palette scoped as literals under .vsc; Cline purple appears only on
+     the Cline items. Toggled on the body via .ws-host (full bleed). */
   .screen-body.ws-host {
     display: flex;
     align-items: stretch;
     padding: 0;
     background-image: none;
   }
-  .ws {
+  .vsc {
     flex: 1;
     min-width: 0;
     min-height: 0;
     display: flex;
     flex-direction: column;
+    background: #181818;
+    color: #d4d4d4;
   }
-  .ws-ed {
-    flex: 3;
-    min-height: 0;
+  .vsc.vsc-dim {
+    opacity: .35;
+    filter: saturate(.6);
+    transition: opacity .25s, filter .25s;
+  }
+  .vsc-title {
+    flex: none;
+    height: 26px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    background: #181818;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .vsc-dots { display: flex; gap: 6px; }
+  .vsc-dots i { width: 8px; height: 8px; border-radius: 50%; background: rgba(255, 255, 255, 0.16); display: block; }
+  .vsc-title-text {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 68%;
+    font: 400 10px/1 var(--ui);
+    color: #9d9d9d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .vsc-main { flex: 1; min-height: 0; display: flex; }
+  .vsc-act {
+    flex: none;
+    width: 36px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px 0 8px;
+    overflow: hidden;
+    background: #181818;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .vsc-act-it {
+    position: relative;
+    width: 36px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    color: #868686;
+  }
+  .vsc-act-it.on { color: #d7d7d7; }
+  .vsc-act-it.on::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 5px;
+    bottom: 5px;
+    width: 2px;
+    background: #d7d7d7;
+  }
+  .vsc-act-it .vsc-badge {
+    position: absolute;
+    right: 3px;
+    bottom: 3px;
+    min-width: 12px;
+    height: 12px;
+    padding: 0 2px;
+    border-radius: 6px;
+    background: #0078d4;
+    color: #fff;
+    font: 600 8px/12px var(--ui);
+    text-align: center;
+  }
+  .vsc-act-cline { margin-top: auto; color: var(--drive-t); }
+  .vsc-side {
+    flex: none;
+    width: 150px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: var(--panel);
+    background: #1f1f1f;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
   }
-  .ws-tabs {
+  .vsc-side-head {
     flex: none;
+    padding: 8px 10px 6px;
+    font: 600 9px/1 var(--ui);
+    letter-spacing: .08em;
+    color: #bbbbbb;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .vsc-row {
     display: flex;
     align-items: center;
-    background: var(--well);
-    border-bottom: 0.8px solid var(--hair);
+    gap: 5px;
+    height: 22px;
+    padding: 0 8px;
+    font: 400 11px/1 var(--ui);
+    color: #cccccc;
+    white-space: nowrap;
+    overflow: hidden;
   }
-  .ws-tab {
-    font: 500 10px/1 var(--mono);
-    color: var(--dim);
-    padding: 7px 12px;
-    border-right: 0.8px solid var(--hair);
+  .vsc-row .vsc-chev { font-size: 8px; color: #cccccc; flex: none; }
+  .vsc-row.nest { position: relative; padding-left: 25px; }
+  .vsc-row.nest::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.08);
   }
-  .ws-tab.on {
-    color: var(--text);
-    background: var(--panel);
-    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--live) 65%, transparent);
+  .vsc-row.on { background: #04395e; color: #ffffff; }
+  .vsc-fico { flex: none; font: 700 8px/1 var(--mono); }
+  .vsc-fico.ts { color: #519aba; }
+  .vsc-fico.md { color: #6e7681; }
+  .vsc-fico.json { color: #cbcb41; }
+  .vsc-ed {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #1e1e1e;
   }
-  .ws-activity {
+  .vsc-tabs {
+    flex: none;
+    display: flex;
+    align-items: stretch;
+    background: #181818;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .vsc-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 30px;
+    padding: 0 10px;
+    font: 400 10.5px/1 var(--ui);
+    color: #9d9d9d;
+    background: #181818;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    white-space: nowrap;
+  }
+  .vsc-tab.on { color: #ffffff; background: #1e1e1e; }
+  .vsc-tab.on::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 1px;
+    background: #0078d4;
+  }
+  .vsc-tab .x { font-size: 11px; line-height: 1; color: #9d9d9d; }
+  .vsc-tab .dirty { width: 7px; height: 7px; border-radius: 50%; background: #d4d4d4; display: block; }
+  .vsc-activity {
     margin-left: auto;
+    align-self: center;
     padding: 0 10px;
     font: 500 10px/1 var(--mono);
-    color: var(--dim);
+    color: #9d9d9d;
     font-style: italic;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .ws-code {
+  .vsc-crumbs {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 22px;
+    padding: 0 12px;
+    font: 400 10.5px/1 var(--ui);
+    color: #9d9d9d;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .vsc-crumbs .sep { color: #6e6e6e; }
+  .vsc-body { flex: 3; min-height: 0; display: flex; overflow: hidden; }
+  .vsc-code {
     flex: 1;
-    min-height: 0;
+    min-width: 0;
     overflow: hidden;
     padding: 8px 0;
   }
+  .vsc-map {
+    flex: none;
+    width: 14px;
+    padding: 10px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    border-left: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .vsc-map i { display: block; height: 2px; border-radius: 1px; background: rgba(212, 212, 212, 0.28); }
   .ws-cl {
     display: grid;
     grid-template-columns: 34px 1fr;
     gap: 10px;
     font: 400 11px/1.65 var(--mono);
-    color: var(--muted);
+    color: #d4d4d4;
     padding-right: 12px;
     white-space: pre;
   }
-  .ws-cl .ln { color: var(--dim); text-align: right; user-select: none; }
+  .ws-cl .ln { color: #6e7681; text-align: right; user-select: none; }
   .ws-cl .tx { overflow: hidden; text-overflow: ellipsis; }
+  .ws-cl.cur { background: rgba(255, 255, 255, 0.04); }
   .ws-cl.hl { background: color-mix(in srgb, var(--live) 10%, transparent); color: var(--text); }
   .ws-cl.hl .ln { color: var(--live-t); }
+  /* VS Code Dark-Modern-family token colors. */
+  .tok-c { color: #6a9955; }
+  .tok-s { color: #ce9178; }
+  .tok-k { color: #c586c0; }
+  .tok-n { color: #b5cea8; }
+  .tok-f { color: #dcdcaa; }
+  .tok-i { color: #9cdcfe; }
+  .tok-p { color: #808080; }
+  .tok-h { color: #569cd6; }
+  .tok-d { color: #6e6e6e; }
   .ws-caret {
     display: inline-block;
     width: 1.5px;
@@ -1224,20 +1378,38 @@
   }
   @keyframes ws-type { to { width: 100%; } }
   @keyframes ws-type-caret { 50% { border-right-color: transparent; } }
-  .ws-term {
+  .vsc-panel {
     flex: 2;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #181818;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+  }
+  .vsc-panel-head {
+    flex: none;
+    display: flex;
+    gap: 14px;
+    padding: 7px 12px 0;
+    font: 600 10px/1 var(--ui);
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: #8b8b8b;
+  }
+  .vsc-panel-head span { padding-bottom: 5px; }
+  .vsc-panel-head span.on { color: #e7e7e7; border-bottom: 1px solid #e7e7e7; }
+  .vsc-term {
+    flex: 1;
     min-height: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: 8px 12px;
-    border-top: 0.8px solid rgba(255, 255, 255, 0.08);
-    background: var(--well);
+    padding: 5px 12px 8px;
   }
   .ws-tl {
     font: 400 10.5px/1.6 var(--mono);
-    color: var(--muted);
+    color: var(--term-text);
     white-space: pre-wrap;
     opacity: 0;
     animation: ws-tl-in .3s var(--ease) forwards;
@@ -1247,6 +1419,52 @@
   .ws-tl .ps { color: var(--ok-soft); font-weight: 600; }
   .ws-tl.dim { color: var(--dim); }
   .ws-tl.ok { color: var(--ok-soft); }
+  .vsc-status {
+    flex: none;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 10px;
+    background: #181a1f;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    font: 400 10.5px/1 var(--ui);
+    color: #9d9d9d;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .vsc-status .sp { flex: 1; }
+  .vsc-status .cline { color: var(--drive-t); }
+  /* Presented artifacts float over the dimmed VS Code window. */
+  .stage-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    margin: auto; /* stays centered when ultrawide caps its width */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+  }
+  .stage-overlay .ov-card {
+    border: 0.8px solid color-mix(in srgb, var(--live) 55%, transparent);
+    background: var(--raised);
+    border-radius: var(--r-lg);
+    padding: 16px 18px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 88%;
+    overflow: auto;
+    animation: rise .28s var(--ease);
+  }
+  .stage-overlay.diagram .ov-card { max-width: 700px; }
+  .stage-overlay .stage-plan { margin: 0 auto; }
+  .stage-overlay .ov-card .screen-pin {
+    border: none;
+    background: none;
+    padding: 0;
+    max-width: none;
+  }
   .ws-spin {
     display: inline-block;
     width: 9px;
@@ -2172,7 +2390,11 @@
   @media (min-width: 1800px) {
     .screen-body > * { max-width: 920px; }
     .screen-body.ws-host { justify-content: center; }
-    .screen-body.ws-host .ws { max-width: 980px; }
+    /* The capped VS Code window centers and reads as a floating window. */
+    .screen-body.ws-host .vsc {
+      max-width: 980px;
+      border: 0.8px solid rgba(255, 255, 255, 0.12);
+    }
     .rooms, .rooms-page, .arts, .lens-body { max-width: 1280px; }
   }
 
@@ -2196,6 +2418,12 @@
     }
     .scrubber::-webkit-scrollbar { display: none; }
     .rail-resize { display: none; }
+    .vsc-side { display: none; }
+  }
+
+  /* Narrow editors drop the minimap first. */
+  @media (max-width: 900px) {
+    .vsc-map { display: none; }
   }
 
   /* Tablet portrait / narrow splits / portrait monitors: stack the call
@@ -2237,6 +2465,7 @@
     .lens-body { padding: 12px 14px; }
     .screen-body { padding: 12px; }
     .presenter-bar .sticky-chip { display: none; }
+    .vsc-side { display: none; }
     .pip { width: 200px; }
   }
 
@@ -2320,6 +2549,8 @@
     .call-strip .posture-chip,
     .call-strip .privacy-chip { flex: none; }
     .partner-label { display: none; }
+    /* Mobile keeps title / tabs / status; the activity bar yields. */
+    .vsc-act { display: none; }
   }
 
   /* Touch: strip buttons keep their 30px look but gain 4px of tap-slop. */
@@ -2864,13 +3095,15 @@
    *  the full array in each beat's patch (deepMerge replaces arrays wholesale).
    * @typedef {{ id: string, kindLabel: string, title: string, presenter: string, act: number, sticky: 'replace'|'hold', maturity?: string }} SessionArtifact */
   /** Live workspace: what the sharer is actually doing when nothing is
-   *  staged (no pin, no show). Rendered by buildWorkspace as a two-pane
-   *  mini-IDE (editor + terminal). Because deepMerge MERGES objects, a
-   *  `work` object persists and inherits forward through later beats until
-   *  a beat changes its fields (arrays replace wholesale); `work: null`
-   *  clears it. Precedence on the screen: pin > show > work > idle.
+   *  staged (no pin, no show). Rendered by buildVSCode as the agent's
+   *  VS Code window (editor + terminal panel). Because deepMerge MERGES
+   *  objects, a `work` object persists and inherits forward through later
+   *  beats until a beat changes its fields (arrays replace wholesale);
+   *  `work: null` clears it. Precedence on the screen: pin > show > work
+   *  > idle — pins and presented artifacts overlay the dimmed window.
    * @typedef {{
    *   file: string,                              // active editor tab
+   *   tabs?: string[],                           // open editor tabs (active = file); defaults to [file]
    *   code: Array<{t:string,hl?:boolean}>,       // 4–7 editor lines
    *   caret?: number|null,                       // index into code for the blinking caret
    *   typing?: string|null,                      // text "typed in" on a new last line
@@ -3828,6 +4061,7 @@
           // Adam is back on the screen, drafting the PR body.
           work: {
             file: "PR_BODY.md",
+            tabs: ["PR_BODY.md", "router.ts"],
             code: [
               { t: "## router-fix · pending-flag race" },
               { t: "" },
@@ -4925,19 +5159,15 @@
           R.barHtml = barHtml;
           R.el.bar.innerHTML = barHtml;
         }
+        // Body precedence lives in composeScreen: presented artifacts float
+        // over the sharer's dimmed VS Code window; walkthroughs render in
+        // the editor itself; the bare workspace is the window full-bleed.
+        const composed = composeScreen(state.stage);
         let bodyHtml;
         let isWorkspace = false;
-        if (human) {
-          bodyHtml =
-            '<div class="screen-pin"><div class="kind">Your pin</div>' +
-            '<div class="title">' + escapeHtml(state.stage.pin.label) + "</div>" +
-            '<div class="summary">' + escapeHtml(state.stage.pin.ref) + "</div></div>";
-        } else if (state.stage.show) {
-          bodyHtml = buildScreenBody(state.stage.show);
-        } else if (state.stage.sharer && state.stage.work) {
-          // Live workspace: the sharer's actual work, never a black screen.
-          isWorkspace = true;
-          bodyHtml = buildWorkspace(state.stage.work);
+        if (composed) {
+          bodyHtml = composed.html;
+          isWorkspace = composed.vsc;
         } else {
           bodyHtml =
             '<div class="screen-idle"><span class="av">' + escapeHtml(presenter.slice(0, 1)) + "</span>" +
@@ -5269,11 +5499,10 @@
       return '<div class="stage-diagram">' + DRIVE_ARCH_SVG + "</div>";
     }
     if (show.kind === "walk") {
-      return '<div class="stage-walk"><div class="walk-head">' +
-        escapeHtml(show.body.file + " · " + show.body.range) + "</div>" +
-        show.body.lines.map(function (l) {
-          return '<div class="wl' + (l.hl ? " hl" : "") + '"><span class="ln">' + l.n + "</span><span>" + escapeHtml(l.t) + "</span></div>";
-        }).join("") + "</div>";
+      // No standalone widget: walkthroughs render inside the VS Code
+      // editor itself (composeScreen routes there before calling this;
+      // this branch only covers a walk with no live workspace).
+      return buildVSCode(null, show.body);
     }
     if (show.kind === "capture") {
       return '<div class="stage-capture"><div class="browser"><div class="bar"><i></i><i></i><i></i><span class="url">' +
@@ -5283,21 +5512,135 @@
     return "";
   }
 
-  /** The live workspace body (see the Workspace typedef): editor pane with
-   *  a file tab, numbered lines, caret / typed-in last line, over a
-   *  terminal pane with staggered output and an optional prompt spinner. */
-  function buildWorkspace(work) {
-    const code = work.code || [];
-    let lines = code.map(function (l, i) {
-      let text = escapeHtml(l.t);
-      if (!work.typing && work.caret === i) text += '<span class="ws-caret" aria-hidden="true"></span>';
-      return '<div class="ws-cl' + (l.hl ? " hl" : "") + '"><span class="ln">' + (i + 1) +
+  // ---- The sharer's VS Code window ----
+  // Cline is a VS Code extension, so the shared screen is the agent's
+  // actual editor: title bar, activity bar (Cline seated at the bottom),
+  // explorer, tabs + breadcrumbs + minimap, terminal panel, status bar.
+
+  function vscIco(paths) {
+    return '<svg class="vsc-ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + paths + "</svg>";
+  }
+  const VSC_ICOS = {
+    files: vscIco('<path d="M20 7h-3a2 2 0 0 1-2-2V2"/><path d="M9 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h7l4 4v10a2 2 0 0 1-2 2Z"/><path d="M3 7.6v12.8A1.6 1.6 0 0 0 4.6 22h9.8"/>'),
+    search: vscIco('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+    scm: vscIco('<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>'),
+    debug: vscIco('<path d="m6 3 14 9-14 9V3Z"/>'),
+    ext: vscIco('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M17.5 14v7"/><path d="M14 17.5h7"/>'),
+  };
+
+  /** Static explorer tree: the repo the demo's story lives in. */
+  const VSC_TREE = [
+    { name: "src", dir: true },
+    { name: "router.ts", nest: true, ico: "ts" },
+    { name: "retry.ts", nest: true, ico: "ts" },
+    { name: "tests", dir: true },
+    { name: "router.test.ts", nest: true, ico: "ts" },
+    { name: "PR_BODY.md", ico: "md" },
+    { name: "package.json", ico: "json" },
+  ];
+  const VSC_FICO = { ts: "TS", md: "M↓", json: "{}" };
+
+  function vscLang(file) {
+    return /\.md$/.test(file || "") ? "md" : "ts";
+  }
+
+  /** Minimal syntax highlighting: tokenize, escape per token, wrap in
+   *  .tok-* spans (VS Code Dark-Modern-family colors). */
+  const TOK_TS = /(\/\/.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)|\b(function|return|if|else|export|const|let|var|new|await|import|from|for)\b|\b(\d+(?:\.\d+)?)\b|([A-Za-z_$][\w$]*)(?=\s*\()|([A-Za-z_$][\w$]*)|([{}()[\];,.:=<>!&|+\-*/])/g;
+  function tok(line, lang) {
+    if (!line) return "";
+    if (lang === "md") {
+      if (/^#{1,6}\s/.test(line)) return '<span class="tok-h">' + escapeHtml(line) + "</span>";
+      const m = line.match(/^(\s*[–\-*]\s+)([\s\S]*)$/);
+      if (m) return '<span class="tok-d">' + escapeHtml(m[1]) + "</span>" + escapeHtml(m[2]);
+      return escapeHtml(line);
+    }
+    let out = "";
+    let last = 0;
+    let m;
+    TOK_TS.lastIndex = 0;
+    while ((m = TOK_TS.exec(line))) {
+      if (m.index > last) out += escapeHtml(line.slice(last, m.index));
+      const cls = m[1] ? "tok-c" : m[2] ? "tok-s" : m[3] ? "tok-k" : m[4] ? "tok-n" : m[5] ? "tok-f" : m[6] ? "tok-i" : "tok-p";
+      out += '<span class="' + cls + '">' + escapeHtml(m[0]) + "</span>";
+      last = TOK_TS.lastIndex;
+    }
+    return out + escapeHtml(line.slice(last));
+  }
+
+  /** The shared screen as the agent's VS Code window. `walk` (a walkthrough
+   *  body) takes over the editor: its file, absolute line numbers, and hl
+   *  rows render in place — no separate widget. Everything else derives
+   *  from the live Workspace. */
+  function buildVSCode(work, walk, cls) {
+    work = work || {};
+    const file = walk ? walk.file : (work.file || "");
+    const lang = vscLang(file);
+    const langLabel = lang === "md" ? "Markdown" : "TypeScript";
+
+    // Editor lines: tokens + gutter (absolute numbers for a walkthrough),
+    // amber hl rows, current-line bg on the caret / type-in row.
+    const codeLines = walk ? (walk.lines || []) : (work.code || []);
+    let lines = codeLines.map(function (l, i) {
+      const n = walk ? l.n : i + 1;
+      const cur = !walk && !work.typing && work.caret === i;
+      let text = tok(l.t, lang);
+      if (cur) text += '<span class="ws-caret" aria-hidden="true"></span>';
+      return '<div class="ws-cl' + (l.hl ? " hl" : "") + (cur ? " cur" : "") + '"><span class="ln">' + n +
         '</span><span class="tx">' + text + "</span></div>";
     }).join("");
-    if (work.typing) {
-      lines += '<div class="ws-cl"><span class="ln">' + (code.length + 1) +
-        '</span><span class="tx"><span class="type">' + escapeHtml(work.typing) + "</span></span></div>";
+    if (!walk && work.typing) {
+      lines += '<div class="ws-cl cur"><span class="ln">' + (codeLines.length + 1) +
+        '</span><span class="tx"><span class="type">' + tok(work.typing, lang) + "</span></span></div>";
     }
+
+    // Minimap: one dimmed bar per line, width ∝ line length.
+    const map = codeLines.map(function (l) {
+      const w = Math.min(10, Math.max(1, Math.round((l.t || "").length / 5)));
+      return '<i style="width:' + w + 'px"></i>';
+    }).join("");
+
+    // Breadcrumbs: src › file › first function symbol (docs › file for md).
+    let crumbs = (lang === "md" ? "docs" : "src") +
+      ' <span class="sep">›</span> ' + escapeHtml(file);
+    let symbol = "";
+    for (let i = 0; i < codeLines.length; i++) {
+      const sm = (codeLines[i].t || "").match(/function\s+([A-Za-z_$][\w$]*)/);
+      if (sm) { symbol = sm[1]; break; }
+    }
+    if (symbol) crumbs += ' <span class="sep">›</span> ' + escapeHtml(symbol);
+
+    // Tab strip: active tab from the file; dirty dot while typing.
+    const tabs = (!walk && work.tabs && work.tabs.length ? work.tabs : [file]).map(function (t) {
+      const on = t === file;
+      const close = on && !walk && work.typing
+        ? '<span class="dirty" aria-hidden="true"></span>'
+        : '<span class="x" aria-hidden="true">×</span>';
+      return '<span class="vsc-tab' + (on ? " on" : "") + '"><span class="vsc-fico ' + vscLang(t) + '">' +
+        VSC_FICO[vscLang(t)] + "</span>" + escapeHtml(t) + close + "</span>";
+    }).join("");
+
+    // Explorer: static tree, active row follows the open file.
+    const tree = VSC_TREE.map(function (r) {
+      if (r.dir) {
+        return '<div class="vsc-row dir"><span class="vsc-chev" aria-hidden="true">▾</span>' + escapeHtml(r.name) + "</div>";
+      }
+      return '<div class="vsc-row' + (r.nest ? " nest" : "") + (r.name === file ? " on" : "") +
+        '"><span class="vsc-fico ' + r.ico + '">' + VSC_FICO[r.ico] + "</span>" + escapeHtml(r.name) + "</div>";
+    }).join("");
+
+    // Activity bar: Explorer active; SCM badges when the work smells of
+    // git; Cline seated at the bottom (the only purple in the window).
+    const scmHot = (work.term || []).some(function (l) { return /\b(git|pr|commit)\b/i.test(l.t); }) || lang === "md";
+    const act =
+      '<span class="vsc-act-it on">' + VSC_ICOS.files + "</span>" +
+      '<span class="vsc-act-it">' + VSC_ICOS.search + "</span>" +
+      '<span class="vsc-act-it">' + VSC_ICOS.scm + (scmHot ? '<span class="vsc-badge">2</span>' : "") + "</span>" +
+      '<span class="vsc-act-it">' + VSC_ICOS.debug + "</span>" +
+      '<span class="vsc-act-it">' + VSC_ICOS.ext + "</span>" +
+      '<span class="vsc-act-it vsc-act-cline"><svg width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg></span>';
+
+    // Terminal panel (unchanged mechanics: stagger, prompt, spinner).
     const term = (work.term || []).map(function (l, i, arr) {
       let text = l.t.indexOf("$ ") === 0
         ? '<span class="ps">$</span> ' + escapeHtml(l.t.slice(2))
@@ -5305,17 +5648,88 @@
       if (work.spin && i === arr.length - 1) text += '<span class="ws-spin" aria-hidden="true"></span>';
       return '<div class="ws-tl' + (l.cls ? " " + l.cls : "") + '" style="--i:' + i + '">' + text + "</div>";
     }).join("");
+
+    // Status bar: cursor position from the caret, else the first hl line
+    // (absolute for a walkthrough), else the type-in line.
+    let lnN = 1;
+    let colC = 1;
+    if (walk) {
+      const h = codeLines.find(function (l) { return l.hl; }) || codeLines[0];
+      if (h) { lnN = h.n; colC = h.t.length; }
+    } else if (work.caret != null && codeLines[work.caret]) {
+      lnN = work.caret + 1;
+      colC = codeLines[work.caret].t.length;
+    } else {
+      const hi = codeLines.findIndex(function (l) { return l.hl; });
+      if (hi >= 0) {
+        lnN = hi + 1;
+        colC = codeLines[hi].t.length;
+      } else if (work.typing) {
+        lnN = codeLines.length + 1;
+        colC = work.typing.length;
+      } else if (codeLines.length) {
+        lnN = codeLines.length;
+        colC = codeLines[codeLines.length - 1].t.length;
+      }
+    }
+    colC = Math.max(1, colC);
+
     return (
-      '<div class="ws">' +
-        '<div class="ws-ed">' +
-          '<div class="ws-tabs"><span class="ws-tab on">' + escapeHtml(work.file) + "</span>" +
-            (work.activity ? '<span class="ws-activity">' + escapeHtml(work.activity) + "</span>" : "") +
+      '<div class="vsc' + (cls ? " " + cls : "") + '">' +
+        '<div class="vsc-title"><span class="vsc-dots" aria-hidden="true"><i></i><i></i><i></i></span>' +
+          '<span class="vsc-title-text">' + escapeHtml(file) + " — cline-drivecode</span></div>" +
+        '<div class="vsc-main">' +
+          '<div class="vsc-act">' + act + "</div>" +
+          '<div class="vsc-side"><div class="vsc-side-head">CLINE-DRIVECODE</div><div class="vsc-tree">' + tree + "</div></div>" +
+          '<div class="vsc-ed">' +
+            '<div class="vsc-tabs">' + tabs +
+              (work.activity ? '<span class="vsc-activity">' + escapeHtml(work.activity) + "</span>" : "") +
+            "</div>" +
+            '<div class="vsc-crumbs">' + crumbs + "</div>" +
+            '<div class="vsc-body"><div class="vsc-code">' + lines + "</div>" +
+              '<div class="vsc-map" aria-hidden="true">' + map + "</div></div>" +
+            '<div class="vsc-panel">' +
+              '<div class="vsc-panel-head"><span>Problems</span><span>Output</span><span class="on">Terminal</span></div>' +
+              '<div class="vsc-term">' + term + "</div>" +
+            "</div>" +
           "</div>" +
-          '<div class="ws-code">' + lines + "</div>" +
         "</div>" +
-        '<div class="ws-term">' + term + "</div>" +
+        '<div class="vsc-status">' +
+          "<span>⎇ router-fix</span><span>✓ 0 problems</span>" +
+          '<span class="sp"></span>' +
+          "<span>Ln " + lnN + ", Col " + colC + "</span>" +
+          "<span>" + langLabel + "</span>" +
+          '<span class="cline">✦ Cline: on call</span>' +
+        "</div>" +
       "</div>"
     );
+  }
+
+  function stageOverlay(inner, kind) {
+    return '<div class="stage-overlay' + (kind ? " " + kind : "") + '"><div class="ov-card">' + inner + "</div></div>";
+  }
+
+  /** Shared-screen body precedence over {sharer, show, pin, work}:
+   *  pin / presented artifact float over the sharer's dimmed VS Code
+   *  window; a walkthrough takes over the editor itself; bare work is the
+   *  window full-bleed. Returns null for the idle body. */
+  function composeScreen(stage) {
+    const work = stage.sharer ? stage.work : null;
+    if (stage.pin) {
+      const pinHtml =
+        '<div class="screen-pin"><div class="kind">Your pin</div>' +
+        '<div class="title">' + escapeHtml(stage.pin.label) + "</div>" +
+        '<div class="summary">' + escapeHtml(stage.pin.ref) + "</div></div>";
+      if (work) return { html: buildVSCode(work, null, "vsc-dim") + stageOverlay(pinHtml, "pin"), vsc: true };
+      return { html: pinHtml, vsc: false };
+    }
+    if (stage.show) {
+      if (stage.show.kind === "walk") return { html: buildVSCode(work, stage.show.body), vsc: true };
+      if (work) return { html: buildVSCode(work, null, "vsc-dim") + stageOverlay(buildScreenBody(stage.show), stage.show.kind), vsc: true };
+      return { html: buildScreenBody(stage.show), vsc: false };
+    }
+    if (work) return { html: buildVSCode(work), vsc: true };
+    return null;
   }
 
   // ---- Customizable rail ----
@@ -5795,7 +6209,9 @@
   }
 
   /** Present an artifact on the shared screen — the core explore move:
-   *  browse Artifacts, click a card, watch the stage. */
+   *  browse Artifacts, click a card, watch the stage. Same composeScreen
+   *  path as scripted beats: the artifact floats over the current beat's
+   *  dimmed VS Code window (walkthroughs take over the editor). */
   function previewArtifact(id) {
     const show = ART_SHOWS[id];
     if (!show || !R.el) return;
@@ -5811,8 +6227,15 @@
       '<span class="sticky-chip">sticky · ' + escapeHtml(show.sticky) + "</span>" +
       '<span class="pb-spacer"></span>' +
       (show.maturity === "planned" ? '<span class="badge planned">planned</span>' : "");
-    R.el.body.classList.remove("ws-host");
-    R.el.body.innerHTML = buildScreenBody(show);
+    const st = seek(BEATS, index);
+    const composed = composeScreen({
+      sharer: st.stage.sharer,
+      pin: null,
+      show: show,
+      work: st.stage.work,
+    });
+    R.el.body.classList.toggle("ws-host", !!(composed && composed.vsc));
+    R.el.body.innerHTML = composed ? composed.html : buildScreenBody(show);
     R.el.body.classList.remove("swap");
     void R.el.body.offsetWidth;
     R.el.body.classList.add("swap");
