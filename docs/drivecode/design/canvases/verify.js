@@ -21,6 +21,21 @@
 //   8. network silence: across the whole run (loads, beat walk, autoplay)
 //      no request ever leaves file:// — the canvas self-hosts its fonts
 //      and pins itself with a CSP, so any http(s) request is a regression.
+//   9. muted read-along pacing: with the voice toggle off, a narration
+//      beat during autoplay holds at least words x 300ms instead of
+//      racing its authored dwell (measured on a3-bug, the worst line);
+//  10. CC stickiness: the strip toggle records a tri-state pref
+//      ("drive-demo-cc") — user-opened captions survive beat advances,
+//      pref "off" beats a scripted ccOpen, clearing the pref returns
+//      scripted behavior;
+//  11. Space activates focused buttons: keydown on a focused non-transport
+//      button must NOT start playback (the button's native activation
+//      runs instead); Space on the page background still drives transport;
+//  12. caption slots reserve a fixed number of lines (no layout shift)
+//      and never clamp words away: every beat's narration slot and
+//      caption strip fit inside the reserve at 1280x640 AND 390x844;
+//  13. contrast: the --dim text tier clears WCAG AA 4.5:1 against --bg
+//      and --panel in both themes (computed from live tokens).
 //      The battery's LAST check compares every `bun verify.js`
 //      success line the demo shows against this run's real beat/check
 //      counts.
@@ -333,6 +348,238 @@ async function main() {
     });
     check(auto.playing, "autoplay: player not in playing state after 15s");
     check(auto.idx > 0, "autoplay: still on beat " + auto.idx + " after 15s - beats not advancing");
+
+    // 9) Muted read-along pacing: a3-bug (the worst line) must hold for a
+    // readable span, not its authored dwell. The poll starts before Play
+    // so the enter/leave timestamps bracket the whole beat.
+    const mutedIdx = beats.findIndex(function (b) { return b.id === "a3-bug"; });
+    check(mutedIdx > 0, "muted pacing: beat a3-bug not found");
+    await page.evaluate(function (i) { window.__DRIVE_DEMO__.goTo(i); }, mutedIdx - 1);
+    const voiceWasOn = await page.$eval("#btn-voice", function (el) {
+      return el.getAttribute("aria-pressed") === "true";
+    });
+    if (voiceWasOn) await page.click("#btn-voice");
+    const holdP = page.evaluate(function (idx) {
+      return new Promise(function (res) {
+        const D = window.__DRIVE_DEMO__;
+        let t0 = 0;
+        const iv = setInterval(function () {
+          const i = D.getIndex();
+          if (!t0 && i === idx) t0 = performance.now();
+          else if (t0 && i !== idx) { clearInterval(iv); res(performance.now() - t0); }
+        }, 40);
+        setTimeout(function () { clearInterval(iv); res(-1); }, 40000);
+      });
+    }, mutedIdx);
+    await page.click("#btn-play");
+    const holdMs = await holdP;
+    const mutedWords = await page.evaluate(function (i) {
+      return window.__DRIVE_DEMO__.pacing.spokenWords[i];
+    }, mutedIdx);
+    check(mutedWords > 20, "muted pacing: a3-bug spokenWords " + mutedWords + " - expected a long line");
+    check(holdMs >= mutedWords * 300,
+      "muted pacing: a3-bug held " + Math.round(holdMs) + "ms < " + (mutedWords * 300) +
+      "ms (words " + mutedWords + " x 300)");
+    await page.evaluate(function () { window.__DRIVE_DEMO__.goTo(0); }); // pause
+    if (voiceWasOn) await page.click("#btn-voice"); // restore the toggle
+
+    // 10) CC stickiness: the pref survives beat advances and overrides the
+    // script in both directions; clearing it returns scripted behavior.
+    function ccState() {
+      let stored = null;
+      try { stored = localStorage.getItem("drive-demo-cc"); } catch (e) { /* ignore */ }
+      return {
+        open: document.querySelector(".feed-main").classList.contains("cc-open"),
+        pressed: document.getElementById("strip-cc").getAttribute("aria-pressed"),
+        stored: stored,
+      };
+    }
+    // #strip-cc is only clickable while the call strip shows (inCall &&
+    // driveOn), so pick a consecutive in-call scripted-closed pair for the
+    // click legs, plus the first scripted-open beat.
+    const ccIdx = await page.evaluate(function () {
+      const D = window.__DRIVE_DEMO__;
+      let open = -1;
+      let closedPair = -1;
+      for (let i = 0; i + 1 < D.beatCount; i++) {
+        const s = D.seek(D.beats, i);
+        if (open < 0 && s.ccOpen) open = i;
+        if (closedPair < 0 && s.inCall && s.driveOn && !s.ccOpen) {
+          const n = D.seek(D.beats, i + 1);
+          if (n.inCall && n.driveOn && !n.ccOpen) closedPair = i;
+        }
+      }
+      return { open: open, closedPair: closedPair };
+    });
+    check(ccIdx.open >= 0, "CC stickiness: no beat scripts ccOpen");
+    check(ccIdx.closedPair >= 0, "CC stickiness: no consecutive in-call scripted-closed beat pair");
+    await page.evaluate(function (i) {
+      window.__DRIVE_DEMO__.cc.setPref(null);
+      window.__DRIVE_DEMO__.goTo(i);
+    }, ccIdx.closedPair);
+    let cc = await page.evaluate(ccState);
+    check(!cc.open && cc.pressed === "false",
+      "CC stickiness: scripted-closed beat should start with the panel closed");
+    await page.click("#strip-cc");
+    cc = await page.evaluate(ccState);
+    check(cc.open && cc.pressed === "true" && cc.stored === "on",
+      "CC stickiness: click should open the panel and store pref 'on' - got " + JSON.stringify(cc));
+    await page.evaluate(function (i) { window.__DRIVE_DEMO__.goTo(i + 1); }, ccIdx.closedPair);
+    cc = await page.evaluate(ccState);
+    check(cc.open && cc.pressed === "true",
+      "CC stickiness: user-opened panel must survive a beat advance - got " + JSON.stringify(cc));
+    await page.click("#strip-cc");
+    cc = await page.evaluate(ccState);
+    check(!cc.open && cc.pressed === "false" && cc.stored === "off",
+      "CC stickiness: click on an open panel should close it and store 'off' - got " + JSON.stringify(cc));
+    await page.evaluate(function (i) { window.__DRIVE_DEMO__.goTo(i); }, ccIdx.open);
+    cc = await page.evaluate(ccState);
+    check(!cc.open, "CC stickiness: pref 'off' must beat the scripted ccOpen beat");
+    await page.evaluate(function (i) {
+      window.__DRIVE_DEMO__.cc.setPref(null);
+      window.__DRIVE_DEMO__.goTo(i);
+    }, ccIdx.open);
+    cc = await page.evaluate(ccState);
+    check(cc.open && cc.stored === null,
+      "CC stickiness: clearing the pref must return scripted behavior (open) - got " + JSON.stringify(cc));
+    await page.evaluate(function (i) { window.__DRIVE_DEMO__.goTo(i); }, ccIdx.closedPair);
+    cc = await page.evaluate(ccState);
+    check(!cc.open, "CC stickiness: cleared pref, scripted-closed beat must close the panel");
+
+    // 11) Space must activate a focused button, not hijack the transport.
+    const themeBefore = await page.evaluate(function () {
+      return document.documentElement.classList.contains("dark");
+    });
+    await page.focus("#btn-theme");
+    await page.keyboard.press("Space");
+    await new Promise(function (res) { setTimeout(res, 200); });
+    const sp = await page.evaluate(function () {
+      return {
+        dark: document.documentElement.classList.contains("dark"),
+        playing: document.getElementById("btn-play").classList.contains("on"),
+      };
+    });
+    check(!sp.playing, "Space on a focused button must not start playback");
+    check(sp.dark !== themeBefore, "Space on #btn-theme must activate the button (theme did not toggle)");
+    await page.keyboard.press("Space"); // still focused - toggle the theme back
+    await page.evaluate(function () {
+      if (document.activeElement) document.activeElement.blur();
+    });
+    await page.keyboard.press("Space");
+    await new Promise(function (res) { setTimeout(res, 200); });
+    const spBg = await page.evaluate(function () {
+      return document.getElementById("btn-play").classList.contains("on");
+    });
+    check(spBg, "Space on the page background must still drive the transport");
+    await page.evaluate(function () { window.__DRIVE_DEMO__.goTo(0); }); // pause
+
+    // 12) Caption slots: fixed reserve, wrapped, and no beat's text is
+    // clamped away (content height fits the reserved height) at the
+    // laptop floor AND on a phone. scrollHeight reports the full flowed
+    // text, so a hidden third/fifth line shows up as sh > h.
+    async function walkCaptions(label) {
+      const rows = await page.evaluate(function () {
+        const D = window.__DRIVE_DEMO__;
+        const out = [];
+        for (let i = 0; i < D.beatCount; i++) {
+          D.goTo(i);
+          const slot = document.querySelector("#spotlight .screen .caption-slot");
+          const strip = document.querySelector(".caption .text");
+          // Skip the slot when the call surface is hidden (other surfaces
+          // display:none it - heights read 0 there, not a real measure).
+          const slotShown = slot && slot.getClientRects().length > 0;
+          out.push({
+            id: D.beats[i].id,
+            slot: slotShown ? { h: slot.clientHeight, sh: slot.scrollHeight,
+              ws: getComputedStyle(slot).whiteSpace } : null,
+            strip: { h: strip.clientHeight, sh: strip.scrollHeight,
+              ws: getComputedStyle(strip).whiteSpace },
+          });
+        }
+        return out;
+      });
+      const slotHeights = new Set();
+      const stripHeights = new Set();
+      rows.forEach(function (r) {
+        if (r.slot) {
+          slotHeights.add(r.slot.h);
+          check(r.slot.ws === "normal", label + " " + r.id + ": narration slot must wrap (white-space " + r.slot.ws + ")");
+          check(r.slot.sh <= r.slot.h + 1,
+            label + " " + r.id + ": narration clamped away - content " + r.slot.sh + "px > reserve " + r.slot.h + "px");
+        }
+        stripHeights.add(r.strip.h);
+        check(r.strip.ws === "normal", label + " " + r.id + ": caption strip must wrap (white-space " + r.strip.ws + ")");
+        check(r.strip.sh <= r.strip.h + 1,
+          label + " " + r.id + ": caption clamped away - content " + r.strip.sh + "px > reserve " + r.strip.h + "px");
+      });
+      check(slotHeights.size === 1,
+        label + ": narration slot height must be one fixed reserve, saw " + JSON.stringify([...slotHeights]));
+      check(stripHeights.size === 1,
+        label + ": caption strip height must be one fixed reserve, saw " + JSON.stringify([...stripHeights]));
+    }
+    await walkCaptions("captions@1280x640");
+    await page.setViewport({ width: 390, height: 844 });
+    await new Promise(function (res) { setTimeout(res, 300); });
+    await walkCaptions("captions@390x844");
+    await page.setViewport({ width: 1280, height: 640 });
+    await new Promise(function (res) { setTimeout(res, 300); });
+    await page.evaluate(function () { window.__DRIVE_DEMO__.goTo(0); });
+
+    // 13) Contrast: --dim over --bg and --panel clears WCAG AA in both
+    // themes, computed from the live tokens (alpha composited first).
+    const themeTokens = await page.evaluate(function () {
+      function grab() {
+        const cs = getComputedStyle(document.documentElement);
+        return {
+          dim: cs.getPropertyValue("--dim").trim(),
+          bg: cs.getPropertyValue("--bg").trim(),
+          panel: cs.getPropertyValue("--panel").trim(),
+        };
+      }
+      const light = grab();
+      document.documentElement.classList.add("dark");
+      const dark = grab();
+      document.documentElement.classList.remove("dark");
+      return { light: light, dark: dark };
+    });
+    function parseColor(s) {
+      let m = /^#([0-9a-f]{6})$/i.exec(s);
+      if (m) {
+        return { r: parseInt(m[1].slice(0, 2), 16), g: parseInt(m[1].slice(2, 4), 16),
+          b: parseInt(m[1].slice(4, 6), 16), a: 1 };
+      }
+      m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(s);
+      if (m) return { r: +m[1], g: +m[2], b: +m[3], a: m[4] === undefined ? 1 : +m[4] };
+      return null;
+    }
+    function luminance(c) {
+      function lin(v) {
+        v /= 255;
+        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+      }
+      return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+    }
+    function contrast(fg, bg) {
+      const c = { r: fg.a * fg.r + (1 - fg.a) * bg.r, g: fg.a * fg.g + (1 - fg.a) * bg.g,
+        b: fg.a * fg.b + (1 - fg.a) * bg.b, a: 1 };
+      const l1 = luminance(c);
+      const l2 = luminance(bg);
+      return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    }
+    ["light", "dark"].forEach(function (theme) {
+      const t = themeTokens[theme];
+      const dim = parseColor(t.dim);
+      check(!!dim, theme + " --dim did not parse: " + JSON.stringify(t.dim));
+      ["bg", "panel"].forEach(function (surface) {
+        const s = parseColor(t[surface]);
+        check(!!s, theme + " --" + surface + " did not parse: " + JSON.stringify(t[surface]));
+        if (!dim || !s) return;
+        const ratio = contrast(dim, s);
+        check(ratio >= 4.5,
+          theme + " --dim on --" + surface + " is " + ratio.toFixed(2) + ":1, below WCAG AA 4.5:1");
+      });
+    });
+
     check(pageErrors.length === 0, "pageerrors: " + pageErrors.join(" | "));
 
     // 8) Network silence: nothing in the whole run may leave file://.

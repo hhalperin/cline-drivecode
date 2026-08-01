@@ -60,7 +60,8 @@
     --hover-fill: rgba(21, 21, 22, 0.04);
     --text: #151516;
     --muted: rgba(21, 21, 22, 0.78);
-    --dim: rgba(21, 21, 22, 0.55);
+    /* 0.62 clears WCAG AA (4.5:1) on --bg and --panel; 0.55 measured ~4.0. */
+    --dim: rgba(21, 21, 22, 0.62);
     --neutral-t: rgba(21, 21, 22, 0.82);
     --drive: #9F58FA;
     --drive-t: #6D2FC4;
@@ -103,7 +104,8 @@
     --hover-fill: rgba(255, 255, 255, 0.05);
     --text: #FFFFFF;
     --muted: #9CA3AF;
-    --dim: #6B7280;
+    /* #7D8590 clears WCAG AA (4.5:1) on --bg and --panel; #6B7280 measured ~4.0. */
+    --dim: #7D8590;
     --neutral-t: #D1D5DB;
     --drive-t: #B98AFF;
     --drive-b: #9663F1;
@@ -1113,6 +1115,28 @@
     text-overflow: ellipsis;
   }
   .screen .caption-slot.swap { animation: caption-swap .3s var(--ease); }
+  /* Below 1600px the longest narration overflows a single line, so the
+     slot reserves exactly two lines FULL-TIME (fixed height — captions
+     never shift layout) and wraps; the clamp only trims pathological
+     overflow. Height = 2 lines × 1.2 + 16px padding + 0.8px border. */
+  @media (max-width: 1600px) {
+    .screen .caption-slot {
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      height: calc(2 * 1.2em + 16.8px);
+      text-overflow: clip;
+    }
+  }
+  /* Phone widths: the slot is ~340px wide, so the longest narration needs
+     four lines. Same fixed-reserve contract, taller. */
+  @media (max-width: 600px) {
+    .screen .caption-slot {
+      -webkit-line-clamp: 4;
+      height: calc(4 * 1.2em + 16.8px);
+    }
+  }
   @keyframes caption-swap { from { color: transparent; } }
   .screen-idle {
     display: flex;
@@ -3002,6 +3026,26 @@
   @media (min-height: 700px) {
     .caption .text { white-space: normal; }
   }
+  /* Below 1600px the strip reserves two caption lines full-time (fixed
+     height, no layout shift) and wraps; ≥1600px keeps the single line. */
+  @media (max-width: 1600px) {
+    .caption .text {
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-height: 1.35;
+      height: calc(2 * 1.35em);
+    }
+  }
+  /* Phone widths: ~295px of text column — the longest captions need up
+     to four lines. Same fixed-reserve contract, taller. */
+  @media (max-width: 600px) {
+    .caption .text {
+      -webkit-line-clamp: 4;
+      height: calc(4 * 1.35em);
+    }
+  }
 
   /* Compact laptop heights */
   @media (max-height: 700px) {
@@ -3179,7 +3223,8 @@
     .player .brand { font-size: 0; gap: 0; }
     .player .brand span { display: none; }
     #vol-slider { width: 48px; }
-    .caption .text { white-space: nowrap; }
+    /* The two-line reserved caption (≤1600px rule) stays in force here —
+       nowrap would re-truncate the longest narrations on phones. */
     .caption-links { display: none; }
     /* The call strip scrolls (hidden scrollbar) rather than overflowing;
        the informational partner label yields to the controls. */
@@ -4100,7 +4145,7 @@
     title: "drive-product-demo.html · the guard",
     body: {
       file: "drive-product-demo.html",
-      range: "L6215–L6218",
+      range: "L6329–L6332",
       // debug presents the walkthrough as a paused debug session: bp is
       // the breakpoint line, step orders the CSS step-through, ghost/ret
       // are inline-value decorations (both strings match — the skip path,
@@ -4109,10 +4154,10 @@
       // asserts both stay true.
       debug: true,
       lines: [
-        { n: 6215, t: "    const feedSig = JSON.stringify(feedSlice);", step: 1, ghost: "feedSig = '{\"m\":[{\"id\":\"m0\",…'" },
-        { n: 6216, t: "    if (feedSig !== R.feedSig) {", hl: true, bp: true, step: 2, ghost: "R.feedSig = '{\"m\":[{\"id\":\"m0\",…'", ret: "→ equal · block skipped" },
-        { n: 6217, t: "      R.feedSig = feedSig;", hl: true },
-        { n: 6218, t: '      feed.innerHTML = "";' },
+        { n: 6329, t: "    const feedSig = JSON.stringify(feedSlice);", step: 1, ghost: "feedSig = '{\"m\":[{\"id\":\"m0\",…'" },
+        { n: 6330, t: "    if (feedSig !== R.feedSig) {", hl: true, bp: true, step: 2, ghost: "R.feedSig = '{\"m\":[{\"id\":\"m0\",…'", ret: "→ equal · block skipped" },
+        { n: 6331, t: "      R.feedSig = feedSig;", hl: true },
+        { n: 6332, t: '      feed.innerHTML = "";' },
       ],
     },
   };
@@ -4274,9 +4319,9 @@
             // and text are literal (verify.js re-runs the search).
             term: [
               { t: '$ rg -n \'^ {6}\\w+\\.innerHTML = "";$\' drive-product-demo.html' },
-              { t: '6218:      feed.innerHTML = "";', cls: "dim" },
-              { t: '6257:      memberList.innerHTML = "";', cls: "dim" },
-              { t: '6293:      spot.innerHTML = "";', cls: "dim" },
+              { t: '6332:      feed.innerHTML = "";', cls: "dim" },
+              { t: '6371:      memberList.innerHTML = "";', cls: "dim" },
+              { t: '6407:      spot.innerHTML = "";', cls: "dim" },
             ],
             activity: "locating the flash",
           },
@@ -4669,7 +4714,7 @@
             caret: null,
             term: [
               { t: "$ bun verify.js" },
-              { t: "OK: 46 beats, 353 checks", cls: "ok" },
+              { t: "OK: 46 beats, 698 checks", cls: "ok" },
             ],
             spin: false,
             activity: "explaining the fix",
@@ -4718,7 +4763,7 @@
             typing: "// assert: same node before and after a beat",
             term: [
               { t: "$ bun verify.js" },
-              { t: "OK: 46 beats, 353 checks", cls: "ok" },
+              { t: "OK: 46 beats, 698 checks", cls: "ok" },
             ],
             spin: false,
             activity: "adding regression checks",
@@ -4799,7 +4844,7 @@
             typing: null,
             term: [
               { t: "$ bun verify.js" },
-              { t: "OK: 46 beats, 353 checks", cls: "ok" },
+              { t: "OK: 46 beats, 698 checks", cls: "ok" },
             ],
             spin: false,
             activity: "pinning the caption slot",
@@ -5214,9 +5259,40 @@
 
   // ---- Player ----
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const TOTAL_MS = BEATS.reduce(function (s, b) { return s + b.dwellMs; }, 0);
-  const CUM_MS = BEATS.reduce(function (a, b) {
-    a.push((a.length ? a[a.length - 1] : 0) + b.dwellMs);
+
+  // Read-along pacing. Per-beat spoken words — what goTo speaks on
+  // autoplay entry: the folded narration when it CHANGES to non-empty,
+  // plus the beat's human speech line (pin gestures, dictated inputs,
+  // clip sequences). Effective duration = max(dwellMs, words × WORD_MS):
+  // with voice muted a narration beat holds that long instead of racing
+  // its authored dwell, and the SAME estimate drives the progress bar and
+  // the CC timestamps — one clock. (Kokoro speaks ≈180wpm ≈ 333ms/word,
+  // so the estimate tracks voiced wall time; the dwell-only clock ran 77s
+  // against ~190s of real narrated playback.)
+  const WORD_MS = 350;
+  function wordCount(text) {
+    return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+  }
+  const SPOKEN_WORDS = (function () {
+    const counts = [];
+    let s = initialState;
+    let prev = "";
+    BEATS.forEach(function (b) {
+      s = fold(s, b.patch);
+      const narr = s.narration || "";
+      let words = narr && narr !== prev ? wordCount(narr) : 0;
+      if (b.speech && b.speech.text) words += wordCount(b.speech.text);
+      prev = narr;
+      counts.push(words);
+    });
+    return counts;
+  })();
+  function effectiveMs(i) {
+    return Math.max(BEATS[i].dwellMs, SPOKEN_WORDS[i] * WORD_MS);
+  }
+  const TOTAL_MS = BEATS.reduce(function (s, b, i) { return s + effectiveMs(i); }, 0);
+  const CUM_MS = BEATS.reduce(function (a, b, i) {
+    a.push((a.length ? a[a.length - 1] : 0) + effectiveMs(i));
     return a;
   }, []);
   let index = 0;
@@ -5225,9 +5301,16 @@
   let modeCycleTimer = null;
   let modeCycleIdx = 0;
 
-  function dwellFor(beat) {
-    if (reducedMotion) return Math.min(400, Math.round(beat.dwellMs * 0.35));
-    return beat.dwellMs;
+  function dwellFor(i) {
+    // Reduced motion trims animation, not reading: beats that speak keep
+    // their full read-along span (the audio gate still paces them when
+    // voiced); silent beats keep the fast cap.
+    if (reducedMotion) {
+      return SPOKEN_WORDS[i]
+        ? effectiveMs(i)
+        : Math.min(400, Math.round(BEATS[i].dwellMs * 0.35));
+    }
+    return BEATS[i].dwellMs;
   }
 
   // ---- Simulated cursor ----
@@ -5614,12 +5697,37 @@
       return a;
     }
 
+    /** Muted read-along: with the voice toggle off nothing plays, but a
+     *  spoken line still opens the SAME completion promise the audio path
+     *  gates on, settling after a silent-reading span (words × WORD_MS,
+     *  the shared read-along constant). auto_after_say then holds the
+     *  beat long enough to READ the caption instead of racing its
+     *  authored dwell — and pause / manual nav cancels the hold exactly
+     *  like a clip (cancel() settles the promise; the player's gen check
+     *  aborts the advance). Nothing lands in Voice.log: nothing was
+     *  attempted aloud. */
+    function readAlong(text, beatId) {
+      dropClip();
+      dropUtterance();
+      beginUtterance(beatId);
+      segQueue = [];
+      const myTok = uttToken;
+      setTimeout(function () {
+        if (myTok === uttToken) settleUtterance();
+      }, wordCount(text) * WORD_MS);
+    }
+
     /** Speak an explicit clip sequence for a beat. Segments: {file, text,
      *  speaker?}. Opens ONE completion promise across the sequence; each
      *  segment logs in play order. Returns the first segment's Audio
-     *  element, or null when the voice toggle is off (nothing plays). */
+     *  element, or null when the voice toggle is off (the read-along
+     *  hold paces the beat instead — nothing plays). */
     function speakSegs(segs, beatId) {
-      if (!segs || !segs.length || !voicePrefs.enabled) return null;
+      if (!segs || !segs.length) return null;
+      if (!voicePrefs.enabled) {
+        readAlong(segs.map(function (s) { return s.text || ""; }).join(" "), beatId);
+        return null;
+      }
       dropClip();
       dropUtterance();
       beginUtterance(beatId);
@@ -5628,7 +5736,11 @@
     }
 
     function speak(text, beatId) {
-      if (!text || !voicePrefs.enabled) return;
+      if (!text) return;
+      if (!voicePrefs.enabled) {
+        readAlong(text, beatId);
+        return;
+      }
       const seq = CLIP_SEQS[beatId];
       if (seq) {
         speakSegs(seq.map(function (e) {
@@ -5938,8 +6050,10 @@
   }
 
   // auto_after_say: during autoplay a voiced beat advances only after BOTH
-  // its dwell elapsed AND its audio finished (+ a breathing pad). Beats
-  // without audio in flight pace exactly on dwell, as before. advanceGen
+  // its dwell elapsed AND its audio finished (+ a breathing pad). With the
+  // voice toggle off the read-along hold (Voice.readAlong) opens the same
+  // completion promise, so muted playback paces on reading time. Beats
+  // with nothing spoken pace exactly on dwell, as before. advanceGen
   // bumps on every navigation/pause so a gated advance that outlives its
   // beat dies quietly (cancel resolves the promise; the gen check aborts).
   const VOICE_PAD_MS = 250;
@@ -5960,7 +6074,7 @@
       restCursorAtEnd();
       return;
     }
-    const ms = dwellFor(BEATS[index]);
+    const ms = dwellFor(index);
     // Start the next beat's cursor leg early so the click impact lands
     // where the plain render used to happen. The lead is computed against
     // the dwell only — if audio is still playing when the cursor lands,
@@ -6496,15 +6610,18 @@
     });
 
     // CC transcript. feed-main swaps the feed list + composer for the
-    // derived transcript while ccOpen (members column stays). Its own
-    // signature (index + ccOpen): the derivation walks BEATS 0..index, so
-    // any beat move can change the visible lines.
+    // derived transcript while ccOpen (members column stays). The sticky
+    // user pref overrides the script in either direction; unset follows
+    // the beat. Its own signature (index + resolved state + pref — the
+    // pref is derived state and MUST fold into the signature): the
+    // derivation walks BEATS 0..index, so any beat move can change the
+    // visible lines.
     sharerIdNow = state.stage.sharerId || "";
-    const ccOn = !!state.ccOpen;
+    const ccOn = ccPref === "on" ? true : ccPref === "off" ? false : !!state.ccOpen;
     const ccBtn = document.getElementById("strip-cc");
     ccBtn.classList.toggle("on", ccOn);
     ccBtn.setAttribute("aria-pressed", String(ccOn));
-    const ccSig = JSON.stringify({ i: index, cc: ccOn });
+    const ccSig = JSON.stringify({ i: index, cc: ccOn, p: ccPref });
     if (ccSig !== R.ccSig) {
       R.ccSig = ccSig;
       document.querySelector(".feed-main").classList.toggle("cc-open", ccOn);
@@ -6632,6 +6749,27 @@
         "</div>"
       );
     }).join("");
+  }
+
+  // ---- CC caption preference ----
+  // Tri-state sticky override for the transcript panel, persisted as
+  // "drive-demo-cc": "on" (always open), "off" (always closed), unset
+  // (follow the script's ccOpen). The strip button records user intent so
+  // the next beat's render re-asserts the USER's choice instead of
+  // closing the panel they just opened. Validated on read like every
+  // other stored pref.
+  const CC_STORE_KEY = "drive-demo-cc";
+  let ccPref = (function () {
+    try {
+      const raw = localStorage.getItem(CC_STORE_KEY);
+      return raw === "on" || raw === "off" ? raw : null;
+    } catch (e) { return null; }
+  })();
+  function saveCcPref() {
+    try {
+      if (ccPref) localStorage.setItem(CC_STORE_KEY, ccPref);
+      else localStorage.removeItem(CC_STORE_KEY);
+    } catch (e) { /* ignore */ }
   }
 
   // ---- CC transcript ----
@@ -7625,10 +7763,16 @@
   document.getElementById("strip-hand").addEventListener("click", function () {
     this.classList.toggle("on");
   });
-  // CC preview: a real click flips the transcript panel directly; the next
-  // scripted render re-asserts beat state (same pattern as #feed-toggle).
+  // CC toggle: unlike the other manual previews this one is STICKY — the
+  // click records user intent ("drive-demo-cc": open sets "on", close
+  // sets "off"), so every later render re-asserts the user's choice
+  // instead of the script closing the panel they just opened.
   document.getElementById("strip-cc").addEventListener("click", function () {
-    const open = document.querySelector(".feed-main").classList.toggle("cc-open");
+    const main = document.querySelector(".feed-main");
+    ccPref = main.classList.contains("cc-open") ? "off" : "on";
+    saveCcPref();
+    const open = ccPref === "on";
+    main.classList.toggle("cc-open", open);
     this.classList.toggle("on", open);
     this.setAttribute("aria-pressed", String(open));
     if (open) renderTranscript(index);
@@ -7763,7 +7907,14 @@
   });
 
   window.addEventListener("keydown", function (e) {
-    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    // Interactive elements own their keys: Space on a focused button must
+    // activate THAT button (native behavior), not hijack the transport.
+    // Transport keys apply only when focus rests on the page background —
+    // which keeps Esc/Space dismissing the intro overlay from body, and
+    // Space on the overlay's own play button still starts playback via
+    // its native activation.
+    if (e.target && e.target.closest &&
+        e.target.closest("button, a, input, select, textarea, [tabindex]")) return;
     if (e.key === "ArrowRight") {
       e.preventDefault();
       pause();
@@ -7815,6 +7966,23 @@
     voice: Voice,
     chime: Chime,
     transcriptAt: buildTranscript,
+    // Read-along clock (extend-only): the effective per-beat durations the
+    // progress bar and CC stamps run on, for e2e pacing assertions.
+    pacing: {
+      wordMs: WORD_MS,
+      spokenWords: SPOKEN_WORDS.slice(),
+      effectiveMs: effectiveMs,
+      totalMs: TOTAL_MS,
+      cumMs: CUM_MS.slice(),
+    },
+    cc: {
+      getPref: function () { return ccPref; },
+      setPref: function (p) {
+        ccPref = p === "on" || p === "off" ? p : null;
+        saveCcPref();
+        R.ccSig = null; // next render re-derives against the new pref
+      },
+    },
     rail: {
       getConfig: function () { return JSON.parse(JSON.stringify(railConfig)); },
       setConfig: function (cfg) {
