@@ -31,6 +31,35 @@ That is the demo's job: show the experience. The **product** default stays off
 (`tts.enabled` false, per DRV-TTS "off by default"). When a user enables the facet,
 volume defaults to 50%. No slice below changes the default-off posture.
 
+## Engine decision (researched 2026-07-31)
+
+**Kokoro-82M** (`onnx-community/Kokoro-82M-v1.0-ONNX`) is the engine for both the demo
+clips and the product's live TTS backend. It is the only quality-tier open engine with
+Apache-2.0 on **both weights and code** (clean beside this Apache-2.0 SDK), ranks at the
+top of small-model TTS arenas for presenter read-speech, and covers every deployment
+shape behind one `TtsPort`:
+
+| Tier | Path | Notes |
+|---|---|---|
+| In-browser | `kokoro-js` on WebGPU | ~850ms to first audio; gate on WebGPU (WASM is ~5x too slow) |
+| Local process | same npm package, `device: "cpu"` | faster than real time on CPU |
+| Self-host server | Kokoro-FastAPI / Speaches (OpenAI-compatible) | ~720ms first byte, word timestamps |
+| Pre-rendered | demo clips (`docs/drivecode/assets/demos/voice/`) | Adam=`am_michael`, Riley=`af_heart` |
+
+`voiceSlot` maps to Kokoro's 54 preset voice ids (slot -> id table; no cloning infra).
+Fallback chain: WebGPU kokoro-js -> local Kokoro -> pre-rendered clips -> `speechSynthesis`.
+
+**HD tier / runner-up:** Chatterbox Turbo (MIT) — blind-preferred over ElevenLabs in
+Podonos A/B tests and supports 5s-reference voice cloning if a bespoke branded voice is
+ever needed; outputs carry a Perth watermark (disclose or strip), server-only.
+
+**License traps verified during research** (do not "upgrade" to these without re-reading
+their HF LICENSE files): F5-TTS and Fish/OpenAudio weights are non-commercial; Orpheus
+weights carry the Llama community license; maintained Piper is now GPL-3.0. Windows
+gotcha: the `pip install kokoro` torch path wants GPL espeak-ng — use `kokoro-js` or
+`kokoro-onnx` to stay pure-Apache, and run generation from a short path (MAX_PATH breaks
+the HF cache under deep directories).
+
 ## Slices (each PR-sized, in order)
 
 ### 1. Speaking presence
