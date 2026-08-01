@@ -1249,6 +1249,8 @@
   .vsc-fico.ts { color: #519aba; }
   .vsc-fico.md { color: #6e7681; }
   .vsc-fico.json { color: #cbcb41; }
+  .vsc-fico.html { color: #e37933; }
+  .vsc-fico.js { color: #cbcb41; }
   .vsc-ed {
     flex: 1;
     min-width: 0;
@@ -2675,7 +2677,7 @@
          hidden / width persist to localStorage "drive-demo-rail". -->
     <div class="rail-items" id="rail-items"></div>
     <div class="rail-foot">
-      <span class="rail-foot-label">Room <span class="mono">router-fix</span></span>
+      <span class="rail-foot-label">Room <span class="mono">demo-polish</span></span>
       <button type="button" class="panel-toggle" id="rail-edit" title="Customize rail" aria-label="Customize rail" aria-pressed="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>
       </button>
@@ -2714,7 +2716,7 @@
               <div class="feed-main">
                 <div class="feed" id="feed"></div>
                 <div class="composer" id="composer">
-                  <span class="address-chip hide" id="composer-address">@Adam · one</span>
+                  <span class="address-chip hide" id="composer-address">@Cline · one</span>
                   <div class="composer-input" aria-hidden="true">Message the room…</div>
                   <span class="mic-glyph" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
@@ -2746,8 +2748,8 @@
           <div class="room-card">
             <span class="live" aria-hidden="true"></span>
             <div>
-              <div class="name">router-fix</div>
-              <div class="meta">Adam · ready to join</div>
+              <div class="name">demo-polish</div>
+              <div class="meta">Cline · ready to join</div>
             </div>
             <button type="button" class="join">Join</button>
           </div>
@@ -2778,17 +2780,17 @@
               <h3>Changelog</h3>
               <p>What happened, chronologically.</p>
               <div class="log-list">
-                <div class="log-item"><span class="t">17:02</span><span>Riley published edit on <code>retry.ts</code></span></div>
-                <div class="log-item"><span class="t">17:01</span><span>Adam test card green — retry once</span></div>
-                <div class="log-item"><span class="t">16:58</span><span>You joined router-fix</span></div>
+                <div class="log-item"><span class="t">17:02</span><span>Riley published edit on <code>verify.js</code></span></div>
+                <div class="log-item"><span class="t">17:01</span><span>Cline battery green — zero re-mounts</span></div>
+                <div class="log-item"><span class="t">16:58</span><span>You joined demo-polish</span></div>
               </div>
             </div>
             <div class="lens-panel" id="lens-sessions">
               <h3>Sessions</h3>
               <p>Did Drive sessions get work done?</p>
               <div class="sess-list">
-                <div class="sess-item"><span class="t">live</span><span>router-fix · Adam + Riley · 3 stage cards</span></div>
-                <div class="sess-item"><span class="t">earlier</span><span>bootstrap-flag · closed with handoff</span></div>
+                <div class="sess-item"><span class="t">live</span><span>demo-polish · Cline + Riley · 3 stage cards</span></div>
+                <div class="sess-item"><span class="t">earlier</span><span>vscode-screen · closed with handoff</span></div>
               </div>
             </div>
             <div class="lens-panel" id="lens-depmap">
@@ -2797,19 +2799,19 @@
               <div class="dep-map">
                 <div class="graph-box">
                   <div class="graph-nodes">
-                    <span class="g-node hot">guard pending</span>
+                    <span class="g-node hot">fix captions</span>
                     <span class="g-edge">→</span>
-                    <span class="g-node">unit tests</span>
+                    <span class="g-node">battery</span>
                     <span class="g-edge">→</span>
-                    <span class="g-node">explain race</span>
+                    <span class="g-node">write-up</span>
                     <span class="g-edge">→</span>
-                    <span class="g-node">commit</span>
+                    <span class="g-node">open PR</span>
                   </div>
                 </div>
                 <div class="plans-rail">
                   <h4>Plans</h4>
-                  <div class="plan-node on">Now · running router unit tests</div>
-                  <div class="plan-node">Next · explain the race, then commit</div>
+                  <div class="plan-node on">Now · pinning the caption slot</div>
+                  <div class="plan-node">Next · run the battery, then write up</div>
                   <div class="plan-node">Later · open PR</div>
                 </div>
               </div>
@@ -2844,10 +2846,10 @@
           <div class="agents-grid">
             <div class="agent-card">
               <div class="agent-id">
-                <span class="agent-av" aria-hidden="true">A</span>
+                <span class="agent-av" aria-hidden="true">C</span>
                 <div>
-                  <div class="agent-name">Adam</div>
-                  <div class="agent-role">pair partner · router-fix</div>
+                  <div class="agent-name">Cline</div>
+                  <div class="agent-role">pair partner · demo-polish</div>
                 </div>
               </div>
               <div class="agent-teams"><span class="team-chip">Core</span></div>
@@ -2857,7 +2859,7 @@
                 <span class="agent-av" aria-hidden="true">R</span>
                 <div>
                   <div class="agent-name">Riley</div>
-                  <div class="agent-role">docs &amp; review</div>
+                  <div class="agent-role">regression checks &amp; review</div>
                 </div>
               </div>
               <div class="agent-teams"><span class="team-chip">Core</span><span class="team-chip">Docs</span></div>
@@ -2888,9 +2890,9 @@
             <div class="team-card">
               <div class="team-head">
                 <span class="team-name">Core</span>
-                <span class="team-members" aria-hidden="true"><span class="agent-av">A</span><span class="agent-av">R</span></span>
+                <span class="team-members" aria-hidden="true"><span class="agent-av">C</span><span class="agent-av">R</span></span>
               </div>
-              <div class="team-desc">Adam + Riley · ships the fix</div>
+              <div class="team-desc">Cline + Riley · ships the polish</div>
               <button type="button" class="call-team" title="Seats the whole team in one call">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 Call team
@@ -2901,7 +2903,7 @@
                 <span class="team-name">Docs</span>
                 <span class="team-members" aria-hidden="true"><span class="agent-av">R</span><span class="agent-av">S</span></span>
               </div>
-              <div class="team-desc">Riley + Sam · keeps the docs honest</div>
+              <div class="team-desc">Riley + Sam · keeps the battery green</div>
               <button type="button" class="call-team" title="Seats the whole team in one call">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                 Call team
@@ -2920,29 +2922,29 @@
           <div class="dep-map">
             <div class="graph-box">
               <div class="graph-nodes">
-                <span class="g-node done">guard pending flag ✓</span>
+                <span class="g-node done">fingerprint regions ✓</span>
                 <span class="g-edge">→</span>
-                <span class="g-node done">unit tests ✓</span>
+                <span class="g-node done">gate animations ✓</span>
                 <span class="g-edge">→</span>
-                <span class="g-node hot">explain race</span>
+                <span class="g-node hot">fix captions</span>
                 <span class="g-edge">→</span>
-                <span class="g-node">commit</span>
+                <span class="g-node">battery</span>
                 <span class="g-edge">→</span>
                 <span class="g-node">open PR</span>
                 <span class="g-edge">→</span>
-                <span class="g-node blocked">changelog entry<span class="g-sub">waits on PR</span></span>
+                <span class="g-node blocked">README GIF<span class="g-sub">waits on PR</span></span>
               </div>
               <div class="graph-nodes">
-                <span class="g-node done">retry.ts docs ✓<span class="g-sub">Riley</span></span>
+                <span class="g-node done">regression checks ✓<span class="g-sub">Riley</span></span>
                 <span class="g-edge join">↗ joins before open PR</span>
               </div>
               <div class="tasks-legend">amber = in progress · green = done · dashed = blocked</div>
             </div>
             <div class="plans-rail">
               <h4>Plans</h4>
-              <div class="plan-node on">Now · explain the race, then commit</div>
+              <div class="plan-node on">Now · fix captions, then battery</div>
               <div class="plan-node">Next · open PR</div>
-              <div class="plan-node">Later · changelog</div>
+              <div class="plan-node">Later · README GIF</div>
             </div>
           </div>
         </div>
@@ -2953,7 +2955,7 @@
         <div class="rooms-page">
           <h2>Inbox <span class="badge planned">planned</span></h2>
           <p class="lead">Approvals and needs-you items land here.</p>
-          <div class="inbox-row"><span>pr_create</span><span class="ok">approved</span><span class="t">act 9</span></div>
+          <div class="inbox-row"><span>pr_create</span><span class="ok">approved · PR #91</span><span class="t">act 9</span></div>
         </div>
       </div>
 
@@ -2973,20 +2975,20 @@
           <div class="handoff-col">
             <h4>Done</h4>
             <ul>
-              <li>Guard scheduleRetry pending flag</li>
-              <li>Unit tests green</li>
+              <li>Regions fingerprinted; animations gated</li>
+              <li>Caption slot fixed</li>
             </ul>
           </div>
           <div class="handoff-col">
             <h4>Open</h4>
             <ul>
-              <li>Explain race in PR body</li>
+              <li>README GIF re-record</li>
             </ul>
           </div>
           <div class="handoff-col">
             <h4>Resume next</h4>
             <ul>
-              <li>Commit + open PR</li>
+              <li>Merge PR #91</li>
             </ul>
           </div>
         </div>
@@ -3006,7 +3008,7 @@
 
       <div class="pip" id="pip">
         <div class="pip-head">
-          <span class="name" id="pip-name">Adam</span>
+          <span class="name" id="pip-name">Cline</span>
           <span class="badge planned">planned</span>
         </div>
         <div class="narr" id="pip-narr"></div>
@@ -3050,7 +3052,7 @@
       <button type="button" class="strip-btn leave" id="strip-leave" title="Leave call" aria-label="Leave call">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
       </button>
-      <span class="partner-label" id="partner-label">with <b>Adam</b></span>
+      <span class="partner-label" id="partner-label">with <b>Cline</b></span>
     </div>
   </div>
 </div>
@@ -3160,9 +3162,9 @@
     // Room sessions (Rooms surface). Stop ≠ lose: a stopped room keeps its
     // config + history (ARD-0013 durable log) and can be started again.
     rooms: [
-      { id: "router-fix", name: "router-fix", status: "live", meta: "Adam + Riley · started 16:58" },
-      { id: "bootstrap-flag", name: "bootstrap-flag", status: "paused", meta: "config + history kept" },
-      { id: "payments-audit", name: "payments-audit", status: "ended", meta: "handoff saved" },
+      { id: "demo-polish", name: "demo-polish", status: "live", meta: "Cline + Riley · started 16:58" },
+      { id: "voice-clips", name: "voice-clips", status: "paused", meta: "config + history kept" },
+      { id: "vscode-screen", name: "vscode-screen", status: "ended", meta: "handoff saved" },
     ],
     surface: "chat",
     statusLens: "board",
@@ -3212,48 +3214,52 @@
   }
 
   const YOU = { id: "you", name: "You", role: "human", handRaised: false };
-  const ADAM = { id: "adam", name: "Adam", role: "agent", handRaised: false };
+  const CLINE = { id: "cline", name: "Cline", role: "agent", handRaised: false };
   const RILEY = { id: "riley", name: "Riley", role: "agent", handRaised: false };
 
   const CARD_EDIT = {
     id: "card_edit",
     kind: "edit",
-    title: "router.ts",
-    summary: "Guard scheduleRetry when req.pending is already set.",
+    title: "drive-product-demo.html",
+    summary: "Repaint a region only when its fingerprint changes.",
     diff: [
-      { t: "del", s: "if (req.timer) scheduleRetry(req);" },
-      { t: "add", s: "if (req.timer && !req.pending) scheduleRetry(req);" },
+      { t: "del", s: 'feed.innerHTML = "";' },
+      { t: "add", s: "if (sig === R.feedSig) return; // skip the repaint" },
     ],
   };
   const CARD_CMD = {
     id: "card_cmd",
     kind: "command",
-    title: "unit tests",
-    summary: "bun -F @cline/core test:unit",
+    title: "battery",
+    summary: "bun verify.js",
   };
   const CARD_TEST = {
     id: "card_test",
     kind: "test",
-    title: "retry once",
-    summary: "Router retries exactly once per timeout — green.",
+    title: "node identity",
+    summary: "Same node before and after a beat — green.",
   };
   const CARD_RILEY = {
     id: "card_riley",
     kind: "edit",
-    title: "retry.ts",
-    summary: "Clarify timeout window in scheduleRetry docs.",
+    title: "verify.js",
+    summary: "Regression checks so the flash can't sneak back in.",
     diff: [
-      { t: "add", s: "// scheduleRetry fires at most once per timeout window" },
+      { t: "add", s: "// assert: same node before and after a beat" },
     ],
   };
 
   /** Session artifacts (Artifacts surface). Titles/sticky/maturity mirror the
    *  show object of the beat that presented each one. @type {SessionArtifact[]} */
-  const ART_PLAN = { id: "art-plan", kindLabel: "doc.plan", title: "Fix plan · router-fix", presenter: "Adam", act: 3, sticky: "replace" };
-  const ART_ARCH = { id: "art-arch", kindLabel: "diagram.architecture", title: "cline-drive · system architecture", presenter: "Adam", act: 3, sticky: "hold" };
-  const ART_WALK = { id: "art-walk", kindLabel: "walkthrough.code", title: "router.ts · the guard", presenter: "Adam", act: 3, sticky: "hold" };
-  const ART_CAPTURE = { id: "art-capture", kindLabel: "capture.screenshot", title: "router-lab · retry proof", presenter: "Adam", act: 3, sticky: "replace", maturity: "planned" };
-  const ART_HANDOFF = { id: "art-handoff", kindLabel: "doc.handoff", title: "Tier-0 handoff · router-fix", presenter: "Hub", act: 7, sticky: "replace" };
+  const ART_PLAN = { id: "art-plan", kindLabel: "doc.plan", title: "Fix plan · demo-polish", presenter: "Cline", act: 3, sticky: "replace" };
+  const ART_RENDER = { id: "art-render", kindLabel: "diagram.render", title: "demo render pipeline · where the flash lived", presenter: "Cline", act: 3, sticky: "hold" };
+  // The hub architecture stays in the session library as an explorable
+  // reference — staged in act 3 alongside the render map, presented only
+  // when a card click asks for it (no scripted beat presents it).
+  const ART_ARCH = { id: "art-arch", kindLabel: "diagram.architecture", title: "cline-drive · system architecture", presenter: "Cline", act: 3, sticky: "hold" };
+  const ART_WALK = { id: "art-walk", kindLabel: "walkthrough.code", title: "drive-product-demo.html · the guard", presenter: "Cline", act: 3, sticky: "hold" };
+  const ART_CAPTURE = { id: "art-capture", kindLabel: "capture.screenshot", title: "demo-polish · smooth playback", presenter: "Cline", act: 3, sticky: "replace", maturity: "planned" };
+  const ART_HANDOFF = { id: "art-handoff", kindLabel: "doc.handoff", title: "Tier-0 handoff · demo-polish", presenter: "Hub", act: 7, sticky: "replace" };
 
   /** Show objects (ShowArtifact) — shared between the presenting beats and
    *  the explore-mode ART_SHOWS map, so a clicked artifact card presents the
@@ -3263,37 +3269,42 @@
     kind: "plan",
     kindLabel: "doc.plan",
     sticky: "replace",
-    title: "Fix plan · router-fix",
+    title: "Fix plan · demo-polish",
     body: {
       steps: [
-        { label: "Reproduce the race", state: "done" },
-        { label: "Guard the pending flag in scheduleRetry", state: "now" },
-        { label: "Tests, walkthrough, demo", state: "next" },
+        { label: "Reproduce: measure re-mounts per beat", state: "done" },
+        { label: "Fingerprint regions; skip unchanged repaints", state: "now" },
+        { label: "Gate animations; battery + walkthrough", state: "next" },
       ],
     },
+  };
+  const SHOW_RENDER = {
+    kind: "diagram",
+    kindLabel: "diagram.render",
+    sticky: "hold",
+    title: "demo render pipeline · where the flash lived",
+    body: { svg: "render" },
   };
   const SHOW_ARCH = {
     kind: "diagram",
     kindLabel: "diagram.architecture",
     sticky: "hold",
     title: "cline-drive · system architecture",
-    body: {},
+    body: { svg: "arch" },
   };
   const SHOW_WALK = {
     kind: "walk",
     kindLabel: "walkthrough.code",
     sticky: "hold",
-    title: "router.ts · the guard",
+    title: "drive-product-demo.html · the guard",
     body: {
-      file: "router.ts",
-      range: "L41–L46",
+      file: "drive-product-demo.html",
+      range: "L4705–L4708",
       lines: [
-        { n: 41, t: "function onTimeout(req) {" },
-        { n: 42, t: "  if (!req.active) return;" },
-        { n: 43, t: "  if (req.pending) return; // guard: retry queued", hl: true },
-        { n: 44, t: "  req.pending = true;", hl: true },
-        { n: 45, t: "  scheduleRetry(req);" },
-        { n: 46, t: "}" },
+        { n: 4705, t: "    const sig = JSON.stringify([msgs, since]);" },
+        { n: 4706, t: "    if (sig === R.feedSig) return; // skip the repaint", hl: true },
+        { n: 4707, t: "    R.feedSig = sig;", hl: true },
+        { n: 4708, t: "    rebuildFeed();" },
       ],
     },
   };
@@ -3302,8 +3313,8 @@
     kindLabel: "capture.screenshot",
     sticky: "replace",
     maturity: "planned",
-    title: "router-lab · retry proof",
-    body: { url: "localhost:3000/router-lab", toast: "1 retry → 200 OK" },
+    title: "demo-polish · smooth playback",
+    body: { url: "drive-product-demo.html", toast: "beats advancing · zero re-mounts" },
   };
   // The handoff packet as a stage show (plan renderer: done / open / next
   // mirror the Tier-0 columns). Explore-only — no beat presents it.
@@ -3311,12 +3322,12 @@
     kind: "plan",
     kindLabel: "doc.handoff",
     sticky: "replace",
-    title: "Tier-0 handoff · router-fix",
+    title: "Tier-0 handoff · demo-polish",
     body: {
       steps: [
-        { label: "Done · guard scheduleRetry pending flag, tests green", state: "done" },
-        { label: "Open · explain race in PR body", state: "now" },
-        { label: "Resume next · commit + open PR", state: "next" },
+        { label: "Done · regions fingerprinted, caption slot fixed", state: "done" },
+        { label: "Open · README GIF re-record", state: "now" },
+        { label: "Resume next · merge PR #91", state: "next" },
       ],
     },
   };
@@ -3324,6 +3335,7 @@
   /** Explore mode: artifact id → the ShowArtifact a card click presents. */
   const ART_SHOWS = {
     "art-plan": SHOW_PLAN,
+    "art-render": SHOW_RENDER,
     "art-arch": SHOW_ARCH,
     "art-walk": SHOW_WALK,
     "art-capture": SHOW_CAPTURE,
@@ -3373,41 +3385,41 @@
         surface: "drive-in-call",
         driveOn: true,
         inCall: true,
-        narration: "Hey — good timing. I'm on that double-retry bug in the router. Give me a second and I'll show you what I found.",
+        narration: "Hey — good timing. I'm looking at that flashing you reported. Give me a second and I'll show you what's going on.",
         participants: [{ ...YOU, wstatus: "idle", task: "on the call" }],
         stage: {
-          sharer: "Adam",
-          sharerId: "adam",
+          sharer: "Cline",
+          sharerId: "cline",
           cards: [],
           pin: null,
-          // Adam's live workspace — the screen is never just an avatar.
+          // Cline's live workspace — the screen is never just an avatar.
           work: {
-            file: "router.ts",
+            file: "drive-product-demo.html",
             code: [
-              { t: "function onTimeout(req) {" },
-              { t: "  if (!req.active) return;" },
-              { t: "  if (req.timer) scheduleRetry(req);" },
-              { t: "  req.attempts += 1;" },
+              { t: "function render(state, beat) {" },
+              { t: '  feed.innerHTML = "";' },
+              { t: "  state.feedMessages.forEach(addMsg);" },
+              { t: '  roster.innerHTML = "";' },
               { t: "}" },
             ],
-            caret: 2,
+            caret: 1,
             term: [
-              { t: "$ bun -F @cline/core test:unit", cls: "dim" },
+              { t: "$ bun verify.js", cls: "dim" },
               { t: "queued · waiting for workspace", cls: "dim" },
             ],
             spin: false,
-            activity: "opening workspace · router-fix",
+            activity: "opening workspace · demo-polish",
           },
         },
         feedMessages: [
-          { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
+          { id: "m0", from: "system", who: "Hub", text: "Joined demo-polish via call_join createOrAttach." },
         ],
       },
     },
     {
       id: "a1-roster",
       act: 1,
-      title: "You + Adam seated; strip; mode Agent",
+      title: "You + Cline seated; strip; mode Agent",
       caption: "Participants project from RoomSnapshot. Call strip mounts while Drive is on.",
       hubOp: "call_get_room",
       maturity: "shipped",
@@ -3418,34 +3430,35 @@
         narration: "",
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "working", task: "finding the race" },
+          { ...CLINE, wstatus: "working", task: "finding the flash" },
         ],
         mode: "Agent",
         feedMessages: [
-          { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
-          { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
+          { id: "m0", from: "system", who: "Hub", text: "Joined demo-polish via call_join createOrAttach." },
+          { id: "m1", from: "system", who: "Room", text: "Cline seated. Mode · Agent." },
         ],
       },
     },
     {
       id: "a2-address",
       act: 2,
-      title: "Address chip → Adam",
+      title: "Address chip → Cline",
       caption: "Address is a first-class send parameter: one, many, everyone, or a pack.",
       hubOp: "addressSet",
       maturity: "shipped",
       dwellMs: 1200,
-      cursor: { target: "#member-adam", action: "click" },
+      cursor: { target: "#member-cline", action: "click" },
       patch: {
         addressSet: ["one"],
         stage: {
           work: {
             term: [
-              { t: '$ rg "scheduleRetry" src/' },
-              { t: "src/router.ts:43:  if (req.timer) scheduleRetry(req);", cls: "dim" },
-              { t: "src/retry.ts:12: export function scheduleRetry(req) {", cls: "dim" },
+              { t: '$ rg "innerHTML" drive-product-demo.html' },
+              { t: '5009:      feed.innerHTML = "";', cls: "dim" },
+              { t: '5046:      memberList.innerHTML = "";', cls: "dim" },
+              { t: '5081:      spot.innerHTML = "";', cls: "dim" },
             ],
-            activity: "locating the race",
+            activity: "locating the flash",
           },
         },
       },
@@ -3458,56 +3471,56 @@
       maturity: "shipped",
       dwellMs: 1600,
       cursor: { target: "#composer-send", action: "click" },
-      speech: { who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
+      speech: { who: "You", text: "Cline — the demo flashes and refreshes the whole page every time it updates. It feels jarring. Can you make it one smooth experience?" },
       patch: {
         feedMessages: [
-          { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
-          { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
-          { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
-          { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
+          { id: "m0", from: "system", who: "Hub", text: "Joined demo-polish via call_join createOrAttach." },
+          { id: "m1", from: "system", who: "Room", text: "Cline seated. Mode · Agent." },
+          { id: "m2", from: "you", who: "You", text: "Addressing Cline…", chips: ["@Cline", "one"] },
+          { id: "m3", from: "you", who: "You", text: "Cline — the demo flashes and refreshes the whole page every time it updates. It feels jarring. Can you make it one smooth experience?" },
         ],
       },
     },
     {
       id: "a2-narration",
       act: 2,
-      title: "Adam narrates; Now/Next set",
+      title: "Cline narrates; Now/Next set",
       caption: "Partner narrates decisions, not keystrokes. Now/Next orients the plan cursor.",
       hubOp: "narration",
       maturity: "shipped",
       dwellMs: 1600,
       cursor: { target: "#spotlight", action: "move" },
       patch: {
-        narration: "Okay, found it. If two timeouts overlap, schedule-retry fires twice. Let me put it on the screen.",
-        nowLabel: "running router unit tests",
-        nextLabel: "explain the race, then commit",
+        narration: "Okay, found it. Every beat, we rebuild the whole page — so everything replays its entrance animation. That's the flash. Let me put it on the screen.",
+        nowLabel: "measuring re-mounts per beat",
+        nextLabel: "fingerprint regions, skip repaints",
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "working", task: "running unit tests" },
+          { ...CLINE, wstatus: "working", task: "measuring re-mounts" },
         ],
         stage: {
           work: {
             code: [
-              { t: "function onTimeout(req) {" },
-              { t: "  if (!req.active) return;" },
-              { t: "  if (req.timer) scheduleRetry(req);", hl: true },
-              { t: "  req.attempts += 1;" },
+              { t: "function render(state, beat) {" },
+              { t: '  feed.innerHTML = "";', hl: true },
+              { t: "  state.feedMessages.forEach(addMsg);" },
+              { t: '  roster.innerHTML = "";' },
               { t: "}" },
             ],
             term: [
-              { t: "$ bun -F @cline/core test:unit" },
-              { t: "router retry · once per timeout — running", cls: "dim" },
+              { t: "$ bun verify.js" },
+              { t: "counting re-mounts per beat — running", cls: "dim" },
             ],
             spin: true,
-            activity: "running router unit tests",
+            activity: "measuring re-mounts per beat",
           },
         },
         feedMessages: [
-          { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
-          { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
-          { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
-          { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Okay, found it — scheduleRetry can fire twice. Watch the Spotlight." },
+          { id: "m0", from: "system", who: "Hub", text: "Joined demo-polish via call_join createOrAttach." },
+          { id: "m1", from: "system", who: "Room", text: "Cline seated. Mode · Agent." },
+          { id: "m2", from: "you", who: "You", text: "Addressing Cline…", chips: ["@Cline", "one"] },
+          { id: "m3", from: "you", who: "You", text: "Cline — the demo flashes and refreshes the whole page every time it updates. It feels jarring. Can you make it one smooth experience?" },
+          { id: "m4", from: "agent", who: "Cline", text: "Okay, found it — every beat rebuilds the whole page. Watch the Spotlight." },
         ],
       },
     },
@@ -3553,13 +3566,13 @@
       cursor: { target: "#spotlight", action: "move" },
       patch: {
         showHowInset: false,
-        narration: "Here's my plan of attack. I've already reproduced it — next I guard the pending flag, and then the tests prove it.",
+        narration: "Here's the plan. Fingerprint what each region shows, skip the repaint when nothing changed, and only animate what's actually new.",
         artifacts: [ART_PLAN],
         stage: {
           show: SHOW_PLAN,
           backlog: [
             { id: "s1", label: "doc.plan", status: "showing" },
-            { id: "s2", label: "diagram.architecture", status: "ready" },
+            { id: "s2", label: "diagram.render", status: "ready" },
             { id: "s3", label: "walkthrough.code", status: "planned" },
             { id: "s4", label: "capture.screenshot", status: "planned" },
           ],
@@ -3569,20 +3582,20 @@
     {
       id: "a3-arch",
       act: 3,
-      title: "Drive architecture · sticky hold",
-      caption: "render_mermaid → SVG. The real cline-drive architecture holds the screen while narration advances.",
+      title: "Render pipeline · sticky hold",
+      caption: "render_mermaid → SVG. The demo's own render pipeline holds the screen while narration advances.",
       hubOp: "render_mermaid",
       maturity: "shipped",
       dwellMs: 2200,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "Quick map before I touch anything. Requests come through the router, and both timeout paths can reach schedule-retry. That amber box is where our race lives.",
-        artifacts: [ART_PLAN, ART_ARCH],
+        narration: "Quick map of how the demo renders. State folds in from the left, and render pushes it into these four regions. The flash lives right here — at this rebuild edge.",
+        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH],
         stage: {
-          show: SHOW_ARCH,
+          show: SHOW_RENDER,
           backlog: [
             { id: "s1", label: "doc.plan", status: "shown" },
-            { id: "s2", label: "diagram.architecture", status: "showing" },
+            { id: "s2", label: "diagram.render", status: "showing" },
             { id: "s3", label: "walkthrough.code", status: "ready" },
             { id: "s4", label: "capture.screenshot", status: "planned" },
           ],
@@ -3600,10 +3613,10 @@
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
         showHowInset: false,
-        narration: "I'll keep the map up while I make the change. Adding the guard now — if a retry is already pending, we just bail out.",
+        narration: "I'll keep the map up while I make the change. Adding the fingerprint check now — if the region's state didn't change, we don't touch it.",
         stage: {
-          sharer: "Adam",
-          sharerId: "adam",
+          sharer: "Cline",
+          sharerId: "cline",
           pin: null,
           cards: [CARD_EDIT],
         },
@@ -3636,7 +3649,7 @@
       cursor: { target: "#spotlight .card.command", action: "move" },
       chime: "complete",
       patch: {
-        narration: "There we go — green. One retry per timeout, exactly once.",
+        narration: "There we go — green. Same message node before and after the beat. Nothing re-mounts.",
         stage: {
           cards: [CARD_EDIT, CARD_CMD, CARD_TEST],
         },
@@ -3652,13 +3665,13 @@
       dwellMs: 2000,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "Let me walk you through it. Line forty-three is the whole fix — if pending is set, we return before ever scheduling.",
-        artifacts: [ART_PLAN, ART_ARCH, ART_WALK],
+        narration: "Let me walk you through it. This guard is the whole fix — compare the fingerprint, skip the rebuild, remember the new one.",
+        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK],
         stage: {
           show: SHOW_WALK,
           backlog: [
             { id: "s1", label: "doc.plan", status: "shown" },
-            { id: "s2", label: "diagram.architecture", status: "shown" },
+            { id: "s2", label: "diagram.render", status: "shown" },
             { id: "s3", label: "walkthrough.code", status: "showing" },
             { id: "s4", label: "capture.screenshot", status: "ready" },
           ],
@@ -3675,13 +3688,13 @@
       dwellMs: 1800,
       cursor: { target: "#spotlight .screen", action: "move" },
       patch: {
-        narration: "And here it is live. The request times out, one retry, clean two hundred.",
-        artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE],
+        narration: "And here it is live — beats advancing, zero flashes. Smooth.",
+        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE],
         stage: {
           show: SHOW_CAPTURE,
           backlog: [
             { id: "s1", label: "doc.plan", status: "shown" },
-            { id: "s2", label: "diagram.architecture", status: "shown" },
+            { id: "s2", label: "diagram.render", status: "shown" },
             { id: "s3", label: "walkthrough.code", status: "shown" },
             { id: "s4", label: "capture.screenshot", status: "showing" },
           ],
@@ -3711,15 +3724,15 @@
       maturity: "shipped",
       dwellMs: 1400,
       cursor: { target: "#composer-send", action: "click" },
-      speech: { who: "You", text: "Steer: keep the guard in router.ts only — retry.ts stays docs-only." },
+      speech: { who: "You", text: "Also — the captions keep shifting around. Give them one consistent place." },
       patch: {
         feedMessages: [
-          { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
-          { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
-          { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
-          { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Okay, found it — scheduleRetry can fire twice. Watch the Spotlight." },
-          { id: "m5", from: "you", who: "You", text: "Steer: keep the guard in router.ts only — retry.ts stays docs-only.", chips: ["steer queued"] },
+          { id: "m0", from: "system", who: "Hub", text: "Joined demo-polish via call_join createOrAttach." },
+          { id: "m1", from: "system", who: "Room", text: "Cline seated. Mode · Agent." },
+          { id: "m2", from: "you", who: "You", text: "Addressing Cline…", chips: ["@Cline", "one"] },
+          { id: "m3", from: "you", who: "You", text: "Cline — the demo flashes and refreshes the whole page every time it updates. It feels jarring. Can you make it one smooth experience?" },
+          { id: "m4", from: "agent", who: "Cline", text: "Okay, found it — every beat rebuilds the whole page. Watch the Spotlight." },
+          { id: "m5", from: "you", who: "You", text: "Also — the captions keep shifting around. Give them one consistent place.", chips: ["steer queued"] },
         ],
       },
     },
@@ -3735,7 +3748,7 @@
       patch: {
         participants: [
           { ...YOU, handRaised: true, wstatus: "working", task: "steering" },
-          { ...ADAM, wstatus: "paused", task: "paused after tool — your turn" },
+          { ...CLINE, wstatus: "paused", task: "paused after tool — your turn" },
         ],
       },
     },
@@ -3751,7 +3764,7 @@
       patch: {
         muted: false,
         posture: "paused_after_tool",
-        narration: "Got it — the guard stays in the router. Let me finish this tool call, then you drive.",
+        narration: "Got it — one home for the captions. Let me finish this check, then you drive.",
       },
     },
     {
@@ -3769,39 +3782,37 @@
         stage: {
           show: null,
           backlog: [],
-          // Adam still holds the (now show-less) screen — the fixed
-          // router.ts with tests green; the sharer flips next beat.
+          // Cline still holds the (now show-less) screen — the fixed
+          // guard with the battery green; the sharer flips next beat.
           work: {
-            file: "router.ts",
+            file: "drive-product-demo.html",
             code: [
-              { t: "function onTimeout(req) {" },
-              { t: "  if (!req.active) return;" },
-              { t: "  if (req.pending) return; // guard: retry queued", hl: true },
-              { t: "  req.pending = true;" },
-              { t: "  scheduleRetry(req);" },
-              { t: "}" },
+              { t: "const sig = JSON.stringify([msgs, since]);" },
+              { t: "if (sig === R.feedSig) return;", hl: true },
+              { t: "R.feedSig = sig;" },
+              { t: "rebuildFeed();" },
             ],
             caret: null,
             term: [
-              { t: "$ bun -F @cline/core test:unit" },
-              { t: "router retry · once per timeout — pass", cls: "ok" },
+              { t: "$ bun verify.js" },
+              { t: "node identity · same before and after — pass", cls: "ok" },
             ],
             spin: false,
-            activity: "explaining the race",
+            activity: "explaining the fix",
           },
         },
         participants: [
           { ...YOU, handRaised: false, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "working", task: "explaining the race" },
-          { ...RILEY, wstatus: "working", task: "tightening retry docs" },
+          { ...CLINE, wstatus: "working", task: "explaining the fix" },
+          { ...RILEY, wstatus: "working", task: "adding regression checks" },
         ],
         feedMessages: [
-          { id: "m0", from: "system", who: "Hub", text: "Joined router-fix via call_join createOrAttach." },
-          { id: "m1", from: "system", who: "Room", text: "Adam seated. Mode · Agent." },
-          { id: "m2", from: "you", who: "You", text: "Addressing Adam…", chips: ["@Adam", "one"] },
-          { id: "m3", from: "you", who: "You", text: "Find the race in scheduleRetry and show me the fix in Spotlight." },
-          { id: "m4", from: "agent", who: "Adam", text: "Okay, found it — scheduleRetry can fire twice. Watch the Spotlight." },
-          { id: "m5", from: "you", who: "You", text: "Steer: keep the guard in router.ts only — retry.ts stays docs-only.", chips: ["steer queued"] },
+          { id: "m0", from: "system", who: "Hub", text: "Joined demo-polish via call_join createOrAttach." },
+          { id: "m1", from: "system", who: "Room", text: "Cline seated. Mode · Agent." },
+          { id: "m2", from: "you", who: "You", text: "Addressing Cline…", chips: ["@Cline", "one"] },
+          { id: "m3", from: "you", who: "You", text: "Cline — the demo flashes and refreshes the whole page every time it updates. It feels jarring. Can you make it one smooth experience?" },
+          { id: "m4", from: "agent", who: "Cline", text: "Okay, found it — every beat rebuilds the whole page. Watch the Spotlight." },
+          { id: "m5", from: "you", who: "You", text: "Also — the captions keep shifting around. Give them one consistent place.", chips: ["steer queued"] },
           { id: "m6", from: "system", who: "Room", text: "Riley joined the call." },
         ],
       },
@@ -3821,25 +3832,25 @@
           sharerId: "riley",
           // Riley's workspace takes over the screen as the sharer flips.
           work: {
-            file: "retry.ts",
+            file: "verify.js",
             code: [
-              { t: "export function scheduleRetry(req) {" },
-              { t: "  if (req.pending) return;" },
-              { t: "  req.pending = true;" },
-              { t: "  queue.push(req, req.timeoutMs);" },
-              { t: "}" },
+              { t: "test('nothing re-mounts on a non-changing beat', () => {" },
+              { t: "  const before = feedNode();" },
+              { t: "  advanceBeat();" },
+              { t: "  expect(feedNode()).toBe(before);" },
+              { t: "});" },
             ],
             caret: null,
-            typing: "// scheduleRetry fires at most once per timeout window",
+            typing: "// assert: same node before and after a beat",
             term: [
-              { t: "$ bun run lint retry.ts" },
-              { t: "clean · 0 warnings", cls: "ok" },
+              { t: "$ bun verify.js" },
+              { t: "identity checks · pass", cls: "ok" },
             ],
             spin: false,
-            activity: "tightening retry docs",
+            activity: "adding regression checks",
           },
         },
-        narration: "Riley here — grabbing the screen for a minute. The retry docs still promise the old behavior, so I'm fixing that.",
+        narration: "Riley here — grabbing the screen for a minute. I'm adding regression checks so the flash can't sneak back in.",
       },
     },
     {
@@ -3867,14 +3878,14 @@
       maturity: "shipped",
       dwellMs: 1800,
       cursor: { target: "#strip-share", action: "click" },
-      speech: { who: "You", text: "Here's what I mean — pinning my selection." },
+      speech: { who: "You", text: "Here's what I mean — it jumps from here to here." },
       patch: {
         stage: {
           sharer: "You",
           sharerId: "you",
           pin: {
-            label: "selection · router.ts",
-            ref: "Keep the guard in router.ts only — retry.ts stays docs-only. Add a regression test for the double-retry path.",
+            label: "selection · caption slot",
+            ref: "The caption renders in a different spot each beat — top of the stage, then under the deck. It jumps from here to here. One fixed home, please.",
           },
         },
       },
@@ -3892,32 +3903,32 @@
         statusLens: "board",
         pipVisible: true,
         showHowInset: false,
-        narration: "I'll keep working while you look around. Running the full suite in the background now.",
+        narration: "I'll keep working while you look around. Pinning the caption slot into place now.",
         // You navigated away — the pin moment is over. Spotlight returns to
-        // Adam, so this beat's dialogue line (his clip) attributes to him
+        // Cline, so this beat's dialogue line (his clip) attributes to him
         // in the derived CC transcript (attribution follows stage.sharer).
         stage: {
-          sharer: "Adam",
-          sharerId: "adam",
+          sharer: "Cline",
+          sharerId: "cline",
           pin: null,
           work: {
-            file: "router.ts",
+            file: "drive-product-demo.html",
             code: [
-              { t: "function onTimeout(req) {" },
-              { t: "  if (!req.active) return;" },
-              { t: "  if (req.pending) return; // guard: retry queued", hl: true },
-              { t: "  req.pending = true;" },
-              { t: "  scheduleRetry(req);" },
+              { t: "// fixed caption slot — one home, text swaps in place" },
+              { t: 'const narr = state.narration || "";' },
+              { t: "if (narr !== R.capText) {" },
+              { t: "  R.capText = narr;" },
+              { t: "  cap.textContent = narr;", hl: true },
               { t: "}" },
             ],
             caret: null,
             typing: null,
             term: [
-              { t: "$ bun -F @cline/core test:unit" },
-              { t: "router retry · once per timeout — pass", cls: "ok" },
+              { t: "$ bun verify.js" },
+              { t: "node identity · same before and after — pass", cls: "ok" },
             ],
             spin: false,
-            activity: "explaining the race",
+            activity: "pinning the caption slot",
           },
         },
       },
@@ -4002,8 +4013,8 @@
         driveOn: false,
         surface: "drive",
         participants: [
-          { ...ADAM, wstatus: "working", task: "explaining the race" },
-          { ...RILEY, wstatus: "working", task: "tightening retry docs" },
+          { ...CLINE, wstatus: "working", task: "pinning the caption slot" },
+          { ...RILEY, wstatus: "working", task: "adding regression checks" },
         ],
         pipVisible: false,
         feedMessages: [],
@@ -4025,10 +4036,10 @@
         showLeaveChoice: false,
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "working", task: "explaining the race" },
-          { ...RILEY, wstatus: "working", task: "docs review" },
+          { ...CLINE, wstatus: "working", task: "pinning the caption slot" },
+          { ...RILEY, wstatus: "working", task: "checks review" },
         ],
-        artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
+        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
         feedMessages: [
           { id: "m7", from: "system", who: "Hub", text: "call_end · building Tier-0 handoff from typed events." },
         ],
@@ -4050,38 +4061,38 @@
         surface: "drive-in-call",
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "working", task: "explaining the race" },
-          { ...RILEY, wstatus: "working", task: "docs review" },
+          { ...CLINE, wstatus: "working", task: "writing up the change" },
+          { ...RILEY, wstatus: "working", task: "checks review" },
         ],
         stage: {
-          sharer: "Adam",
-          sharerId: "adam",
+          sharer: "Cline",
+          sharerId: "cline",
           pin: null,
           cards: [CARD_RILEY, CARD_CMD, CARD_TEST],
-          // Adam is back on the screen, drafting the PR body.
+          // Cline is back on the screen, writing up the change.
           work: {
             file: "PR_BODY.md",
-            tabs: ["PR_BODY.md", "router.ts"],
+            tabs: ["PR_BODY.md", "drive-product-demo.html"],
             code: [
-              { t: "## router-fix · pending-flag race" },
+              { t: "## demo-polish · smooth render" },
               { t: "" },
-              { t: "– one retry per timeout window, proven by unit test" },
-              { t: "– Riley tightened the scheduleRetry docs" },
+              { t: "– regions repaint only when their fingerprint changes" },
+              { t: "– Riley added regression checks in verify.js" },
             ],
             caret: null,
-            typing: "– guard prevents double scheduleRetry",
+            typing: "– captions live in one fixed slot",
             term: [
               { t: "$ git status --short" },
-              { t: "2 files changed · router.ts retry.ts", cls: "dim" },
+              { t: "1 file changed · drive-product-demo.html", cls: "dim" },
             ],
             spin: false,
-            activity: "drafting the PR body",
+            activity: "writing up the change",
           },
         },
         sinceYouLeft: null,
-        narration: "Welcome back — nothing was torn down. I'm drafting the PR body while it's fresh.",
+        narration: "Welcome back — nothing was torn down. I'm writing up the change while it's fresh.",
         feedMessages: [
-          { id: "m8", from: "system", who: "Hub", text: "Rejoined router-fix · createOrAttach (idempotent)." },
+          { id: "m8", from: "system", who: "Hub", text: "Rejoined demo-polish · createOrAttach (idempotent)." },
         ],
       },
     },
@@ -4095,10 +4106,10 @@
       dwellMs: 1800,
       cursor: { target: "#feed", action: "move" },
       patch: {
-        sinceYouLeft: "Riley published 1 edit card. Tests still green. Now: explain race.",
-        nowLabel: "explain the race, then commit",
+        sinceYouLeft: "Riley published 1 edit card. Battery still green. Now: write up the change.",
+        nowLabel: "write up the change, then commit",
         nextLabel: "open PR",
-        narration: "Quick catch-up: Riley shipped the docs fix, and the tests stayed green the whole time.",
+        narration: "Quick catch-up: Riley's regression checks landed, and the battery stayed green the whole time.",
       },
     },
     {
@@ -4119,17 +4130,17 @@
         stage: {
           work: {
             code: [
-              { t: "## router-fix · pending-flag race" },
+              { t: "## demo-polish · smooth render" },
               { t: "" },
-              { t: "– one retry per timeout window, proven by unit test" },
-              { t: "– Riley tightened the scheduleRetry docs" },
-              { t: "– guard prevents double scheduleRetry" },
+              { t: "– regions repaint only when their fingerprint changes" },
+              { t: "– Riley added regression checks in verify.js" },
+              { t: "– captions live in one fixed slot" },
             ],
             caret: 4,
             typing: null,
             term: [
-              { t: '$ git commit -m "fix(router): guard pending retry"' },
-              { t: "[router-fix 4c2a11d] 2 files changed", cls: "dim" },
+              { t: '$ git commit -m "docs(drivecode): differential render + fixed caption slot"' },
+              { t: "[demo-polish d227f3e] 1 file changed", cls: "dim" },
               { t: "$ gh pr create --fill" },
               { t: "waiting for approval…", cls: "dim" },
             ],
@@ -4162,11 +4173,11 @@
       dwellMs: 2200,
       chime: "attention",
       patch: {
-        narration: "One thing before I open the PR — I need your sign-off. The approval card is on your screen.",
+        narration: "One thing before I open the pull request — I need your sign-off. The approval card is on your screen.",
         showGatesCard: true,
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "needs-you", task: "waiting on pr_create approval" },
+          { ...CLINE, wstatus: "needs-you", task: "waiting on pr_create approval" },
           { ...RILEY, wstatus: "blocked", task: "waits on PR review" },
         ],
       },
@@ -4182,27 +4193,27 @@
       cursor: { target: ".gates-card .approve", action: "click" },
       chime: "complete",
       patch: {
-        narration: "Thanks. PR twelve is up, with the handoff attached.",
+        narration: "Thanks. PR ninety-one is up, with the before and after attached.",
         showGatesCard: false,
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "working", task: "opening the PR" },
-          { ...RILEY, wstatus: "working", task: "reviewing PR #12" },
+          { ...CLINE, wstatus: "working", task: "opening the PR" },
+          { ...RILEY, wstatus: "working", task: "reviewing PR #91" },
         ],
         stage: {
           work: {
             term: [
               { t: "$ gh pr create --fill" },
               { t: "waiting for approval…", cls: "dim" },
-              { t: "PR #12 opened ✓", cls: "ok" },
+              { t: "PR #91 opened ✓", cls: "ok" },
             ],
             spin: false,
             activity: "done — PR open",
           },
         },
         feedMessages: [
-          { id: "m8", from: "system", who: "Hub", text: "Rejoined router-fix · createOrAttach (idempotent)." },
-          { id: "m9", from: "system", who: "Hub", text: "pr_create approved — PR #12 opened." },
+          { id: "m8", from: "system", who: "Hub", text: "Rejoined demo-polish · createOrAttach (idempotent)." },
+          { id: "m9", from: "system", who: "Hub", text: "pr_create approved — PR #91 opened." },
         ],
       },
     },
@@ -4242,21 +4253,21 @@
     {
       id: "a10-stop",
       act: 10,
-      title: "Stop router-fix · nothing lost",
+      title: "Stop demo-polish · nothing lost",
       caption: "Session stopped — config and history kept. Start it again tomorrow.",
       hubOp: "call_end",
       maturity: "planned",
       dwellMs: 2000,
-      cursor: { target: "#room-stop-router", action: "click" },
+      cursor: { target: "#room-stop-demo", action: "click" },
       // Deliberately silent — the caption carries the product story.
       patch: {
         inCall: false,
         driveOn: false,
         participants: [],
         rooms: [
-          { id: "router-fix", name: "router-fix", status: "paused", meta: "paused · config + history kept" },
-          { id: "bootstrap-flag", name: "bootstrap-flag", status: "paused", meta: "config + history kept" },
-          { id: "payments-audit", name: "payments-audit", status: "ended", meta: "handoff saved" },
+          { id: "demo-polish", name: "demo-polish", status: "paused", meta: "paused · config + history kept" },
+          { id: "voice-clips", name: "voice-clips", status: "paused", meta: "config + history kept" },
+          { id: "vscode-screen", name: "vscode-screen", status: "ended", meta: "handoff saved" },
         ],
       },
     },
@@ -4278,43 +4289,43 @@
         narration: "And we're back — everything right where we left it. Take the wheel.",
         participants: [
           { ...YOU, wstatus: "idle", task: "on the call" },
-          { ...ADAM, wstatus: "working", task: "watching CI on PR #12" },
-          { ...RILEY, wstatus: "working", task: "reviewing PR #12" },
+          { ...CLINE, wstatus: "working", task: "watching CI on PR #91" },
+          { ...RILEY, wstatus: "working", task: "reviewing PR #91" },
         ],
         rooms: [
-          { id: "router-fix", name: "router-fix", status: "live", meta: "Adam + Riley · resumed just now" },
-          { id: "bootstrap-flag", name: "bootstrap-flag", status: "paused", meta: "config + history kept" },
-          { id: "payments-audit", name: "payments-audit", status: "ended", meta: "handoff saved" },
+          { id: "demo-polish", name: "demo-polish", status: "live", meta: "Cline + Riley · resumed just now" },
+          { id: "voice-clips", name: "voice-clips", status: "paused", meta: "config + history kept" },
+          { id: "vscode-screen", name: "vscode-screen", status: "ended", meta: "handoff saved" },
         ],
         stage: {
-          sharer: "Adam",
-          sharerId: "adam",
+          sharer: "Cline",
+          sharerId: "cline",
           pin: null,
           cards: [CARD_RILEY, CARD_CMD, CARD_TEST],
-          // Adam's post-fix workspace — PR open, suite green, nothing lost.
+          // Cline's post-fix workspace — PR open, battery green, nothing lost.
           work: {
             file: "PR_BODY.md",
             code: [
-              { t: "## router-fix · pending-flag race" },
+              { t: "## demo-polish · smooth render" },
               { t: "" },
-              { t: "– one retry per timeout window, proven by unit test" },
-              { t: "– Riley tightened the scheduleRetry docs" },
-              { t: "– guard prevents double scheduleRetry" },
+              { t: "– regions repaint only when their fingerprint changes" },
+              { t: "– Riley added regression checks in verify.js" },
+              { t: "– captions live in one fixed slot" },
             ],
             caret: null,
             typing: null,
             term: [
-              { t: "$ gh pr checks 12" },
-              { t: "PR #12 open · suite green", cls: "ok" },
+              { t: "$ gh pr checks 91" },
+              { t: "PR #91 open · battery green", cls: "ok" },
             ],
             spin: false,
             activity: "idle — take the wheel",
           },
         },
-        artifacts: [ART_PLAN, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
+        artifacts: [ART_PLAN, ART_RENDER, ART_ARCH, ART_WALK, ART_CAPTURE, ART_HANDOFF],
         feedMessages: [
-          { id: "m8", from: "system", who: "Hub", text: "Rejoined router-fix · createOrAttach (idempotent)." },
-          { id: "m9", from: "system", who: "Hub", text: "pr_create approved — PR #12 opened." },
+          { id: "m8", from: "system", who: "Hub", text: "Rejoined demo-polish · createOrAttach (idempotent)." },
+          { id: "m9", from: "system", who: "Hub", text: "pr_create approved — PR #91 opened." },
         ],
       },
     },
@@ -4485,28 +4496,28 @@
   // ring lands on the right member row (presence.speaking, demoed).
   let sharerIdNow = "";
 
-  /** Pre-rendered dialogue clips (Kokoro-82M, v2 in-world set — see the
+  /** Pre-rendered dialogue clips (Kokoro-82M, v3 story set — see the
    *  manifest at assets/demos/voice/README.md): beatId → filename, one per
    *  spoken line; narration display text matches clip text verbatim. The
    *  canvas lives in design/canvases/, so clips resolve two levels up. */
   const CLIP_BASE = "../../assets/demos/voice/";
   const CLIPS = {
-    "a1-join": "v2-01-adam-good-timing.mp3",
-    "a2-narration": "v2-02-adam-found-it.mp3",
-    "a3-plan": "v2-03-adam-plan-of-attack.mp3",
-    "a3-arch": "v2-04-adam-quick-map.mp3",
-    "a3-edit": "v2-05-adam-keep-the-map-up.mp3",
-    "a3-test": "v2-06-adam-green.mp3",
-    "a3-walk": "v2-07-adam-line-forty-three.mp3",
-    "a3-demo": "v2-08-adam-live-clean-200.mp3",
-    "a4-pause": "v2-09-adam-you-drive.mp3",
-    "a5-sharer": "v2-10-riley-grabbing-screen.mp3",
-    "a6-status": "v2-11-adam-keep-working.mp3",
-    "a8-rejoin": "v2-12-adam-welcome-back.mp3",
-    "a8-since": "v2-13-adam-quick-catch-up.mp3",
-    "a9-gates": "v2-14-adam-need-your-signoff.mp3",
-    "a9-approved": "v2-15-adam-pr-twelve-up.mp3",
-    "a10-explore": "v2-16-adam-take-the-wheel.mp3",
+    "a1-join": "v3-01-cline-looking-at-flashing.mp3",
+    "a2-narration": "v3-02-cline-found-it.mp3",
+    "a3-plan": "v3-03-cline-the-plan.mp3",
+    "a3-arch": "v3-04-cline-render-map.mp3",
+    "a3-edit": "v3-05-cline-fingerprint-check.mp3",
+    "a3-test": "v3-06-cline-green-no-remounts.mp3",
+    "a3-walk": "v3-07-cline-walkthrough-guard.mp3",
+    "a3-demo": "v3-08-cline-smooth-live.mp3",
+    "a4-pause": "v3-09-cline-you-drive.mp3",
+    "a5-sharer": "v3-10-riley-regression-checks.mp3",
+    "a6-status": "v3-11-cline-keep-working.mp3",
+    "a8-rejoin": "v3-12-cline-welcome-back.mp3",
+    "a8-since": "v3-13-cline-catch-up.mp3",
+    "a9-gates": "v3-14-cline-signoff.mp3",
+    "a9-approved": "v3-15-cline-pr-ninety-one.mp3",
+    "a10-explore": "v3-16-cline-take-the-wheel.mp3",
   };
 
   /** Dialogue player. Plays the pre-rendered clip for the beat (CLIPS);
@@ -4995,7 +5006,7 @@
     }
 
     document.getElementById("feed-sub").textContent =
-      state.inCall ? "router-fix · live" : "chat";
+      state.inCall ? "demo-polish · live" : "chat";
 
     // Feed — rebuilt only when its state slice changes; the entrance
     // animation plays only for messages that are genuinely new.
@@ -5313,7 +5324,7 @@
     // PiP
     const pip = document.getElementById("pip");
     pip.classList.toggle("on", !!state.pipVisible);
-    document.getElementById("pip-name").textContent = partnerName(state).split(" · ")[0] || "Adam";
+    document.getElementById("pip-name").textContent = partnerName(state).split(" · ")[0] || "Cline";
     document.getElementById("pip-narr").textContent = state.narration || "Still in call · companion chrome";
     document.getElementById("pip-hand").classList.toggle("on", youHandRaised(state));
 
@@ -5389,7 +5400,7 @@
     grid.innerHTML = rooms.map(function (r) {
       const second = r.status === "live"
         ? '<button type="button" class="sess-btn stop"' +
-          (r.id === "router-fix" ? ' id="room-stop-router"' : "") + ">Stop</button>"
+          (r.id === "demo-polish" ? ' id="room-stop-demo"' : "") + ">Stop</button>"
         : '<button type="button" class="sess-btn start">Start</button>';
       return (
         '<div class="sess-card ' + r.status + '" data-room-id="' + escapeHtml(r.id) + '">' +
@@ -5448,8 +5459,8 @@
 
   // ---- Shared-screen bodies ----
   // The literal cline-drive architecture: clients ← hub daemon (single
-  // writer) ← agents' typed events, with the director's show path and the
-  // fix site (scheduleRetry) highlighted.
+  // writer) ← agents' typed events, with the director's show path
+  // highlighted. Kept as an explorable reference artifact.
   const DRIVE_ARCH_SVG =
     '<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="cline-drive architecture: agents publish typed events to the hub daemon, the single writer, which folds room state and broadcasts snapshots to clients; the director presents show artifacts to the Spotlight">' +
     '<rect class="grp" x="12" y="22" width="176" height="172" rx="8"/>' +
@@ -5467,9 +5478,8 @@
     '<g class="n"><rect x="240" y="126" width="120" height="24" rx="6"/><text x="300" y="142" text-anchor="middle">reduceRoom fold</text></g>' +
     '<g class="n"><rect x="240" y="164" width="156" height="24" rx="6"/><text x="318" y="180" text-anchor="middle">director · Show backlog</text></g>' +
     '<g class="n"><rect x="240" y="202" width="120" height="24" rx="6"/><text x="300" y="218" text-anchor="middle">rank → present</text></g>' +
-    '<g class="n hot"><rect x="386" y="88" width="104" height="24" rx="6"/><text x="438" y="104" text-anchor="middle">scheduleRetry</text></g>' +
-    '<text class="elabel" x="438" y="80" text-anchor="middle">the race lived here</text>' +
-    '<g class="n"><rect x="558" y="48" width="140" height="24" rx="6"/><text x="628" y="64" text-anchor="middle">Adam · Riley</text></g>' +
+    '<g class="n"><rect x="386" y="88" width="104" height="24" rx="6"/><text x="438" y="104" text-anchor="middle">snapshots</text></g>' +
+    '<g class="n"><rect x="558" y="48" width="140" height="24" rx="6"/><text x="628" y="64" text-anchor="middle">Cline · Riley</text></g>' +
     '<g class="n"><rect x="558" y="86" width="140" height="24" rx="6"/><text x="628" y="102" text-anchor="middle">typed work events</text></g>' +
     '<polyline class="e" points="548,62 508,62"/>' +
     '<polygon class="ah" points="508,62 515,58.5 515,65.5"/>' +
@@ -5488,6 +5498,40 @@
     '<text class="edge-label" x="208" y="166" text-anchor="middle">present</text>' +
     "</svg>";
 
+  // The demo's own render pipeline: beats fold state, render() pushes it
+  // into four regions — and the old innerHTML wipe at the rebuild edge is
+  // where the flash lived. This is the diagram the a3-arch beat presents.
+  const RENDER_FLOW_SVG =
+    '<svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="demo render pipeline: beats fold into state, render reads it, and the old innerHTML wipe re-mounted every region on every beat — the flash lived at that rebuild edge">' +
+    '<rect class="grp" x="12" y="100" width="168" height="100" rx="8"/>' +
+    '<text class="grp-label" x="22" y="116">State</text>' +
+    '<rect class="grp" x="560" y="22" width="148" height="234" rx="8"/>' +
+    '<text class="grp-label" x="570" y="38">Regions</text>' +
+    '<g class="n"><rect x="24" y="138" width="144" height="24" rx="6"/><text x="96" y="154" text-anchor="middle">BEATS · state fold</text></g>' +
+    '<g class="n"><rect x="240" y="138" width="96" height="24" rx="6"/><text x="288" y="154" text-anchor="middle">render()</text></g>' +
+    '<g class="n hot"><rect x="396" y="138" width="120" height="24" rx="6"/><text x="456" y="154" text-anchor="middle">innerHTML wipe</text></g>' +
+    '<text class="elabel" x="456" y="128" text-anchor="middle">the flash lived here</text>' +
+    '<g class="n"><rect x="580" y="46" width="108" height="24" rx="6"/><text x="634" y="62" text-anchor="middle">feed</text></g>' +
+    '<g class="n"><rect x="580" y="104" width="108" height="24" rx="6"/><text x="634" y="120" text-anchor="middle">roster</text></g>' +
+    '<g class="n"><rect x="580" y="162" width="108" height="24" rx="6"/><text x="634" y="178" text-anchor="middle">screen</text></g>' +
+    '<g class="n"><rect x="580" y="220" width="108" height="24" rx="6"/><text x="634" y="236" text-anchor="middle">deck</text></g>' +
+    '<polyline class="e" points="168,150 240,150"/>' +
+    '<polygon class="ah" points="240,150 233,146.5 233,153.5"/>' +
+    '<text class="edge-label" x="204" y="142" text-anchor="middle">every beat</text>' +
+    '<polyline class="e" points="336,150 396,150"/>' +
+    '<polygon class="ah" points="396,150 389,146.5 389,153.5"/>' +
+    '<text class="edge-label" x="366" y="142" text-anchor="middle">rebuild</text>' +
+    '<polyline class="e" points="516,144 548,144 548,58 580,58"/>' +
+    '<polygon class="ah" points="580,58 573,54.5 573,61.5"/>' +
+    '<polyline class="e" points="516,148 556,148 556,116 580,116"/>' +
+    '<polygon class="ah" points="580,116 573,112.5 573,119.5"/>' +
+    '<polyline class="e" points="516,152 556,152 556,174 580,174"/>' +
+    '<polygon class="ah" points="580,174 573,170.5 573,177.5"/>' +
+    '<polyline class="e" points="516,156 548,156 548,232 580,232"/>' +
+    '<polygon class="ah" points="580,232 573,228.5 573,235.5"/>' +
+    '<text class="edge-label" x="548" y="204" text-anchor="middle">re-mounts</text>' +
+    "</svg>";
+
   function buildScreenBody(show) {
     if (show.kind === "plan") {
       return '<div class="stage-plan">' + show.body.steps.map(function (s) {
@@ -5496,7 +5540,8 @@
       }).join("") + "</div>";
     }
     if (show.kind === "diagram") {
-      return '<div class="stage-diagram">' + DRIVE_ARCH_SVG + "</div>";
+      const svg = show.body && show.body.svg === "arch" ? DRIVE_ARCH_SVG : RENDER_FLOW_SVG;
+      return '<div class="stage-diagram">' + svg + "</div>";
     }
     if (show.kind === "walk") {
       // No standalone widget: walkthroughs render inside the VS Code
@@ -5530,18 +5575,20 @@
 
   /** Static explorer tree: the repo the demo's story lives in. */
   const VSC_TREE = [
-    { name: "src", dir: true },
-    { name: "router.ts", nest: true, ico: "ts" },
-    { name: "retry.ts", nest: true, ico: "ts" },
-    { name: "tests", dir: true },
-    { name: "router.test.ts", nest: true, ico: "ts" },
+    { name: "canvases", dir: true },
+    { name: "drive-product-demo.html", nest: true, ico: "html" },
+    { name: "drivemode-explainer.html", nest: true, ico: "html" },
+    { name: "verify.js", ico: "js" },
     { name: "PR_BODY.md", ico: "md" },
     { name: "package.json", ico: "json" },
   ];
-  const VSC_FICO = { ts: "TS", md: "M↓", json: "{}" };
+  const VSC_FICO = { ts: "TS", md: "M↓", json: "{}", html: "<>", js: "JS" };
 
   function vscLang(file) {
-    return /\.md$/.test(file || "") ? "md" : "ts";
+    if (/\.md$/.test(file || "")) return "md";
+    if (/\.html$/.test(file || "")) return "html";
+    if (/\.js$/.test(file || "")) return "js";
+    return "ts";
   }
 
   /** Minimal syntax highlighting: tokenize, escape per token, wrap in
@@ -5576,7 +5623,10 @@
     work = work || {};
     const file = walk ? walk.file : (work.file || "");
     const lang = vscLang(file);
-    const langLabel = lang === "md" ? "Markdown" : "TypeScript";
+    const langLabel = lang === "md" ? "Markdown"
+      : lang === "html" ? "HTML"
+      : lang === "js" ? "JavaScript"
+      : "TypeScript";
 
     // Editor lines: tokens + gutter (absolute numbers for a walkthrough),
     // amber hl rows, current-line bg on the caret / type-in row.
@@ -5600,8 +5650,9 @@
       return '<i style="width:' + w + 'px"></i>';
     }).join("");
 
-    // Breadcrumbs: src › file › first function symbol (docs › file for md).
-    let crumbs = (lang === "md" ? "docs" : "src") +
+    // Breadcrumbs: src › file › first function symbol (docs › file for
+    // md and the canvas html; the demo file lives under docs/).
+    let crumbs = (lang === "md" || lang === "html" ? "docs" : "src") +
       ' <span class="sep">›</span> ' + escapeHtml(file);
     let symbol = "";
     for (let i = 0; i < codeLines.length; i++) {
@@ -5695,7 +5746,7 @@
           "</div>" +
         "</div>" +
         '<div class="vsc-status">' +
-          "<span>⎇ router-fix</span><span>✓ 0 problems</span>" +
+          "<span>⎇ demo-polish</span><span>✓ 0 problems</span>" +
           '<span class="sp"></span>' +
           "<span>Ln " + lnN + ", Col " + colC + "</span>" +
           "<span>" + langLabel + "</span>" +
@@ -6249,7 +6300,7 @@
   });
 
   // Room cards: Start/Stop flip the card's status dot + meta in place;
-  // Open on router-fix returns you to the live call.
+  // Open on demo-polish returns you to the live call.
   document.getElementById("sess-grid").addEventListener("click", function (e) {
     const btn = e.target.closest ? e.target.closest(".sess-btn") : null;
     if (!btn) return;
@@ -6272,7 +6323,7 @@
       btn.classList.add("stop");
       btn.textContent = "Stop";
     } else if (btn.classList.contains("open")) {
-      if (card.getAttribute("data-room-id") === "router-fix") previewCallSurface();
+      if (card.getAttribute("data-room-id") === "demo-polish") previewCallSurface();
     }
   });
 
