@@ -1864,14 +1864,15 @@
      Same one-clock pattern as .anim-diagram: every rule below loops on
      var(--dbg-total), and keyframe percentages carve the step sequence —
      step onto the compute (s1), land on the compare (s2, inline values in),
-     the early return taken (ret hint), then release and loop — tracking
-     the ~10s a3-walk clip. Dark-Modern debug literals: #e51400 breakpoint,
-     yellow-tinted current line + gutter arrow, dim italic inline values,
-     #cc6633 status bar. Reduced motion settles on the return line. */
+     the guarded block stepped over (ret hint), then release and loop —
+     tracking the ~10s a3-walk clip. Dark-Modern debug literals: #e51400
+     breakpoint, yellow-tinted current line + gutter arrow, dim italic
+     inline values, #cc6633 status bar. Reduced motion settles on the
+     compare line. */
   .vsc-debug { --dbg-total: 10s; }
   /* The debugger is about the code: rows tighten to VS Code's real
      leading and the panel toggles away (the Ctrl+J look), so the whole
-     guard — through the skipped rebuildFeed line — stays in view even
+     guard — through the skipped feed rebuild — stays in view even
      in the guided layout's shortest editor. */
   .vsc-debug .vsc-panel { display: none; }
   .vsc-debug .vsc-code { padding: 5px 0; }
@@ -2062,7 +2063,7 @@
     /* Degrade to static: no blink/spin loops, typed line fully revealed,
        terminal lines visible without stagger. */
     .ws-caret, .ws-spin { animation: none !important; }
-    /* Debug session settles: breakpoint + paused on the return line,
+    /* Debug session settles: breakpoint + paused on the compare line,
        inline values shown, no stepping. */
     .vsc-debug .ws-cl.dbg-s1,
     .vsc-debug .ws-cl.dbg-s2,
@@ -3844,7 +3845,7 @@
     summary: "Repaint a region only when its fingerprint changes.",
     diff: [
       { t: "del", s: 'feed.innerHTML = "";' },
-      { t: "add", s: "if (sig === R.feedSig) return; // skip the repaint" },
+      { t: "add", s: "if (feedSig !== R.feedSig) {" },
     ],
   };
   const CARD_CMD = {
@@ -3877,14 +3878,14 @@
   // built yet — beat and artifact both carry the planned badge.
   const ART_ANIM = { id: "art-anim", kindLabel: "walkthrough.animation", title: "the flash · before and after", presenter: "Cline", act: 3, sticky: "replace", maturity: "planned" };
   const ART_PLAN = { id: "art-plan", kindLabel: "doc.plan", title: "Fix plan · demo-polish", presenter: "Cline", act: 3, sticky: "replace" };
-  const ART_RENDER = { id: "art-render", kindLabel: "diagram.render", title: "demo render pipeline · where the flash lived", presenter: "Cline", act: 3, sticky: "hold" };
+  const ART_RENDER = { id: "art-render", kindLabel: "diagram.data_flow", title: "demo render pipeline · where the flash lived", presenter: "Cline", act: 3, sticky: "hold" };
   // The hub architecture stays in the session library as an explorable
   // reference — staged in act 3 alongside the render map, presented only
   // when a card click asks for it (no scripted beat presents it).
   const ART_ARCH = { id: "art-arch", kindLabel: "diagram.architecture", title: "cline-drive · system architecture", presenter: "Cline", act: 3, sticky: "hold" };
   const ART_WALK = { id: "art-walk", kindLabel: "walkthrough.code", title: "drive-product-demo.html · the guard", presenter: "Cline", act: 3, sticky: "hold" };
   const ART_CAPTURE = { id: "art-capture", kindLabel: "capture.screenshot", title: "demo-polish · smooth playback", presenter: "Cline", act: 3, sticky: "replace", maturity: "planned" };
-  const ART_HANDOFF = { id: "art-handoff", kindLabel: "doc.handoff", title: "Tier-0 handoff · demo-polish", presenter: "Hub", act: 7, sticky: "replace" };
+  const ART_HANDOFF = { id: "art-handoff", kindLabel: "doc.plan", title: "Tier-0 handoff · demo-polish", presenter: "Hub", act: 7, sticky: "replace" };
 
   /** Show objects (ShowArtifact) — shared between the presenting beats and
    *  the explore-mode ART_SHOWS map, so a clicked artifact card presents the
@@ -3915,7 +3916,7 @@
   };
   const SHOW_RENDER = {
     kind: "diagram",
-    kindLabel: "diagram.render",
+    kindLabel: "diagram.data_flow",
     sticky: "hold",
     title: "demo render pipeline · where the flash lived",
     body: { svg: "render" },
@@ -3934,16 +3935,19 @@
     title: "drive-product-demo.html · the guard",
     body: {
       file: "drive-product-demo.html",
-      range: "L4705–L4708",
+      range: "L6047–L6050",
       // debug presents the walkthrough as a paused debug session: bp is
       // the breakpoint line, step orders the CSS step-through, ghost/ret
-      // are inline-value decorations (both hashes match — the skip path).
+      // are inline-value decorations (both strings match — the skip path,
+      // so the debugger steps OVER the guarded block). The quoted lines
+      // and their gutter numbers are this file's REAL guard — verify.js
+      // asserts both stay true.
       debug: true,
       lines: [
-        { n: 4705, t: "    const sig = JSON.stringify([msgs, since]);", step: 1, ghost: 'sig = "…9f41"' },
-        { n: 4706, t: "    if (sig === R.feedSig) return; // skip the repaint", hl: true, bp: true, step: 2, ghost: 'R.feedSig = "…9f41"', ret: "→ equal · returns early" },
-        { n: 4707, t: "    R.feedSig = sig;", hl: true },
-        { n: 4708, t: "    rebuildFeed();" },
+        { n: 6047, t: "    const feedSig = JSON.stringify(feedSlice);", step: 1, ghost: "feedSig = '{\"m\":[{\"id\":\"m0\",…'" },
+        { n: 6048, t: "    if (feedSig !== R.feedSig) {", hl: true, bp: true, step: 2, ghost: "R.feedSig = '{\"m\":[{\"id\":\"m0\",…'", ret: "→ equal · block skipped" },
+        { n: 6049, t: "      R.feedSig = feedSig;", hl: true },
+        { n: 6050, t: '      feed.innerHTML = "";' },
       ],
     },
   };
@@ -3959,7 +3963,7 @@
   // mirror the Tier-0 columns). Explore-only — no beat presents it.
   const SHOW_HANDOFF = {
     kind: "plan",
-    kindLabel: "doc.handoff",
+    kindLabel: "doc.plan",
     sticky: "replace",
     title: "Tier-0 handoff · demo-polish",
     body: {
@@ -4100,11 +4104,14 @@
         addressSet: ["one"],
         stage: {
           work: {
+            // Real rg over THIS file: the anchored pattern's full match set
+            // is exactly these three region-clearing lines — line numbers
+            // and text are literal (verify.js re-runs the search).
             term: [
-              { t: '$ rg "innerHTML" drive-product-demo.html' },
-              { t: '5009:      feed.innerHTML = "";', cls: "dim" },
-              { t: '5046:      memberList.innerHTML = "";', cls: "dim" },
-              { t: '5081:      spot.innerHTML = "";', cls: "dim" },
+              { t: '$ rg -n \'^ {6}\\w+\\.innerHTML = "";$\' drive-product-demo.html' },
+              { t: '6050:      feed.innerHTML = "";', cls: "dim" },
+              { t: '6089:      memberList.innerHTML = "";', cls: "dim" },
+              { t: '6125:      spot.innerHTML = "";', cls: "dim" },
             ],
             activity: "locating the flash",
           },
@@ -4214,7 +4221,7 @@
           backlog: [
             { id: "s0", label: "walkthrough.animation", status: "planned" },
             { id: "s1", label: "doc.plan", status: "planned" },
-            { id: "s2", label: "diagram.render", status: "planned" },
+            { id: "s2", label: "diagram.data_flow", status: "planned" },
             { id: "s3", label: "walkthrough.code", status: "planned" },
             { id: "s4", label: "capture.screenshot", status: "planned" },
           ],
@@ -4242,7 +4249,7 @@
           backlog: [
             { id: "s0", label: "walkthrough.animation", status: "showing" },
             { id: "s1", label: "doc.plan", status: "ready" },
-            { id: "s2", label: "diagram.render", status: "planned" },
+            { id: "s2", label: "diagram.data_flow", status: "planned" },
             { id: "s3", label: "walkthrough.code", status: "planned" },
             { id: "s4", label: "capture.screenshot", status: "planned" },
           ],
@@ -4267,7 +4274,7 @@
           backlog: [
             { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "showing" },
-            { id: "s2", label: "diagram.render", status: "ready" },
+            { id: "s2", label: "diagram.data_flow", status: "ready" },
             { id: "s3", label: "walkthrough.code", status: "planned" },
             { id: "s4", label: "capture.screenshot", status: "planned" },
           ],
@@ -4291,7 +4298,7 @@
           backlog: [
             { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "shown" },
-            { id: "s2", label: "diagram.render", status: "showing" },
+            { id: "s2", label: "diagram.data_flow", status: "showing" },
             { id: "s3", label: "walkthrough.code", status: "ready" },
             { id: "s4", label: "capture.screenshot", status: "planned" },
           ],
@@ -4355,7 +4362,7 @@
       id: "a3-walk",
       act: 3,
       title: "Code walkthrough · review the fix",
-      caption: "walkthrough.code — the guard replayed as a debug session: breakpoint, step, early return.",
+      caption: "walkthrough.code — the guard replayed as a debug session: breakpoint, step, the rebuild skipped.",
       hubOp: "render_code_walkthrough",
       maturity: "shipped",
       dwellMs: 2000,
@@ -4368,7 +4375,7 @@
           backlog: [
             { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "shown" },
-            { id: "s2", label: "diagram.render", status: "shown" },
+            { id: "s2", label: "diagram.data_flow", status: "shown" },
             { id: "s3", label: "walkthrough.code", status: "showing" },
             { id: "s4", label: "capture.screenshot", status: "ready" },
           ],
@@ -4392,7 +4399,7 @@
           backlog: [
             { id: "s0", label: "walkthrough.animation", status: "shown" },
             { id: "s1", label: "doc.plan", status: "shown" },
-            { id: "s2", label: "diagram.render", status: "shown" },
+            { id: "s2", label: "diagram.data_flow", status: "shown" },
             { id: "s3", label: "walkthrough.code", status: "shown" },
             { id: "s4", label: "capture.screenshot", status: "showing" },
           ],
@@ -4489,15 +4496,15 @@
           work: {
             file: "drive-product-demo.html",
             code: [
-              { t: "const sig = JSON.stringify([msgs, since]);" },
-              { t: "if (sig === R.feedSig) return;", hl: true },
-              { t: "R.feedSig = sig;" },
-              { t: "rebuildFeed();" },
+              { t: "    const feedSig = JSON.stringify(feedSlice);" },
+              { t: "    if (feedSig !== R.feedSig) {", hl: true },
+              { t: "      R.feedSig = feedSig;" },
+              { t: '      feed.innerHTML = "";' },
             ],
             caret: null,
             term: [
               { t: "$ bun verify.js" },
-              { t: "node identity · same before and after — pass", cls: "ok" },
+              { t: "OK: 46 beats, 346 checks", cls: "ok" },
             ],
             spin: false,
             activity: "explaining the fix",
@@ -4536,17 +4543,17 @@
           work: {
             file: "verify.js",
             code: [
-              { t: "test('nothing re-mounts on a non-changing beat', () => {" },
-              { t: "  const before = feedNode();" },
-              { t: "  advanceBeat();" },
-              { t: "  expect(feedNode()).toBe(before);" },
-              { t: "});" },
+              { t: "    D.goTo(i - 1);" },
+              { t: '    const before = document.querySelector("#feed .msg");' },
+              { t: "    if (!before) continue;" },
+              { t: "    D.goTo(i);" },
+              { t: '    const same = before === document.querySelector("#feed .msg");' },
             ],
             caret: null,
             typing: "// assert: same node before and after a beat",
             term: [
               { t: "$ bun verify.js" },
-              { t: "identity checks · pass", cls: "ok" },
+              { t: "OK: 46 beats, 346 checks", cls: "ok" },
             ],
             spin: false,
             activity: "adding regression checks",
@@ -4627,7 +4634,7 @@
             typing: null,
             term: [
               { t: "$ bun verify.js" },
-              { t: "node identity · same before and after — pass", cls: "ok" },
+              { t: "OK: 46 beats, 346 checks", cls: "ok" },
             ],
             spin: false,
             activity: "pinning the caption slot",
@@ -4679,7 +4686,7 @@
       act: 6,
       title: "Artifacts surface",
       caption: "Artifacts: the session's Show backlog, kept reviewable — every plan, diagram, and capture in one place.",
-      maturity: "shipped",
+      maturity: "planned",
       dwellMs: 2000,
       cursor: { target: "#rail-artifacts", action: "click" },
       // Deliberately silent — the caption carries the product story.
@@ -4785,7 +4792,8 @@
             typing: "– captions live in one fixed slot",
             term: [
               { t: "$ git status --short" },
-              { t: "1 file changed · drive-product-demo.html", cls: "dim" },
+              { t: " M drive-product-demo.html", cls: "dim" },
+              { t: "?? PR_BODY.md", cls: "dim" },
             ],
             spin: false,
             activity: "writing up the change",
@@ -4841,8 +4849,8 @@
             caret: 4,
             typing: null,
             term: [
-              { t: '$ git commit -m "docs(drivecode): differential render + fixed caption slot"' },
-              { t: "[demo-polish d227f3e] 1 file changed", cls: "dim" },
+              { t: '$ git commit -m "docs(drivecode): differential render + fixed caption slot in demo"' },
+              { t: "[demo-polish d227f3e] 1 file changed, 254 insertions(+), 122 deletions(-)", cls: "dim" },
               { t: "$ gh pr create --fill" },
               { t: "waiting for approval…", cls: "dim" },
             ],
@@ -4937,9 +4945,9 @@
       id: "a10-tasks",
       act: 10,
       title: "Tasks · dependency map, first-class",
-      caption: "Tasks: the dependency map as a first-class page — what blocks what, across agents.",
+      caption: "Tasks: what blocks what, across agents — the lens ships in Status Hub today; this first-class page is planned.",
       hubOp: "report_status",
-      maturity: "shipped",
+      maturity: "planned",
       dwellMs: 1600,
       cursor: { target: "#rail-tasks", action: "click" },
       patch: { surface: "tasks" },
@@ -6035,12 +6043,13 @@
     // animation plays only for messages that are genuinely new.
     const feed = document.getElementById("feed");
     const feedEmpty = state.surface === "chat" && !state.feedMessages.length;
-    const feedSig = JSON.stringify({ m: state.feedMessages, s: state.sinceYouLeft, e: feedEmpty });
+    const feedSlice = { m: state.feedMessages, s: state.sinceYouLeft, e: feedEmpty };
+    const feedSig = JSON.stringify(feedSlice);
     if (feedSig !== R.feedSig) {
       R.feedSig = feedSig;
+      feed.innerHTML = "";
       const prevMsgIds = R.msgIds;
       R.msgIds = {};
-      feed.innerHTML = "";
       if (state.sinceYouLeft) {
         const ban = document.createElement("div");
         ban.className = "banner";
@@ -6993,9 +7002,9 @@
     { id: "drive", label: "Drive", surface: "drive", icon: '<svg class="rail-ico" width="18" height="18" fill="currentColor" aria-hidden="true"><use href="#drive-mark"/></svg>' },
     { id: "rooms", label: "Rooms", surface: "rooms", planned: true, icon: railIco('<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.562Z"/>') },
     { id: "agents", label: "Agents", surface: "agents", planned: true, icon: railIco('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
-    { id: "tasks", label: "Tasks", surface: "tasks", icon: railIco('<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>') },
+    { id: "tasks", label: "Tasks", surface: "tasks", planned: true, icon: railIco('<line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>') },
     { id: "status", label: "Status", surface: "status", icon: railIco('<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>') },
-    { id: "artifacts", label: "Artifacts", surface: "artifacts", icon: railIco('<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>') },
+    { id: "artifacts", label: "Artifacts", surface: "artifacts", planned: true, icon: railIco('<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>') },
     { id: "inbox", label: "Inbox", surface: "inbox", planned: true, defaultHidden: true, icon: railIco('<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>') },
   ];
   const RAIL_STORE_KEY = "drive-demo-rail";

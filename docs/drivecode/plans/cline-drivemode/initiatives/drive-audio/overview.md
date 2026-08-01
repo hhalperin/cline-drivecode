@@ -44,7 +44,7 @@ shape behind one `TtsPort`:
 | In-browser | `kokoro-js` on WebGPU | ~850ms to first audio; gate on WebGPU (WASM is ~5x too slow) |
 | Local process | same npm package, `device: "cpu"` | faster than real time on CPU |
 | Self-host server | Kokoro-FastAPI / Speaches (OpenAI-compatible) | ~720ms first byte, word timestamps |
-| Pre-rendered | demo clips (`docs/drivecode/assets/demos/voice/`) | Adam=`am_michael`, Riley=`af_heart` |
+| Pre-rendered | demo clips (`docs/drivecode/assets/demos/voice/`) | Cline=`am_michael`, Riley=`af_heart` |
 
 `voiceSlot` maps to Kokoro's 54 preset voice ids (slot -> id table; no cloning infra).
 Fallback chain: WebGPU kokoro-js -> local Kokoro -> pre-rendered clips -> `speechSynthesis`.

@@ -8,7 +8,16 @@
 //   3. voice registry integrity: CLIPS / CLIP_SEQS / SPEECH_CLIPS keys are
 //      real beat ids and every referenced clip (plus inline beat input.clip)
 //      exists in ../../assets/demos/voice/;
-//   4. a ~15s autoplay smoke from beat 0: playback starts and beats advance.
+//   4. self-referential truth: the a3-walk debug session quotes the
+//      canvas's REAL guard at its REAL line numbers, the a2-address rg
+//      terminal matches a live re-run of the same search, and the editor
+//      excerpts shown for the canvas / for this script exist verbatim;
+//   5. node identity: a beat that leaves the feed slice unchanged keeps
+//      the same message node — the differential guard's own regression;
+//   6. a ~15s autoplay smoke from beat 0: playback starts and beats
+//      advance. The battery's LAST check compares every `bun verify.js`
+//      success line the demo shows against this run's real beat/check
+//      counts.
 //
 // Run from this directory. The empty package.json seed is load-bearing:
 // without it `bun add` walks up and attaches the dep to docs/package.json.
@@ -97,6 +106,58 @@ function checkRegistries(beats) {
   });
 }
 
+// Runs in the page: for every consecutive beat pair whose feed slice is
+// unchanged, the first message node must survive the re-render untouched.
+// assert: same node before and after a beat
+function nodeIdentityPairs() {
+  const D = window.__DRIVE_DEMO__;
+  function feedSlice(s) {
+    const feedEmpty = s.surface === "chat" && !s.feedMessages.length;
+    return JSON.stringify({ m: s.feedMessages, s: s.sinceYouLeft, e: feedEmpty });
+  }
+  const pairs = [];
+  for (let i = 1; i < D.beatCount; i++) {
+    if (feedSlice(D.seek(D.beats, i - 1)) !== feedSlice(D.seek(D.beats, i))) continue;
+    D.goTo(i - 1);
+    const before = document.querySelector("#feed .msg");
+    if (!before) continue;
+    D.goTo(i);
+    const same = before === document.querySelector("#feed .msg");
+    pairs.push({ beat: D.beats[i].id, same: same });
+  }
+  return pairs;
+}
+
+// Runs in the page: collect every claim the demo makes about its own
+// source — the walk artifact's quoted lines, the rg terminal, the editor
+// excerpts, and each terminal's claimed `bun verify.js` success line.
+function sourceClaims() {
+  const byId = {};
+  window.__DRIVE_DEMO__.beats.forEach(function (b) { byId[b.id] = b; });
+  function work(id) { return byId[id].patch.stage.work; }
+  const walkBody = byId["a3-walk"].patch.stage.show.body;
+  const okLines = [];
+  window.__DRIVE_DEMO__.beats.forEach(function (b) {
+    const w = b.patch && b.patch.stage && b.patch.stage.work;
+    ((w && w.term) || []).forEach(function (l) {
+      const m = /^OK: (\d+) beats, (\d+) checks$/.exec(l.t);
+      if (m) okLines.push({ beat: b.id, beats: +m[1], checks: +m[2] });
+    });
+  });
+  return {
+    walk: {
+      file: walkBody.file,
+      range: walkBody.range,
+      lines: walkBody.lines.map(function (l) { return { n: l.n, t: l.t }; }),
+    },
+    rg: work("a2-address").term.map(function (l) { return l.t; }),
+    guardEcho: work("a5-riley").code.map(function (l) { return l.t; }),
+    verifyEcho: work("a5-sharer").code.map(function (l) { return l.t; })
+      .concat([work("a5-sharer").typing]),
+    okLines: okLines,
+  };
+}
+
 async function main() {
   const staged = stage();
   const url = encodeURI("file://" + (staged.root[0] === "/" ? "" : "/") +
@@ -177,7 +238,50 @@ async function main() {
     // 3) Clip registries.
     checkRegistries(beats);
 
-    // 4) Autoplay smoke: ~15s from beat 0.
+    // 4) Self-referential truth: line-number and source claims stay live.
+    const claims = await page.evaluate(sourceClaims);
+    const src = fs.readFileSync(CANVAS, "utf8").split(/\r?\n/);
+    function located(t) {
+      const at = src.indexOf(t);
+      return at < 0 ? "text is nowhere in the file" : "actually line " + (at + 1);
+    }
+    check(claims.walk.file === path.basename(CANVAS),
+      "walk artifact names " + claims.walk.file + ", not " + path.basename(CANVAS));
+    claims.walk.lines.forEach(function (l) {
+      check(src[l.n - 1] === l.t,
+        "walk line number drifted: claimed " + l.n + " for " + JSON.stringify(l.t) +
+        " - " + located(l.t));
+    });
+    const wFirst = claims.walk.lines[0];
+    const wLast = claims.walk.lines[claims.walk.lines.length - 1];
+    check(claims.walk.range === "L" + wFirst.n + "–L" + wLast.n,
+      "walk range " + claims.walk.range + " != quoted lines L" + wFirst.n + "-L" + wLast.n);
+    const rgPat = /^ {6}\w+\.innerHTML = "";$/;
+    const rgActual = src
+      .map(function (t, i) { return rgPat.test(t) ? i + 1 + ":" + t : null; })
+      .filter(Boolean);
+    check(JSON.stringify(rgActual) === JSON.stringify(claims.rg.slice(1)),
+      "a2-address rg terminal drifted: screen shows " + JSON.stringify(claims.rg.slice(1)) +
+      ", live search finds " + JSON.stringify(rgActual));
+    claims.guardEcho.forEach(function (t) {
+      check(src.indexOf(t) >= 0,
+        "a5-riley editor line is not verbatim in the canvas: " + JSON.stringify(t));
+    });
+    const verifySrc = fs.readFileSync(__filename, "utf8");
+    claims.verifyEcho.forEach(function (t) {
+      check(verifySrc.indexOf("\n" + t) >= 0,
+        "a5-sharer editor line is not verbatim in verify.js: " + JSON.stringify(t));
+    });
+
+    // 5) Node identity: the differential guard's own regression.
+    const pairs = await page.evaluate(nodeIdentityPairs);
+    check(pairs.length > 0, "node identity: no beat pair leaves the feed slice unchanged");
+    pairs.forEach(function (p) {
+      check(p.same,
+        "node identity: feed re-mounted entering " + p.beat + " though its slice did not change");
+    });
+
+    // 6) Autoplay smoke: ~15s from beat 0.
     await page.evaluate(function () { window.__DRIVE_DEMO__.goTo(0); });
     await page.click("#btn-play");
     await new Promise(function (res) { setTimeout(res, 15000); });
@@ -190,6 +294,17 @@ async function main() {
     check(auto.playing, "autoplay: player not in playing state after 15s");
     check(auto.idx > 0, "autoplay: still on beat " + auto.idx + " after 15s - beats not advancing");
     check(pageErrors.length === 0, "pageerrors: " + pageErrors.join(" | "));
+
+    // MUST stay the battery's LAST check: the demo's terminals claim this
+    // battery's own success line, so the claimed count is compared against
+    // the final total with this check included.
+    const total = checks + 1;
+    const okBad = claims.okLines.filter(function (c) {
+      return c.beats !== beatCount || c.checks !== total;
+    });
+    check(claims.okLines.length > 0 && okBad.length === 0,
+      "the demo's 'bun verify.js' terminals must show this battery's real success line 'OK: " +
+      beatCount + " beats, " + total + " checks' - found " + JSON.stringify(claims.okLines));
 
     if (failures.length) {
       console.error("FAIL: " + failures.length + " of " + checks + " checks");

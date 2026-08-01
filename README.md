@@ -93,7 +93,8 @@ one-shots. Drive is a first-class mode on that surface — not a separate app.
 
 `Ctrl+Shift+D` (or click the status-bar Drive line) joins or leaves the call.
 When Drive is on, the bar shows the partner and sub-mode
-(`plan` / `agent` / `ask` / `debug`).
+(`plan` / `agent` / `ask` / `debug`). The TUI ships Adam as its default
+partner persona; the product demo's partner persona is Cline.
 
 ![TUI with Drive off](docs/drivecode/assets/tui/tui-drive-off.png)
 
