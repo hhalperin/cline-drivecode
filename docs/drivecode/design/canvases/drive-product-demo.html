@@ -1032,6 +1032,10 @@
     color: var(--live-t);
   }
   .presenter-bar .pb-spacer { flex: 1; }
+  /* What-is-presented changes fade in place — part of the director's
+     between-task cue (captions have their own fixed slot below). */
+  .presenter-bar.swap { animation: bar-swap .35s var(--ease); }
+  @keyframes bar-swap { from { opacity: 0; } }
   .live-dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: var(--spot);
@@ -2003,8 +2007,37 @@
     max-width: 640px;
     max-height: 88%;
     overflow: auto;
-    animation: rise .28s var(--ease);
+    animation: ov-grow .34s cubic-bezier(0.22, 0.9, 0.3, 1);
   }
+  /* Director transitions. A presented artifact grows out of its backlog
+     chip (--grow-x is the chip's measured x-bias; the rail sits below,
+     hence the upward entrance); a replaced artifact settles away above
+     the incoming one; a return to the bare workspace releases the dim
+     in place. The global reduced-motion rule collapses all of these. */
+  @keyframes ov-grow {
+    from { opacity: 0; transform: translate(var(--grow-x, 0px), var(--grow-y, 26px)) scale(.92); }
+  }
+  .stage-overlay.pin .ov-card { animation: rise .28s var(--ease); }
+  .stage-overlay.ov-leave {
+    pointer-events: none;
+    z-index: 3;
+    animation: ov-leave .3s var(--ease) forwards;
+  }
+  .stage-overlay.ov-leave .ov-card { animation: none; }
+  @keyframes ov-leave {
+    to { opacity: 0; transform: translateY(8px) scale(.975); }
+  }
+  .vsc-fade { animation: body-swap .22s var(--ease); }
+  .screen-body.release::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.16);
+    animation: dim-release .4s var(--ease) forwards;
+  }
+  @keyframes dim-release { to { opacity: 0; } }
   .stage-overlay.diagram .ov-card { max-width: 700px; }
   .stage-overlay .stage-plan { margin: 0 auto; }
   .stage-overlay .ov-card .screen-pin {
@@ -2074,6 +2107,27 @@
     color: var(--dim);
   }
   .show-chip.ready { color: var(--muted); border-color: var(--line-strong); }
+  /* Up next: the director tips its hand one beat early — a soft glint
+     crosses the chip about to be presented. Reduced motion keeps the
+     static amber outline and drops the sweep. */
+  .show-chip.up-next {
+    position: relative;
+    overflow: hidden;
+    color: var(--muted);
+    border-color: color-mix(in srgb, var(--live) 45%, var(--line));
+  }
+  .show-chip.up-next::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 32%, color-mix(in srgb, var(--live) 26%, transparent) 50%, transparent 68%);
+    transform: translateX(-100%);
+    animation: chip-glint 1.5s var(--ease) .25s 2;
+  }
+  @keyframes chip-glint { to { transform: translateX(100%); } }
+  @media (prefers-reduced-motion: reduce) {
+    .show-chip.up-next::after { content: none; }
+  }
   .show-chip.showing {
     color: var(--live-t);
     border-color: color-mix(in srgb, var(--live) 55%, transparent);
@@ -6139,6 +6193,9 @@
         if (barHtml !== R.barHtml) {
           R.barHtml = barHtml;
           R.el.bar.innerHTML = barHtml;
+          R.el.bar.classList.remove("swap");
+          void R.el.bar.offsetWidth;
+          R.el.bar.classList.add("swap");
         }
         // Body precedence lives in composeScreen: presented artifacts float
         // over the sharer's dimmed VS Code window; walkthroughs render in
@@ -6157,11 +6214,12 @@
         }
         if (bodyHtml !== R.bodyHtml) {
           R.bodyHtml = bodyHtml;
-          R.el.body.classList.toggle("ws-host", isWorkspace);
-          R.el.body.innerHTML = bodyHtml;
-          R.el.body.classList.remove("swap");
-          void R.el.body.offsetWidth;
-          R.el.body.classList.add("swap");
+          swapScreenBody(
+            bodyHtml,
+            isWorkspace,
+            state.stage.show ? railChip(state.stage.show.kindLabel) : null,
+            !state.stage.show && !state.stage.pin,
+          );
         }
       }
 
@@ -6176,14 +6234,28 @@
       }
 
       // Show backlog rail; dim toggles in place so it fades, not remounts.
+      // Up-next: peek at the NEXT beat's folded stage — when it presents a
+      // new artifact, that chip gets its heads-up glint one beat early.
+      // The derived id folds into the rail signature (a region repaints
+      // only when its signature changes).
       const backlog = state.stage.backlog || [];
-      const railSig = JSON.stringify(backlog);
+      let upNextId = null;
+      if (backlog.length && index + 1 < BEATS.length) {
+        const nextShow = fold(state, BEATS[index + 1].patch).stage.show;
+        if (nextShow && nextShow !== state.stage.show) {
+          const chip = backlog.find(function (b) {
+            return b.label === nextShow.kindLabel && (b.status === "planned" || b.status === "ready");
+          });
+          if (chip) upNextId = chip.id;
+        }
+      }
+      const railSig = JSON.stringify([backlog, upNextId]);
       if (railSig !== R.railSig) {
         R.railSig = railSig;
         R.el.rail.style.display = backlog.length ? "" : "none";
         R.el.rail.innerHTML = backlog.length
           ? '<span class="rail-label">Show backlog</span>' + backlog.map(function (b) {
-              return '<span class="show-chip ' + b.status + '">' + escapeHtml(b.label) + "</span>";
+              return '<span class="show-chip ' + b.status + (b.id === upNextId ? " up-next" : "") + '">' + escapeHtml(b.label) + "</span>";
             }).join("")
           : "";
       }
@@ -6842,6 +6914,72 @@
     return null;
   }
 
+  /** Backlog chip for a kindLabel — the grow-from origin of a present. */
+  function railChip(label) {
+    if (!R.el || !R.el.rail) return null;
+    const chips = R.el.rail.querySelectorAll(".show-chip");
+    for (let i = 0; i < chips.length; i++) {
+      if (chips[i].textContent === label) return chips[i];
+    }
+    return null;
+  }
+
+  /** Bias the entering ov-card from its source (chip or artifact card):
+   *  a clamped fraction of the horizontal offset is enough to read as
+   *  "grows out of the chip" — no FLIP. Body rect can be zero while its
+   *  surface is hidden (explore click), so fall back to viewport center. */
+  function setGrowOrigin(fromEl) {
+    const body = R.el.body;
+    let dx = 0;
+    if (fromEl && fromEl.getClientRects().length) {
+      const br = body.getBoundingClientRect();
+      const cx = br.width ? br.left + br.width / 2 : window.innerWidth / 2;
+      const cr = fromEl.getBoundingClientRect();
+      dx = Math.max(-140, Math.min(140, Math.round((cr.left + cr.width / 2 - cx) * 0.3)));
+    }
+    body.style.setProperty("--grow-x", dx + "px");
+  }
+
+  /** Director-transition body swap. While a .vsc frame persists across
+   *  the change, the body itself never fades — only the pieces move: a
+   *  changed editor fades in place, a replaced artifact settles away
+   *  (.ov-leave ghost) above the incoming one, and a bare-workspace
+   *  return releases the dim (.release). Everything else keeps the
+   *  whole-body crossfade. */
+  function swapScreenBody(bodyHtml, isWorkspace, growFrom, plainWork) {
+    const body = R.el.body;
+    body.querySelectorAll(".stage-overlay.ov-leave").forEach(function (g) { g.remove(); });
+    // Hidden spotlight (beat lands on another surface): a ghost's leave
+    // animation could not run — it would replay on return, beats later.
+    // Plain swap there; the piece-wise path needs a rendered body.
+    const live = !!body.getClientRects().length;
+    const oldOv = body.querySelector(".stage-overlay");
+    const oldVsc = body.querySelector(".vsc");
+    const oldVscHtml = oldVsc ? oldVsc.outerHTML : null;
+    body.classList.remove("swap", "release");
+    body.classList.toggle("ws-host", isWorkspace);
+    body.innerHTML = bodyHtml;
+    const newVsc = body.querySelector(".vsc");
+    if (body.querySelector(".stage-overlay")) setGrowOrigin(growFrom);
+    if (live && oldVscHtml && newVsc) {
+      if (newVsc.outerHTML !== oldVscHtml) newVsc.classList.add("vsc-fade");
+      if (oldOv) {
+        oldOv.classList.add("ov-leave");
+        oldOv.setAttribute("aria-hidden", "true");
+        body.appendChild(oldOv);
+        // Child animations restart on re-append and bubble — only the
+        // overlay's own ov-leave end may drop the ghost.
+        oldOv.addEventListener("animationend", function (e) {
+          if (e.target === oldOv) oldOv.remove();
+        });
+        if (plainWork) body.classList.add("release");
+      }
+    } else {
+      void body.offsetWidth;
+      body.classList.add("swap");
+    }
+  }
+
   // ---- Customizable rail ----
   // Registry-driven: adding an entry here is all it takes — the config
   // loader merges stored order/hidden with the registry, appending new
@@ -7322,7 +7460,7 @@
    *  browse Artifacts, click a card, watch the stage. Same composeScreen
    *  path as scripted beats: the artifact floats over the current beat's
    *  dimmed VS Code window (walkthroughs take over the editor). */
-  function previewArtifact(id) {
+  function previewArtifact(id, fromEl) {
     const show = ART_SHOWS[id];
     if (!show || !R.el) return;
     // Invalidate the screen signatures so the next scripted render
@@ -7337,6 +7475,9 @@
       '<span class="sticky-chip">sticky · ' + escapeHtml(show.sticky) + "</span>" +
       '<span class="pb-spacer"></span>' +
       (show.maturity === "planned" ? '<span class="badge planned">planned</span>' : "");
+    R.el.bar.classList.remove("swap");
+    void R.el.bar.offsetWidth;
+    R.el.bar.classList.add("swap");
     const st = seek(BEATS, index);
     const composed = composeScreen({
       sharer: st.stage.sharer,
@@ -7344,18 +7485,21 @@
       show: show,
       work: st.stage.work,
     });
-    R.el.body.classList.toggle("ws-host", !!(composed && composed.vsc));
-    R.el.body.innerHTML = composed ? composed.html : buildScreenBody(show);
-    R.el.body.classList.remove("swap");
-    void R.el.body.offsetWidth;
-    R.el.body.classList.add("swap");
+    // Grow from the clicked card while it is still on screen; a hidden
+    // or missing source falls back to the backlog chip, then to center.
+    swapScreenBody(
+      composed ? composed.html : buildScreenBody(show),
+      !!(composed && composed.vsc),
+      fromEl && fromEl.getClientRects().length ? fromEl : railChip(show.kindLabel),
+      false,
+    );
     Voice.syncUi();
     previewCallSurface();
   }
 
   document.getElementById("art-grid").addEventListener("click", function (e) {
     const card = e.target.closest ? e.target.closest(".art-card") : null;
-    if (card) previewArtifact(card.getAttribute("data-art-id"));
+    if (card) previewArtifact(card.getAttribute("data-art-id"), card);
   });
 
   // Room cards: Start/Stop flip the card's status dot + meta in place;
