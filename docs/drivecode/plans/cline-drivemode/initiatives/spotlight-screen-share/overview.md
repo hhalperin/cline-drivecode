@@ -119,6 +119,17 @@ should absorb these decisions:
   initiative slice before product work; they are NOT in S1–S8.
 - **Voice**: Kokoro-82M decision + clips live in the drive-audio plan and
   `docs/drivecode/assets/demos/voice/`.
+- **Director transition grammar** (demo-motion wave, PR #94): the canvas
+  proved a transition language that should become three declarative fields on
+  a DirectorScript cue rather than ad-hoc client animation — `foreshadow`
+  (the director emits "next up: <artifact-id>" one cue ahead so any surface
+  can pre-highlight its queue entry), a `provenance` anchor on `present`
+  (the artifact enters from the queue element that promised it; the motion is
+  derived from backlog geometry, not scripted), and `handoff` on stage-clear
+  (crossfade when one artifact replaces another, a brief dim-release when the
+  screen returns to plain workspace). Implementation lesson for S2/S3:
+  derived presentation state (up-next, grow origin) must be part of the
+  render signature/state diff, or differential renderers silently skip it.
 
 ## Constraints (unchanged, load-bearing)
 

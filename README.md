@@ -16,11 +16,11 @@ Stay on a call with your agents. See what they are doing. Steer.
 </p>
 
 <p align="center">
-  <img src="docs/drivecode/assets/demos/drive-product-demo.gif" width="820" alt="Drive product demo: join a call, the director presents its plan and the system architecture on a shared screen while work cards land beneath it">
+  <img src="docs/drivecode/assets/demos/drive-product-demo.gif" width="820" alt="Drive product demo: you report a flashing bug on a call; Cline reproduces it on its shared VS Code screen, animates the render pipeline, steps the fix in a debugger, and lands it smooth">
 </p>
 
 <p align="center">
-<sub>2× speed · <a href="docs/drivecode/design/canvases/drive-product-demo.html">open the interactive demo</a> (45 scripted beats, keyboard: ←/→/Space)</sub>
+<sub>≈2.3× speed · <a href="docs/drivecode/design/canvases/drive-product-demo.html">open the interactive demo</a> (46 scripted beats with voice, keyboard: ←/→/Space)</sub>
 </p>
 
 ---
