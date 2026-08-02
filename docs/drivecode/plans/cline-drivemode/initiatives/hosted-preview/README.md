@@ -119,6 +119,55 @@ Phase 1 is deliberately small: prove the hostname, the certificate and the
 headers before anything depends on them. The demo canvas is already
 network-silent with its own CSP, so phase 2 is mostly publishing.
 
+## Retiring the demo canvas — decided, gated, not yet
+
+**Decision (owner, 2026-08-02):** once the MVP is confirmed working, the demo
+canvas is no longer needed as the marketing artifact. **It is not removed
+until that confirmation lands and we have agreed the alignment** — the
+marketing artifact keeps earning its place until something demonstrably better
+replaces it.
+
+So the canvas and the prototype overlap for a while, and that overlap is the
+dangerous part. **Two things claiming to show the product is precisely how the
+canvas and the app drifted apart**: the canvas gave the stage 370 px at
+1280×640 while the shipped app gave it 9 px, for weeks, because nobody was
+comparing them. Repeating that with a *public* artifact would be worse.
+
+### The retirement gate
+
+Retire only when all of these hold. Each is checkable, so this is not a
+judgement call later:
+
+1. **The MVP is confirmed working** — the two gates that still need a human:
+   a credentialed call, and hearing the audio
+   ([MVP-beta.md](../../delivery/MVP-beta.md)).
+2. **The prototype covers what the canvas sells.** Every beat the canvas uses
+   for marketing has a real equivalent in the prototype — not "roughly the
+   same idea", the actual moment.
+3. **The prototype is at least as good on a phone.** The canvas is already
+   responsive to ~360 px; the replacement cannot regress that.
+4. **Someone who has never seen Drive understands it from the prototype
+   alone**, with no narration script carrying them.
+5. **We have agreed the alignment** — which artifact is canonical for which
+   audience, and what the landing page points at.
+
+### While both exist
+
+The canvas stays the **design source of truth** (its maturity badges are
+audited, its battery asserts truth invariants) and the prototype is the
+**product**. Where they disagree, one of them is wrong and it must be
+resolved, not tolerated — that is the whole lesson of the 9 px stage.
+
+Worth building during the overlap: a **parity check** that fails when a
+surface the canvas badges `SHIPPED` has no counterpart in the prototype. The
+canvas already has `verify.js` asserting its self-referential claims against
+reality; extending that habit to canvas-vs-app is the cheapest possible
+insurance against a second silent divergence.
+
+**Nothing about the canvas is deleted at retirement** — it stays in the repo
+as the design record and the regression battery. What ends is its role as the
+thing we point the public at.
+
 ## Constraints the artifact must keep
 
 - **Network-silent.** The canvas battery already asserts zero external
@@ -143,6 +192,7 @@ network-silent with its own CSP, so phase 2 is mostly publishing.
 3. **`cline.drivemode.ai` vs `drive.cline.bot`.** This plan assumes the former,
    which we own. If the product is ever positioned as an official Cline
    surface, that is a conversation with Cline, not a DNS change.
-4. **Does the demo canvas stay the marketing artifact once tier 3 exists?**
-   Two things claiming to show the product is how the canvas and the app drifted
-   apart in the first place — the 9 px stage came from exactly that split.
+4. ~~Does the demo canvas stay the marketing artifact once tier 3 exists?~~
+   **Answered** — see [Retiring the demo canvas](#retiring-the-demo-canvas--decided-gated-not-yet).
+   It is replaced once the MVP is confirmed and we have agreed the alignment,
+   and not before.
