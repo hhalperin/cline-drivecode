@@ -472,6 +472,12 @@ export type WebviewInboundMessage =
 			callSessionId?: string;
 	  }
 	| {
+			/** Read-only room directory over the durable log (ADR-0013). */
+			type: "call_list_rooms";
+			requestId?: string;
+			workspaceRoot?: string;
+	  }
+	| {
 			/** Gated plan-improve accept | reject | mute (DRV-PLAN-IMPROVE). */
 			type: "drive_plan_improve_resolve";
 			workspaceRoot: string;
@@ -713,6 +719,17 @@ export type WebviewOutboundMessage =
 	  }
 	| {
 			type: "drive_session_rollups_error";
+			text: string;
+			code?: string;
+			requestId?: string;
+	  }
+	| {
+			type: "drive_rooms";
+			rooms: unknown[];
+			requestId?: string;
+	  }
+	| {
+			type: "drive_rooms_error";
 			text: string;
 			code?: string;
 			requestId?: string;

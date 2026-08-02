@@ -1,0 +1,210 @@
+/**
+ * Rooms — every Drive session, resumable.
+ *
+ * One card per room in the durable log (ADR-0013 lane 1). Stopping a room
+ * closes the call and assembles a handoff; it does not delete anything, so
+ * the card stays here with its configuration and stage history and Start
+ * picks it back up. That is the whole point of the surface: stop ≠ lose.
+ *
+ * The directory is read-only. Stop routes to `call_end` and Start to the
+ * normal join flow, so the hub remains the single writer of room state.
+ */
+
+import type { DriveRoomStatus } from "@cline/drive";
+import { DoorOpenIcon, RefreshCwIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import type { DriveRoomsSource } from "../../rooms/drive-rooms-source";
+import { type RoomCardModel, roomCardModel } from "../../rooms/roomCardModel";
+import { PageEmptyState, PageFrame, PageHeader } from "./page-layout";
+
+/** Live borrows the Status Hub's "running" ink; stopped rooms stay quiet. */
+const STATUS_STYLES: Record<DriveRoomStatus, string> = {
+	live: "border-primary/40 text-primary",
+	paused: "border-amber-500/50 text-amber-600 dark:text-amber-400",
+	ended: "border-border text-muted-foreground",
+};
+
+const DOT_STYLES: Record<DriveRoomStatus, string> = {
+	live: "bg-primary",
+	paused: "bg-amber-500",
+	ended: "bg-muted-foreground/50",
+};
+
+function RoomCard({
+	card,
+	onOpen,
+	onStop,
+	stopping,
+}: {
+	card: RoomCardModel;
+	onOpen: (roomId: string) => void;
+	onStop: (roomId: string) => void;
+	stopping: boolean;
+}) {
+	return (
+		<li
+			className={cn(
+				"flex min-w-0 items-center gap-3 rounded-lg border bg-card px-4 py-3",
+				card.status === "live" && "border-primary/40",
+			)}
+		>
+			<span
+				aria-hidden="true"
+				className={cn(
+					"size-2.5 shrink-0 rounded-full",
+					DOT_STYLES[card.status],
+				)}
+			/>
+			<div className="min-w-0 flex-1">
+				<div className="flex min-w-0 items-center gap-2">
+					<span className="truncate text-sm font-semibold text-foreground">
+						{card.roomId}
+					</span>
+					<Badge
+						className={cn("shrink-0 text-[10px]", STATUS_STYLES[card.status])}
+						variant="outline"
+					>
+						{card.statusLabel}
+					</Badge>
+				</div>
+				<div className="mt-1 truncate text-xs text-muted-foreground">
+					{card.meta}
+				</div>
+			</div>
+			<div className="flex shrink-0 items-center gap-2">
+				<Button
+					onClick={() => onOpen(card.roomId)}
+					size="sm"
+					type="button"
+					variant={card.primaryAction === "start" ? "default" : "outline"}
+				>
+					{card.primaryAction === "start" ? "Start" : "Open"}
+				</Button>
+				{card.canStop ? (
+					<Button
+						className="text-destructive hover:text-destructive"
+						disabled={stopping}
+						onClick={() => onStop(card.roomId)}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						Stop
+					</Button>
+				) : null}
+			</div>
+		</li>
+	);
+}
+
+export function RoomsView({
+	onOpenRoom,
+	roomsSource,
+}: {
+	/** Join or rejoin the room — the same flow the Drive page uses. */
+	onOpenRoom: (roomId: string) => void;
+	roomsSource: DriveRoomsSource;
+}) {
+	const [cards, setCards] = useState<RoomCardModel[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [stoppingRoomId, setStoppingRoomId] = useState<string | null>(null);
+
+	const refresh = useCallback(async () => {
+		setLoading(true);
+		try {
+			const entries = await roomsSource.listRooms();
+			setCards(entries.map((entry) => roomCardModel(entry)));
+			setError(null);
+		} catch (cause) {
+			setError(cause instanceof Error ? cause.message : String(cause));
+		} finally {
+			setLoading(false);
+		}
+	}, [roomsSource]);
+
+	useEffect(() => {
+		void refresh();
+	}, [refresh]);
+
+	const stopRoom = useCallback(
+		async (roomId: string) => {
+			setStoppingRoomId(roomId);
+			try {
+				await roomsSource.stopRoom(roomId);
+				setStoppingRoomId(null);
+				// refresh() clears the error banner on success.
+				await refresh();
+			} catch (cause) {
+				setStoppingRoomId(null);
+				setError(cause instanceof Error ? cause.message : String(cause));
+			}
+		},
+		[refresh, roomsSource],
+	);
+
+	const liveCount = cards.filter((card) => card.status === "live").length;
+
+	return (
+		<PageFrame>
+			<PageHeader
+				description="Every Drive session you have run, resumable. Stopping a room ends the call and saves a handoff — its configuration and history stay put, so Start picks up where you left off."
+				icon={DoorOpenIcon}
+				meta={
+					cards.length > 0 ? (
+						<Badge className="text-[10px]" variant="outline">
+							{liveCount} live / {cards.length}
+						</Badge>
+					) : null
+				}
+				title="Rooms"
+				actions={
+					<Button
+						disabled={loading}
+						onClick={() => {
+							void refresh();
+						}}
+						size="sm"
+						type="button"
+						variant="outline"
+					>
+						<RefreshCwIcon
+							className={cn("size-3.5", loading && "animate-spin")}
+						/>
+						Refresh
+					</Button>
+				}
+			/>
+
+			{error ? (
+				<PageEmptyState className="mb-4 border-destructive/40 text-destructive">
+					Could not load rooms: {error}
+				</PageEmptyState>
+			) : null}
+
+			{cards.length === 0 && !loading && !error ? (
+				<PageEmptyState>
+					No rooms yet. Start a Drive call and it will show up here — and stay
+					here after you stop it.
+				</PageEmptyState>
+			) : (
+				<ul className="grid list-none gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(19rem,1fr))]">
+					{cards.map((card) => (
+						<RoomCard
+							card={card}
+							key={card.roomId}
+							onOpen={onOpenRoom}
+							onStop={(roomId) => {
+								void stopRoom(roomId);
+							}}
+							stopping={stoppingRoomId === card.roomId}
+						/>
+					))}
+				</ul>
+			)}
+		</PageFrame>
+	);
+}
