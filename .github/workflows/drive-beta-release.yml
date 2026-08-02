@@ -46,6 +46,13 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
+            # Preflight checks the installed Node against engines.node, so pin
+            # it rather than trusting whatever the runner image ships.
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: .nvmrc
+
             - name: Setup Bun workspace
               uses: ./.github/actions/setup-bun-workspace
               with:
