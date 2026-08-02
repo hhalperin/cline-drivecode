@@ -4,6 +4,7 @@ import {
 	applyHardwarePrefsPatch,
 	applyVoiceProfile,
 	createDefaultDriveVoiceUi,
+	isSpokenDriveJoinNote,
 	resolveDriveVoiceTopology,
 	shouldSpeakDriveTts,
 } from "./driveVoiceUi";
@@ -14,7 +15,8 @@ describe("driveVoiceUi", () => {
 		expect(voice.hardware).toEqual({
 			micDeviceId: undefined,
 			speakerDeviceId: undefined,
-			outputVolume: 1,
+			// Narration is ambient: enabling TTS starts it at half volume.
+			outputVolume: 0.5,
 		});
 		const resolved = resolveDriveVoiceTopology({
 			voice,
@@ -108,6 +110,19 @@ describe("driveVoiceUi", () => {
 				partnerMuted: DEFAULT_DRIVE_UI.partnerMuted,
 			}),
 		).toBe(true);
+	});
+
+	it("keeps the join note out of the narration queue", () => {
+		// Both effects see this text; only the join effect may speak it.
+		expect(isSpokenDriveJoinNote("On the call. Adam is on the parser.")).toBe(
+			true,
+		);
+		expect(isSpokenDriveJoinNote("Since you left: two tests went green.")).toBe(
+			true,
+		);
+		expect(isSpokenDriveJoinNote("Tests pass, moving to the parser.")).toBe(
+			false,
+		);
 	});
 
 	it("preserves hardware prefs across profile switches", () => {

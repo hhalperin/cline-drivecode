@@ -57,6 +57,7 @@ import {
 	applyVoiceProfile,
 	createDefaultDriveVoiceUi,
 	type DriveVoiceUi,
+	isSpokenDriveJoinNote,
 	resolveDriveVoiceTopology,
 	shouldSpeakDriveTts,
 } from "./voice/driveVoiceUi";
@@ -659,6 +660,27 @@ export function useDriveSession(
 		readPersistedDriveVoice,
 	);
 	const [voiceCaption, setVoiceCaption] = useState("");
+	/**
+	 * Last line the partner should say (DRV-NARRATION). React state only —
+	 * spoken text never reaches the persisted `driveUi` blob (DRV-PRIVACY),
+	 * and `seq` distinguishes a repeated line from a re-render.
+	 */
+	const [narrationLine, setNarrationLine] = useState<{
+		seq: number;
+		text: string;
+	} | null>(null);
+	const narrationSeqRef = useRef(0);
+	const spokenNarrationSeqRef = useRef(0);
+	const queueNarration = useCallback((text: string) => {
+		const trimmed = text.trim();
+		// The join effect owns greeting / catch-up copy; speaking it here too
+		// would double it up.
+		if (!trimmed || isSpokenDriveJoinNote(trimmed)) {
+			return;
+		}
+		narrationSeqRef.current += 1;
+		setNarrationLine({ seq: narrationSeqRef.current, text: trimmed });
+	}, []);
 	const [presentedShow, setPresentedShow] = useState<PresentedShow | null>(
 		null,
 	);
@@ -1031,6 +1053,9 @@ export function useDriveSession(
 									caption: say,
 								},
 					);
+					// Caption and speech are the same line: the Spotlight subtitle
+					// is what a deafened viewer reads instead of hearing it.
+					queueNarration(say);
 				}
 				return;
 			}
@@ -1224,7 +1249,9 @@ export function useDriveSession(
 					message.event?.type === "conversation.narration" &&
 					message.event.text.trim()
 				) {
-					setDriveJoinNote(message.event.text.trim());
+					const narration = message.event.text.trim();
+					setDriveJoinNote(narration);
+					queueNarration(narration);
 				}
 				return;
 			}
@@ -1286,7 +1313,7 @@ export function useDriveSession(
 			guard: isDriveSessionHostMessage,
 			onMessage,
 		});
-	}, [refreshDriveRoom, resetDriveConnection, seedBankAfterJoin]);
+	}, [queueNarration, refreshDriveRoom, resetDriveConnection, seedBankAfterJoin]);
 
 	useEffect(() => {
 		// Attachment refs do not render; the revision intentionally re-evaluates
@@ -1370,10 +1397,7 @@ export function useDriveSession(
 			return;
 		}
 		// Speak post-join greeting and while-away catch-up; ack / error stay display-only.
-		if (
-			!driveJoinNote.startsWith("On the call.") &&
-			!driveJoinNote.startsWith("Since you left:")
-		) {
+		if (!isSpokenDriveJoinNote(driveJoinNote)) {
 			return;
 		}
 		if (spokenJoinNoteRef.current === driveJoinNote) {
@@ -1407,11 +1431,52 @@ export function useDriveSession(
 		narrator,
 	]);
 
+	/**
+	 * Speak DirectorScript `say` beats and `conversation.narration` behind the
+	 * same gate as every other line (DRV-NARRATION). The narrator queue absorbs
+	 * beats arriving faster than speech.
+	 */
+	useEffect(() => {
+		if (!narrationLine || !drive.active || !narrator) {
+			return;
+		}
+		if (spokenNarrationSeqRef.current >= narrationLine.seq) {
+			return;
+		}
+		// Consumed either way: a line the user was deafened for is gone, not
+		// queued up to blurt out when they un-deafen. The caption carried it.
+		spokenNarrationSeqRef.current = narrationLine.seq;
+		if (
+			!shouldSpeakDriveTts({
+				facets: driveVoice.facets,
+				deafened: drive.deafened,
+				partnerMuted: drive.partnerMuted,
+			})
+		) {
+			return;
+		}
+		narrator.speak(narrationLine.text, {
+			volume: driveVoice.hardware.outputVolume,
+			sinkId: driveVoice.hardware.speakerDeviceId,
+		});
+	}, [
+		drive.active,
+		drive.deafened,
+		drive.partnerMuted,
+		driveVoice.facets,
+		driveVoice.hardware.outputVolume,
+		driveVoice.hardware.speakerDeviceId,
+		narrationLine,
+		narrator,
+	]);
+
 	useEffect(() => {
 		if (!drive.active) {
 			spokenJoinNoteRef.current = null;
-			// Leaving cuts audio; nothing spoken outlives the call.
+			// Leaving cuts audio and drops the spoken line; nothing about
+			// narration outlives the call (DRV-PRIVACY).
 			narrator?.cancel();
+			setNarrationLine(null);
 		}
 	}, [drive.active, narrator]);
 

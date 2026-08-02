@@ -135,6 +135,14 @@ export function shouldSpeakDriveTts(input: {
 	);
 }
 
+/**
+ * Join greeting / while-away catch-up. These arrive as `driveJoinNote` and are
+ * spoken by the join effect, so the narration queue must not speak them twice.
+ */
+export function isSpokenDriveJoinNote(note: string): boolean {
+	return note.startsWith("On the call.") || note.startsWith("Since you left:");
+}
+
 export function voiceDefaultsForSmoke(profile: "local" | "cloud"): {
 	voice: DriveVoiceUi;
 	llm: ResolvedLlmEgress;
