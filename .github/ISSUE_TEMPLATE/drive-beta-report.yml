@@ -9,7 +9,9 @@ body:
               maintainer on a best-effort basis — there is no SLA.
 
               **Do not paste API keys.** Drive does not record audio or keep
-              captions, so there is no transcript to attach.
+              captions, so there is no transcript to attach. Preflight output
+              contains no secrets, but it does print the path to your provider
+              settings file — redact your username if that matters to you.
     - type: dropdown
       id: surface
       attributes:

@@ -59,13 +59,14 @@ jobs:
                   bun-version: "1.3.13"
                   cache: "false"
 
-            # The install docs promise these commands work on a clean clone,
-            # so the release gate runs the same ones in the same order.
-            - name: Preflight
-              run: bun run preflight
-
+            # Same order as the install docs: install, build, then preflight —
+            # which is also the only order that passes, since preflight FAILs
+            # when the SDK dist output is missing.
             - name: Build SDK packages
               run: bun run build:sdk
+
+            - name: Preflight
+              run: bun run preflight
 
             - name: Typecheck hub
               run: bun -F @cline/cline-hub typecheck
