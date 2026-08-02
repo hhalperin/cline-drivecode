@@ -1,3 +1,4 @@
+import type { DriveRun } from "@cline/shared";
 import { describe, expect, it } from "vitest";
 import { applyProjection, getCapabilities, observe } from "./kanbanInterop.js";
 
@@ -42,7 +43,7 @@ const fixtureRun = {
 			},
 		],
 	},
-};
+} as DriveRun;
 
 describe("kanbanInterop stub", () => {
 	it("advertises narrow capabilities", () => {

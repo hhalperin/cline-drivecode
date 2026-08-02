@@ -1,13 +1,12 @@
 /**
- * Narrow DrivePlan–Kanban Interop stub (ARD-0018 §7).
- * Full wire shapes defer to ARD-0019.
+ * Narrow DrivePlan–Kanban Interop stub (ADR-0018 §7).
+ * Full wire shapes defer to ADR-0019.
+ *
+ * Parses at the host boundary: callers pass a typed `DriveRun` (from
+ * `@cline/shared` parse helpers). This package stays type-only on shared.
  */
 
-import {
-	type DriveRun,
-	type DriveRunWorkItem,
-	parseDriveRun,
-} from "@cline/shared";
+import type { DriveRun, DriveRunWorkItem } from "@cline/shared";
 
 export const DRIVEPLAN_KANBAN_SYSTEM = "driveplan" as const;
 
@@ -22,7 +21,7 @@ export type KanbanInteropCapabilities = {
 	protocol: "driveplan-kanban-interop";
 	version: 0;
 	supports: readonly ["getCapabilities", "applyProjection", "observe"];
-	/** Full execute / collectReceipt land in ARD-0019. */
+	/** Full execute / collectReceipt land in ADR-0019. */
 	deferred: readonly ["execute", "collectReceipt"];
 };
 
@@ -83,8 +82,7 @@ function columnForStatus(status: DriveRunWorkItem["status"]): ProjectedKanbanCar
  * Read-only projection for one DriveTask + one DriveRun.
  * Does not mutate a Kanban board — returns card descriptors for a host adapter.
  */
-export function applyProjection(runInput: unknown): ApplyProjectionResult {
-	const run = parseDriveRun(runInput);
+export function applyProjection(run: DriveRun): ApplyProjectionResult {
 	const cards: ProjectedKanbanCard[] = run.spec.workItems.map((item) => ({
 		title: `${item.id} · ${item.objective}`,
 		prompt: [
@@ -123,8 +121,7 @@ export function applyProjection(runInput: unknown): ApplyProjectionResult {
  * `projectionDiverged` is set by the host when a human edits a managed card;
  * this stub only reports run-side state.
  */
-export function observe(runInput: unknown, cursor?: ObserveCursor): ObserveResult {
-	const run = parseDriveRun(runInput);
+export function observe(run: DriveRun, cursor?: ObserveCursor): ObserveResult {
 	return {
 		cursor: {
 			driveRunId: run.id,
