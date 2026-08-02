@@ -125,24 +125,43 @@ export function RoomsView({
 	const [stoppingRoomId, setStoppingRoomId] = useState<string | null>(null);
 	/** Workspace the rooms on screen were listed for. */
 	const loadedRootRef = useRef<string | undefined>(undefined);
+	/**
+	 * Newest list request. A list issued for one workspace can still be in
+	 * flight when the workspace changes, and its late reply would otherwise
+	 * paint the previous project's rooms over the current one — the same
+	 * cross-workspace bleed the directory fix removed, arriving as a race.
+	 * Only the newest request may write.
+	 */
+	const requestSeqRef = useRef(0);
 
 	const refresh = useCallback(async () => {
+		const seq = ++requestSeqRef.current;
+		const requestedRoot = workspaceRoot;
 		setLoading(true);
 		// Rooms belong to the workspace they were listed for. Drop them the
 		// moment the workspace changes, so a slow or failing list can never
 		// leave another project's rooms on screen.
-		if (loadedRootRef.current !== workspaceRoot) {
+		if (loadedRootRef.current !== requestedRoot) {
 			setEntries([]);
 		}
 		try {
-			const listed = await roomsSource.listRooms(workspaceRoot);
-			loadedRootRef.current = workspaceRoot;
+			const listed = await roomsSource.listRooms(requestedRoot);
+			if (seq !== requestSeqRef.current) {
+				return;
+			}
+			loadedRootRef.current = requestedRoot;
 			setEntries(listed);
 			setError(null);
 		} catch (cause) {
+			if (seq !== requestSeqRef.current) {
+				return;
+			}
 			setError(cause instanceof Error ? cause.message : String(cause));
 		} finally {
-			setLoading(false);
+			// A superseded request must not clear the newer one's spinner.
+			if (seq === requestSeqRef.current) {
+				setLoading(false);
+			}
 		}
 	}, [roomsSource, workspaceRoot]);
 
