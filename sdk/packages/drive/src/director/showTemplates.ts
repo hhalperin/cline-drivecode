@@ -39,13 +39,17 @@ export const KIT_MERMAID_SEC_NETWORK = `flowchart TB
  * The literal cline-drive topology: agents publish typed work to the hub
  * daemon — the single writer — which appends the durable log, folds it with
  * reduceRoom and broadcasts RoomSnapshot to client surfaces, while the
- * director path ranks the Show backlog and presents onto StickyStagePane.
+ * director path ranks the Show backlog and presents onto the Spotlight screen.
  *
  * Ground-truthed against the code, not the marketing shape:
  * - append-then-fold order: hub/collaboration/room.ts commit()
  * - rank -> produce -> present: hub/driveShowRuntime.ts
  * - lanes 1 and 2 of ADR-0013 (durable event log, single live room)
  * - :25463 from CLINE_HUB_WRITER_ENDPOINT in ../hostPort.ts
+ *
+ * The presented-show surface is the Spotlight ScreenFrame, not StickyStagePane:
+ * spotlight S2 moved the artifact inside the frame and dropped the pane from
+ * Chat.tsx, leaving it wired only into ChatForkDemo.
  *
  * The agent lane is deliberately generic. The canvas reference names "Cline ·
  * Riley", but Riley is a webview demo fixture, not a component — naming it
@@ -71,14 +75,14 @@ export const KIT_MERMAID_ARCH_CLINE_DRIVE = `flowchart TB
     ShowBacklog["Show backlog · rank · produce"]
   end
   subgraph Clients
-    HubWebview["Hub webview · Spotlight stage"]
-    StickyStagePane["StickyStagePane"]
+    HubWebview["Hub webview · room snapshot"]
+    SpotlightScreen["Spotlight · ScreenFrame"]
   end
   ClineAgent -->|"call_record_work"| CallOps
   CallOps -->|"DriveEvent"| EventLog --> RoomPlane
   CallOps -->|"drive.show.*"| DriveLive --> ShowBacklog
   RoomPlane -->|"RoomSnapshot"| HubWebview
-  ShowBacklog -->|"drive.show.presented"| StickyStagePane`;
+  ShowBacklog -->|"drive.show.presented"| SpotlightScreen`;
 
 /** MVP kit for planner/screen-manager produce steps. */
 export const SHOW_TEMPLATE_KIT: readonly ShowTemplate[] = [

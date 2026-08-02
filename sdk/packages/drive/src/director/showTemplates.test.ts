@@ -82,8 +82,11 @@ describe("arch.cline-drive template", () => {
 			"rooms · reduceRoom fold",
 			"DriveLive · director",
 			"Show backlog · rank · produce",
-			"Hub webview · Spotlight stage",
-			"StickyStagePane",
+			"Hub webview · room snapshot",
+			// Spotlight S2 moved the presented artifact into the ScreenFrame and
+			// dropped StickyStagePane from Chat.tsx — naming the pane here would
+			// point the diagram at a surface no live call renders.
+			"Spotlight · ScreenFrame",
 			"call_record_work",
 			"RoomSnapshot",
 			"drive.show.presented",
