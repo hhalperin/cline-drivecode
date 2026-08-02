@@ -40,9 +40,10 @@ export type RoomEventLog = {
 	readSinceSync(roomId: string, afterSeq: number): RoomLogRecord[];
 	latestSeq(roomId: string): number;
 	/**
-	 * Every room the log has ever recorded, including ones no live process
-	 * holds. The Rooms surface enumerates from here so a stopped room is
-	 * listable without being resident in memory.
+	 * Every room recorded under this log's config parent, including ones no
+	 * live process holds. This is the authority for "which rooms does this
+	 * workspace have": a durable room is owned by the workspace whose log
+	 * holds it, and roomIds are unique only within one such root.
 	 */
 	listRoomIds(): string[];
 };

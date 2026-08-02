@@ -1,9 +1,10 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	getDriveRoomStore,
+	JsonlRoomEventLog,
 	MemoryRoomEventLog,
 	resetDriveRoomStoreForTests,
 	shouldDrivePauseAfterTool,
@@ -1122,6 +1123,142 @@ describe("handleDriveRoomCommand", () => {
 			expect(relisted?.status).toBe("live");
 		} finally {
 			rmSync(workspaceRoot, { recursive: true, force: true });
+		}
+	});
+
+	/**
+	 * A durable room belongs to the workspace whose log holds it. The hub
+	 * process outlives any one workspace and its room Map is keyed by bare
+	 * roomId, so a developer with two projects open must never see one
+	 * project's rooms while listing the other.
+	 */
+	it("call_list_rooms never leaks rooms across workspaces", async () => {
+		const workspaceA = mkdtempSync(join(tmpdir(), "drive-rooms-a-"));
+		const workspaceB = mkdtempSync(join(tmpdir(), "drive-rooms-b-"));
+		try {
+			resetDriveRoomStoreForTests();
+			const ctx = makeCtx();
+
+			await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_join",
+				requestId: "ws_a",
+				payload: {
+					roomId: "project-a-room",
+					human: { id: "you", displayName: "You" },
+					agent: { id: "adam", displayName: "Adam" },
+					workspaceRoot: workspaceA,
+				},
+			});
+
+			const listA = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_list_rooms",
+				requestId: "ws_list_a",
+				payload: { workspaceRoot: workspaceA },
+			});
+			expect(
+				(listA.payload?.rooms as Array<{ roomId: string }>).map(
+					(room) => room.roomId,
+				),
+			).toEqual(["project-a-room"]);
+
+			// Same long-lived hub, second project. A's room is resident in the
+			// store and its log is still bound to A.
+			const listB = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_list_rooms",
+				requestId: "ws_list_b",
+				payload: { workspaceRoot: workspaceB },
+			});
+			expect(listB.ok).toBe(true);
+			expect(listB.payload?.rooms).toEqual([]);
+
+			// Listing must not migrate A's records into B either — a read that
+			// copies another project's session history is worse than showing it.
+			expect(existsSync(join(workspaceB, ".cline", "drive", "rooms"))).toBe(
+				false,
+			);
+
+			// A is unchanged and still resident.
+			const listAAgain = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_list_rooms",
+				requestId: "ws_list_a2",
+				payload: { workspaceRoot: workspaceA },
+			});
+			const roomsA = listAAgain.payload?.rooms as Array<{
+				roomId: string;
+				status: string;
+				participantNames: string[];
+			}>;
+			expect(roomsA.map((r) => r.roomId)).toEqual(["project-a-room"]);
+			expect(roomsA[0]?.status).toBe("live");
+			expect(roomsA[0]?.participantNames).toEqual(["You", "Adam"]);
+		} finally {
+			rmSync(workspaceA, { recursive: true, force: true });
+			rmSync(workspaceB, { recursive: true, force: true });
+		}
+	});
+
+	/**
+	 * Two workspaces can each hold a room called "default". The resident
+	 * snapshot is newer truth only for the workspace the hub is bound to.
+	 */
+	it("call_list_rooms does not overlay a live roster onto another workspace's same-named room", async () => {
+		const workspaceA = mkdtempSync(join(tmpdir(), "drive-rooms-sa-"));
+		const workspaceB = mkdtempSync(join(tmpdir(), "drive-rooms-sb-"));
+		try {
+			resetDriveRoomStoreForTests();
+			const ctx = makeCtx();
+
+			// A "default" room, live, in workspace A.
+			await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_join",
+				requestId: "coll_a",
+				payload: {
+					roomId: "default",
+					human: { id: "you", displayName: "You" },
+					agent: { id: "adam", displayName: "Adam" },
+					workspaceRoot: workspaceA,
+				},
+			});
+
+			// A stopped "default" room on disk in workspace B, written by a log
+			// bound there rather than through the still-A-bound store.
+			const logB = new JsonlRoomEventLog(workspaceB);
+			logB.appendSync("default", {
+				schemaVersion: 1,
+				id: "b1",
+				roomId: "default",
+				at: "2026-08-02T10:00:00.000Z",
+				type: "control.mode",
+				track: "control",
+				subMode: "plan",
+			});
+
+			const listB = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_list_rooms",
+				requestId: "coll_list_b",
+				payload: { workspaceRoot: workspaceB },
+			});
+			const roomsB = listB.payload?.rooms as Array<{
+				roomId: string;
+				status: string;
+				participantNames: string[];
+				subMode: string;
+			}>;
+			expect(roomsB).toHaveLength(1);
+			expect(roomsB[0]?.roomId).toBe("default");
+			// A's roster must not appear on B's room of the same name.
+			expect(roomsB[0]?.participantNames).toEqual([]);
+			expect(roomsB[0]?.status).toBe("paused");
+			expect(roomsB[0]?.subMode).toBe("plan");
+		} finally {
+			rmSync(workspaceA, { recursive: true, force: true });
+			rmSync(workspaceB, { recursive: true, force: true });
 		}
 	});
 

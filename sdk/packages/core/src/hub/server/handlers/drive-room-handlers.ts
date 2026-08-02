@@ -2,6 +2,7 @@
  * Hub call_* command handlers (DRV-ROOM-MVP + share-screen work bridge).
  */
 
+import { resolve } from "node:path";
 import {
 	assembleHandoffPacket,
 	formatHandoffNarration,
@@ -29,6 +30,7 @@ import { z } from "zod";
 import {
 	clearDrivePauseAfterToolForSessions,
 	getDriveRoomStore,
+	JsonlRoomEventLog,
 	rebindJsonlRoomEventLog,
 	setDrivePauseAfterTool,
 	syncDrivePauseAfterToolForRoom,
@@ -316,6 +318,19 @@ function resolveWorkPayload(payload: {
 		return mapped;
 	}
 	throw new Error("work_or_tool_required");
+}
+
+/**
+ * Same workspace, tolerating separator and drive-letter-case differences —
+ * the webview reports whatever the hub handed it, which on Windows can differ
+ * in case from the path the log was bound with.
+ */
+function sameWorkspaceRoot(a: string, b: string): boolean {
+	const normalize = (path: string) => {
+		const resolved = resolve(path);
+		return process.platform === "win32" ? resolved.toLowerCase() : resolved;
+	};
+	return normalize(a) === normalize(b);
 }
 
 function ensureEventLog(
@@ -1015,19 +1030,42 @@ export async function handleDriveRoomCommand(
 				const payload = CallListRoomsPayloadSchema.parse(
 					envelope.payload ?? {},
 				);
-				ensureEventLog(store, payload.workspaceRoot);
-				const log = store.getEventLog();
+				const bound = store.getEventLog();
+				// A durable room is owned by the workspace whose log holds it:
+				// `.cline/drive/rooms/<roomId>` under that root, and roomIds are
+				// unique only within one root — two projects can both have a
+				// "default". So the directory is read from the requested
+				// workspace's log and nowhere else. The process-wide room Map is
+				// keyed by bare roomId across every workspace this hub has
+				// touched, so it cannot answer "which rooms does this workspace
+				// have" and must not contribute to the answer.
+				//
+				// Deliberately not ensureEventLog(): rebinding *migrates* records
+				// between config parents, so listing one workspace would copy
+				// another's room logs into it. A read must not move anyone's data.
+				const log = payload.workspaceRoot
+					? new JsonlRoomEventLog(payload.workspaceRoot)
+					: bound;
+				const boundRoot =
+					bound instanceof JsonlRoomEventLog ? bound.configParent : undefined;
+				// The live snapshot is only newer truth for the workspace the hub
+				// is actually bound to; overlaying it across workspaces would show
+				// one project's roster on another project's room of the same name.
+				const liveIsSameWorkspace =
+					payload.workspaceRoot === undefined ||
+					(boundRoot !== undefined &&
+						sameWorkspaceRoot(payload.workspaceRoot, boundRoot));
 				// Read-only: fold each room's records into a summary without
 				// hydrating it into the store, so listing never revives a
 				// stopped room's live state or its call session.
 				const rooms = sortRoomDirectory(
-					store.listRoomIds().map((roomId) =>
+					(log?.listRoomIds() ?? []).map((roomId) =>
 						projectRoomDirectoryEntry({
 							roomId,
 							events:
 								log?.readSinceSync(roomId, 0).map((record) => record.event) ??
 								[],
-							liveSnapshot: store.get(roomId),
+							liveSnapshot: liveIsSameWorkspace ? store.get(roomId) : undefined,
 						}),
 					),
 				);
