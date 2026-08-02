@@ -318,10 +318,15 @@ export function DriveRoomChrome({
 			) : null}
 			{/*
 			 * Spotlight (stageLayout) carries its own compact now/next line under
-			 * the frame — this larger card duplicates it above the call. Only the
-			 * layout without a Spotlight column needs it here.
+			 * the frame, so the larger card is a duplicate there — but only of the
+			 * now/next titles. The card is also the sole host of the clean-drain
+			 * invite and the agency banner, whose controls are reachable nowhere
+			 * else, so it still mounts when it carries either of those.
 			 */}
-			{drive.active && !drive.stageLayout ? (
+			{drive.active &&
+			(!drive.stageLayout ||
+				Boolean(drive.cleanDrainInvite) ||
+				Boolean(drive.agencyBanner)) ? (
 				<NowNext
 					agencyBanner={drive.agencyBanner}
 					cleanDrainInvite={drive.cleanDrainInvite}
