@@ -31,20 +31,7 @@ cd cline-drivecode
 The clone is around 150 MB of git history. `evals/cline-bench` is a submodule
 and is **not** needed — do not pass `--recurse-submodules`.
 
-## 2. Preflight
-
-```bash
-bun run preflight
-```
-
-This runs before install on purpose. It checks Bun and Node against the pinned
-toolchain, whether dependencies and build output exist, whether the hub ports
-are already held, and whether a provider is configured. Every line is either
-`ok`, `warn` (something to know) or `FAIL` (fix this first). Warnings do not
-block. After install you can run the same checks as `bun run cli doctor
-preflight`.
-
-## 3. Install and build
+## 2. Install and build
 
 ```bash
 bun install --frozen-lockfile
@@ -54,6 +41,23 @@ bun run build:sdk
 `build:sdk` is **not** optional. The workspace packages resolve each other
 through `dist/`, so without it the hub and the tests fail with
 `ERR_MODULE_NOT_FOUND`. Expect a few minutes on a cold cache.
+
+## 3. Preflight
+
+```bash
+bun run preflight
+```
+
+Checks Bun and Node against the pinned toolchain, whether dependencies and
+build output exist, whether the hub ports are already held, and whether a
+provider is configured. Every line is `ok`, `warn` (something to know) or
+`FAIL` (fix this first); warnings do not block, and the command exits non-zero
+only on a `FAIL`.
+
+It deliberately imports nothing from the workspace, so you can also run it
+**before** install — on a fresh clone it reports the install and build steps as
+`FAIL`, which is the checklist rather than a problem. After install the same
+checks are available as `bun run cli doctor preflight`.
 
 ## 4. Start the hub
 
@@ -144,10 +148,17 @@ not caused by your checkout:
 | `apps/cline-hub/src/server/drive-plan-improve.test.ts` | asserts a POSIX path separator |
 | `apps/cli/src/commands/doctor.test.ts` — "kills stale code sidecar processes" | the process listing it asserts on is a no-op on `win32` |
 
-Two more things worth knowing before you file a bug: the hub typecheck
-**excludes `src/webview/**`** (run `cd apps/cline-hub/src/webview && bun tsc -b
---force` for that), and `bun run lint` has a standing baseline of roughly 93
-pre-existing errors repo-wide.
+Two more things worth knowing before you file a bug. The hub typecheck
+**excludes `src/webview/**`** — for that, run:
+
+```bash
+cd apps/cline-hub/src/webview && bun tsc -b --force
+```
+
+And the linter has a standing baseline: `bun run lint` reports around 108
+warnings and 61 infos repo-wide with no errors, and the stricter
+`bun biome check --diagnostic-level=error` reports several hundred
+pre-existing formatting diagnostics. Neither is caused by your checkout.
 
 ## When something is wrong
 

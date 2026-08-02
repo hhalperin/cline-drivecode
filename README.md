@@ -344,10 +344,13 @@ own machine. There is no hosted service and nothing to sign up for. Requires
 ```bash
 git clone https://github.com/hhalperin/cline-drivecode.git
 cd cline-drivecode
-bun run preflight               # checks Bun/Node, ports, build output — runs before install
 bun install --frozen-lockfile
 bun run build:sdk               # required — packages resolve each other through dist/
+bun run preflight               # toolchain, build output, ports, provider
 ```
+
+`bun run preflight` also works before install — it just reports the install and
+build steps as the ones still to do.
 
 **Hub (Drive tab, Spotlight, Status Hub)**
 
