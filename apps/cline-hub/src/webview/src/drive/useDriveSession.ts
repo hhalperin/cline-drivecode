@@ -645,6 +645,7 @@ export type UseDriveSessionResult = {
 		onHandToggle: () => void;
 		onMuteToggle: () => void;
 		onOpenSettings: () => void;
+		onOutputVolumeChange: (outputVolume: number) => void;
 		onTogglePartnerDeafen: () => void;
 		onTogglePartnerMute: () => void;
 		onToggleSpotlight: () => void;
@@ -1677,6 +1678,13 @@ export function useDriveSession(
 					...current,
 					settingsOpen: !current.settingsOpen,
 				}));
+			},
+			onOutputVolumeChange: (outputVolume: number) => {
+				// Same pref the settings slider writes — the strip is a second view
+				// of `driveVoice.hardware.outputVolume`, never a second value.
+				setDriveVoice((current) =>
+					applyHardwarePrefsPatch(current, { outputVolume }),
+				);
 			},
 			onTogglePartnerDeafen: () => {
 				// Hub is authoritative; wait for drive_room_changed.

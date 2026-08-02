@@ -38,6 +38,11 @@ import {
 import { isDriveHumanId } from "./participantIds";
 import type { DriveSubMode, DriveUiState } from "./types";
 import type { DriveConnectionPhase } from "./useDriveSession";
+import { driveOutputSilenced } from "./voice/driveEarcons";
+import {
+	outputVolumeFromPercent,
+	outputVolumePercent,
+} from "./voice/driveHardwarePrefs";
 
 const SUB_MODES: DriveSubMode[] = ["plan", "agent", "ask", "debug"];
 
@@ -210,6 +215,64 @@ function StripButton({
 }
 
 /**
+ * Output volume, sitting beside deafen because it governs the same thing:
+ * what this browser plays. The canvas's compact 64px slider.
+ *
+ * It is a view of `driveVoice.hardware.outputVolume` — the same pref the
+ * settings panel edits and the same one `speak()` and `driveEarconVolume()`
+ * read. Nothing is stored here.
+ *
+ * Hidden below `sm`. Measured at 520px the strip is already full — twelve
+ * controls come to 477px inside 488px of content box — so 64px of slider is
+ * the one thing there is no room for. It yields to the buttons rather than
+ * pushing Leave off the edge of a strip whose scrollbar is hidden; volume is
+ * still one click away in the settings panel, whose button never leaves.
+ */
+function StripVolume({
+	disabled,
+	dimmed,
+	onChange,
+	volume,
+}: {
+	disabled?: boolean;
+	/** Output is silenced anyway — shown, still adjustable, visibly inert. */
+	dimmed: boolean;
+	onChange: (volume: number) => void;
+	volume: number;
+}) {
+	const percent = outputVolumePercent(volume);
+	const label = `Partner volume: ${percent}%`;
+	return (
+		<Tooltip>
+			<TooltipTrigger
+				render={
+					<input
+						aria-label={label}
+						className={cn(
+							"hidden h-[30px] w-16 shrink-0 cursor-pointer rounded-full accent-amber-600 outline-none sm:block dark:accent-amber-400",
+							// The strip's buttons get their focus ring from the Button
+							// variant; a bare input has to ask for the same one.
+							"focus-visible:ring-3 focus-visible:ring-ring/50",
+							dimmed && "opacity-45",
+						)}
+						disabled={disabled}
+						max={100}
+						min={0}
+						onChange={(event) =>
+							onChange(outputVolumeFromPercent(Number(event.target.value)))
+						}
+						step={1}
+						type="range"
+						value={percent}
+					/>
+				}
+			/>
+			<TooltipContent>{label}</TooltipContent>
+		</Tooltip>
+	);
+}
+
+/**
  * The strip's single piece of text status. The canvas cycles modes on click;
  * a menu is used here so every mode stays one action away, as it was when the
  * strip carried four mode buttons.
@@ -272,12 +335,14 @@ function DriveModePill({
 export function DriveCallStrip({
 	drive,
 	disabled,
+	outputVolume,
 	workerCount = 0,
 	workersOpen = false,
 	turnInFlight = false,
 	onMuteToggle,
 	onDeafenToggle,
 	onHandToggle,
+	onOutputVolumeChange,
 	onSubModeChange,
 	onClearOverride,
 	onLeaveDrive,
@@ -289,6 +354,8 @@ export function DriveCallStrip({
 }: {
 	drive: DriveUiState;
 	disabled?: boolean;
+	/** `driveVoice.hardware.outputVolume` in [0, 1] — never a local copy. */
+	outputVolume: number;
 	workerCount?: number;
 	workersOpen?: boolean;
 	/** True while an agent turn is running — raise-hand → finishing chrome. */
@@ -297,6 +364,7 @@ export function DriveCallStrip({
 	/** Self output mute — stops this browser speaking agent audio. */
 	onDeafenToggle?: () => void;
 	onHandToggle: () => void;
+	onOutputVolumeChange: (volume: number) => void;
 	onSubModeChange: (mode: DriveSubMode) => void;
 	onClearOverride?: () => void;
 	/** Hang up: leaves the call, work continues. Never the Tier-0 End. */
@@ -383,6 +451,15 @@ export function DriveCallStrip({
 			>
 				{drive.deafened ? <HeadphoneOffIcon /> : <HeadphonesIcon />}
 			</StripButton>
+			<StripVolume
+				dimmed={driveOutputSilenced({
+					selfSilenced: drive.deafened,
+					partnerMuted: drive.partnerMuted,
+				})}
+				disabled={disabled}
+				onChange={onOutputVolumeChange}
+				volume={outputVolume}
+			/>
 			<StripButton
 				disabled={disabled}
 				label={drive.handRaised ? "Lower hand" : "Raise hand"}

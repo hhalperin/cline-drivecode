@@ -198,6 +198,7 @@ export function DriveRoomChrome({
 				disabled={disabled}
 				drive={drive}
 				onLeaveDrive={leaveDrive}
+				outputVolume={driveVoice.hardware.outputVolume}
 				turnInFlight={turnInFlight}
 				workerCount={chatForks.length}
 				workersOpen={workersPanelOpen}
