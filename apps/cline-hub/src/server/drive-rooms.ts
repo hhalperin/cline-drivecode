@@ -1,4 +1,3 @@
-import type { HubCommandName } from "@cline/shared";
 import type { HubContext } from "./state";
 import type { BrowserPeer } from "./types";
 
@@ -39,10 +38,7 @@ export async function handleDriveRoomsWebviewCommand(
 		: {};
 
 	try {
-		const reply = await ctx.uiClient.command(
-			"call_list_rooms" as HubCommandName,
-			payload,
-		);
+		const reply = await ctx.uiClient.command("call_list_rooms", payload);
 		if (!reply.ok) {
 			ctx.send(peer, {
 				type: "drive_rooms_error",

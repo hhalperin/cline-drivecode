@@ -1303,9 +1303,20 @@ function App() {
 		}
 		return new HubStatusSessionRollupSource(resolveWorkspaceRoot);
 	}, [demoHub.useDemoSessionsAdapter, resolveWorkspaceRoot]);
+	/**
+	 * Read the resolver through a ref so the source keeps one identity. The
+	 * hub rebroadcasts sessions every few seconds, and the Rooms page reloads
+	 * whenever its source changes — a fresh source per broadcast would turn
+	 * that into a poll that re-reads every room's event log.
+	 */
+	const resolveWorkspaceRootRef = useRef(resolveWorkspaceRoot);
+	useEffect(() => {
+		resolveWorkspaceRootRef.current = resolveWorkspaceRoot;
+	}, [resolveWorkspaceRoot]);
 	const roomsSource = useMemo(
-		(): DriveRoomsSource => new HubDriveRoomsSource(resolveWorkspaceRoot),
-		[resolveWorkspaceRoot],
+		(): DriveRoomsSource =>
+			new HubDriveRoomsSource(() => resolveWorkspaceRootRef.current()),
+		[],
 	);
 
 	useEffect(() => {
