@@ -295,13 +295,21 @@ async function collectPortChecks(
 			explicit: daemonPort !== undefined,
 			envVar: "CLINE_HUB_PORT",
 		},
-		{
-			id: "port:hub-dev",
-			label: "Hub daemon (development build env)",
-			port: HUB_DAEMON_DEV_PORT,
-			explicit: false,
-			envVar: "CLINE_HUB_PORT",
-		},
+		// `bun run cli` sets CLINE_BUILD_ENV=development and lands on a second
+		// daemon port — but only when CLINE_HUB_PORT is unset, since an
+		// explicit port wins over the build env. Probing it otherwise would
+		// warn about a port nothing is going to use.
+		...(daemonPort === undefined
+			? [
+					{
+						id: "port:hub-dev",
+						label: "Hub daemon (development build env)",
+						port: HUB_DAEMON_DEV_PORT,
+						explicit: false,
+						envVar: "CLINE_HUB_PORT",
+					},
+				]
+			: []),
 		{
 			id: "port:dashboard",
 			label: "Hub dashboard",

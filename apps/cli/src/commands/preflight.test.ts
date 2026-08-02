@@ -235,6 +235,26 @@ describe("runPreflight", () => {
 		expect(report.checks.some((c) => c.id === "checkout")).toBe(false);
 	});
 
+	it("skips the development daemon port when CLINE_HUB_PORT pins one", async () => {
+		const withoutPin = await runPreflight({
+			cwd: makeTempDir(),
+			env: {},
+			home: makeTempDir(),
+			bunVersion: PINNED_BUN_VERSION,
+			nodeVersion: "22.14.0",
+		});
+		expect(withoutPin.checks.some((c) => c.id === "port:hub-dev")).toBe(true);
+
+		const withPin = await runPreflight({
+			cwd: makeTempDir(),
+			env: { CLINE_HUB_PORT: "25999" },
+			home: makeTempDir(),
+			bunVersion: PINNED_BUN_VERSION,
+			nodeVersion: "22.14.0",
+		});
+		expect(withPin.checks.some((c) => c.id === "port:hub-dev")).toBe(false);
+	});
+
 	it("warns instead of failing when run outside any checkout", async () => {
 		const report = await runPreflight({
 			cwd: makeTempDir(),
