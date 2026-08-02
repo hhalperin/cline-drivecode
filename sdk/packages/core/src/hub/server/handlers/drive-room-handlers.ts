@@ -340,9 +340,11 @@ function ensureEventLog(
 	if (!workspaceRoot) {
 		return;
 	}
-	// Prefer the explicit workspace root. An earlier harness bind may have
-	// attached under tmpdir() before workspaceRoot was known; rebind migrates
-	// prior durable records so seq stays monotonic.
+	// Prefer the explicit workspace root. No durable log exists until one is
+	// known (ADR-0013: a durable room is owned by the workspace whose log
+	// holds it), so this is typically the first bind; if the process is
+	// already durable under a different root, rebind migrates only the rooms
+	// this store holds so seq stays monotonic.
 	rebindJsonlRoomEventLog(store, workspaceRoot);
 }
 

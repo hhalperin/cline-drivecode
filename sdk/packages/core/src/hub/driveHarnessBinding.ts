@@ -57,13 +57,17 @@ export function getHubDriveHarness(input?: {
 		return existing;
 	}
 
+	const resolvedConfigParent = input?.configParent?.trim();
 	const binding: HubHarnessBinding = {
 		harness: null as unknown as DriveHarness,
-		configParent: input?.configParent?.trim() || tmpdir(),
+		// Only used for registry pack resolution (a harmless read-only lookup)
+		// while no workspace root is known — the durable log itself stays
+		// unbound until one arrives, see createClineDriveHost.
+		configParent: resolvedConfigParent || tmpdir(),
 	};
 
 	const host = createClineDriveHost({
-		configParent: binding.configParent,
+		configParent: resolvedConfigParent,
 		store,
 		broadcastFn: (event) => {
 			const capture = hubCommitCapture.getStore();

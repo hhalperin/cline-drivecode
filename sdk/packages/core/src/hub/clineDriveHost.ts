@@ -34,8 +34,15 @@ import {
 } from "./drive-config/driveFacetsStore";
 
 export type ClineDriveHostOptions = {
-	/** Workspace / config parent for facets + room event log. */
-	configParent: string;
+	/**
+	 * Workspace / config parent for facets + room event log. Omit while no
+	 * workspace root is known yet — a durable room is owned by the workspace
+	 * whose log holds it (ADR-0013), so there must be no log until there is a
+	 * workspace. Binding one under a fallback (e.g. tmpdir()) would make the
+	 * process durable to a shared, uncontrolled directory that a later real
+	 * workspace's first join could mistake for its own history.
+	 */
+	configParent?: string;
 	store?: DriveRoomStore;
 	broadcastFn?: (event: DriveEvent) => void;
 	promptRewriteFn?: (decision: PromptRewriteDecision) => Promise<void>;
@@ -45,7 +52,7 @@ export function createClineDriveHost(
 	options: ClineDriveHostOptions,
 ): DriveHostPort {
 	const store = options.store ?? getDriveRoomStore();
-	if (!store.getEventLog()) {
+	if (options.configParent && !store.getEventLog()) {
 		store.attachEventLog(new JsonlRoomEventLog(options.configParent));
 	}
 

@@ -149,6 +149,61 @@ describe("RoomEventLog + DriveRoomStore", () => {
 		}
 	});
 
+	it("rebindJsonlRoomEventLog migrates only rooms this store holds, never every room on disk under the old parent", () => {
+		// Regression: the migration set used to be `store.rooms.keys()` UNION
+		// "every directory found under the old config parent" — so a shared or
+		// stale source directory (a prior run's tmpdir, another process's test
+		// fixtures) could hand a room this process never created to whatever
+		// workspace binds next, making it appear as a real, resumable session.
+		const fromDir = mkdtempSync(join(tmpdir(), "drive-room-from-"));
+		const toDir = mkdtempSync(join(tmpdir(), "drive-room-to-"));
+		try {
+			const fromLog = new JsonlRoomEventLog(fromDir);
+			// A room recorded on disk under fromDir that this store never
+			// touched — stands in for a leftover test fixture / another
+			// process's room sharing the same directory.
+			fromLog.appendSync("stray_fixture", {
+				schemaVersion: 1,
+				id: "e_stray",
+				roomId: "stray_fixture",
+				at: new Date().toISOString(),
+				type: "control.join",
+				track: "control",
+				participant: {
+					id: "h1",
+					kind: "human",
+					displayName: "H",
+					role: "host",
+					status: "idle",
+				},
+			});
+			store.attachEventLog(fromLog);
+
+			// A room this process actually created and holds in memory.
+			store.create("r1");
+			store.join({
+				roomId: "r1",
+				participant: {
+					id: "h1",
+					kind: "human",
+					displayName: "H",
+					role: "host",
+					status: "idle",
+				},
+			});
+
+			rebindJsonlRoomEventLog(store, toDir);
+
+			const rebound = store.getEventLog();
+			expect(rebound).toBeInstanceOf(JsonlRoomEventLog);
+			expect(rebound?.listRoomIds()).toEqual(["r1"]);
+			expect(rebound?.readSinceSync("stray_fixture", 0)).toHaveLength(0);
+		} finally {
+			rmSync(fromDir, { recursive: true, force: true });
+			rmSync(toDir, { recursive: true, force: true });
+		}
+	});
+
 	it("rebindJsonlRoomEventLog is a no-op for the same configParent", () => {
 		const dir = mkdtempSync(join(tmpdir(), "drive-room-same-"));
 		try {

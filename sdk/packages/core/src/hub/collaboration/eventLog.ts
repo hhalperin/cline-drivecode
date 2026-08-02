@@ -250,11 +250,13 @@ export function rebindJsonlRoomEventLog(
 	}
 
 	const next = new JsonlRoomEventLog(nextParent);
+	// Only rooms this store actually holds migrate — never everything the old
+	// config parent happens to contain on disk. The old parent can be a
+	// shared or stale directory (a prior run's tmpdir, another workspace's
+	// root) that holds rooms this process never created — e.g. leftover test
+	// fixtures — and those must never surface as this workspace's rooms.
 	const roomIds = new Set<string>(store.rooms.keys());
 	if (existing instanceof JsonlRoomEventLog) {
-		for (const roomId of listJsonlRoomIds(existing.configParent)) {
-			roomIds.add(roomId);
-		}
 		migrateJsonlRoomEventLog(existing, next, roomIds);
 	}
 

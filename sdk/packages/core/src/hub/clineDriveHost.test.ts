@@ -8,7 +8,7 @@ import { join } from "node:path";
 import { CLINE_HOST_CAPABILITIES, createDriveHarness, runHostConformance } from "@cline/drive";
 import { afterEach, describe, expect, it } from "vitest";
 import { createClineDriveHost } from "./clineDriveHost";
-import { DriveRoomStore } from "./collaboration";
+import { DriveRoomStore, JsonlRoomEventLog } from "./collaboration";
 
 describe("createClineDriveHost", () => {
 	const dirs: string[] = [];
@@ -161,6 +161,30 @@ describe("createClineDriveHost", () => {
 		expect(live.director.showBacklog.some((item) => item.id === "show-1")).toBe(
 			true,
 		);
+	});
+
+	it("does not bind a durable event log when no workspace root is known", () => {
+		// Regression: createClineDriveHost used to fall back to tmpdir() and
+		// eagerly attach a JsonlRoomEventLog there whenever a command reached
+		// the harness before any workspaceRoot was known. Every process on the
+		// machine shares tmpdir(), so that made any command issued pre-join
+		// (or the test suite's own no-workspaceRoot commands) durably write
+		// under a path a later real workspace's first join would read from.
+		const store = new DriveRoomStore();
+		createClineDriveHost({ store });
+		expect(store.getEventLog()).toBeUndefined();
+	});
+
+	it("attaches the durable log once configParent is provided, not before", () => {
+		const dir = mkdtempSync(join(tmpdir(), "cline-drive-host-"));
+		dirs.push(dir);
+		const store = new DriveRoomStore();
+		// First touch with no workspace root known yet: stays in-memory.
+		createClineDriveHost({ store });
+		expect(store.getEventLog()).toBeUndefined();
+		// Workspace root arrives: now it binds, under the real root only.
+		createClineDriveHost({ configParent: dir, store });
+		expect(store.getEventLog()).toBeInstanceOf(JsonlRoomEventLog);
 	});
 
 	it("createDriveHarness scripts.attach commits via DirectorOp", async () => {
