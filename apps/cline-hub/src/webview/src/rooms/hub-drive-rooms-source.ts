@@ -31,34 +31,52 @@ function isRoomsReply(message: HostMessage): message is RoomsReply {
 
 const STOP_REPLY_TYPES = ["room_snapshot", "call_error"] as const;
 
-type StopReply = HostMessage & {
+export type RoomStopReply = HostMessage & {
 	type: "room_snapshot" | "call_error";
 	roomId?: string;
 	command?: string;
 	text?: string;
+	ended?: boolean;
 };
 
-/**
- * `call_end` has no requestId on the wire; `room_snapshot` correlates by
- * roomId and `call_error` by the command that failed.
- */
-export function isRoomStopReply(message: HostMessage): message is StopReply {
+export function isRoomStopReply(
+	message: HostMessage,
+): message is RoomStopReply {
 	return (
 		(message.type === "room_snapshot" || message.type === "call_error") &&
 		isOptionalString(message.roomId) &&
 		isOptionalString(message.command) &&
-		isOptionalString(message.text)
+		isOptionalString(message.text) &&
+		(message.ended === undefined || typeof message.ended === "boolean")
 	);
 }
 
+/**
+ * `call_end` carries no requestId, so a pending stop has to recognise its own
+ * reply out of the shared host-message stream. Two things can fool a naive
+ * match, and both are ordinary traffic rather than edge cases:
+ *
+ * - `room_snapshot` is also **broadcast** for roster changes and mid-call
+ *   updates, so the room's own snapshots arrive constantly. Only a `call_end`
+ *   reply sets `ended` — on both the normal close and the idempotent
+ *   double-end. Handoff narration would not do: the idempotent path returns no
+ *   narration, so keying on it would hang a second Stop instead of resolving
+ *   it.
+ * - `call_error` needs the room as well as the command. Two rooms stopping at
+ *   once would otherwise abort each other, and an unrelated `call_end` failure
+ *   would abort both.
+ */
 export function roomStopReplyMatches(
-	message: StopReply,
+	message: RoomStopReply,
 	roomId: string,
 ): boolean {
+	if (message.roomId !== roomId) {
+		return false;
+	}
 	if (message.type === "call_error") {
 		return message.command === "call_end";
 	}
-	return message.roomId === roomId;
+	return message.ended === true;
 }
 
 /**
@@ -67,15 +85,9 @@ export function roomStopReplyMatches(
  * stays the single writer of room state (ADR-0000 D2).
  */
 export class HubDriveRoomsSource implements DriveRoomsSource {
-	private readonly getWorkspaceRoot: () => string | undefined;
-
-	constructor(getWorkspaceRoot: () => string | undefined) {
-		this.getWorkspaceRoot = getWorkspaceRoot;
-	}
-
-	listRooms(): Promise<DriveRoomDirectoryEntry[]> {
+	listRooms(workspaceRoot?: string): Promise<DriveRoomDirectoryEntry[]> {
 		const requestId = `drive-rooms-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-		const workspaceRoot = this.getWorkspaceRoot()?.trim();
+		const root = workspaceRoot?.trim();
 
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
@@ -110,13 +122,13 @@ export class HubDriveRoomsSource implements DriveRoomsSource {
 			postToHost({
 				type: "call_list_rooms",
 				requestId,
-				...(workspaceRoot ? { workspaceRoot } : {}),
+				...(root ? { workspaceRoot: root } : {}),
 			});
 		});
 	}
 
-	stopRoom(roomId: string): Promise<void> {
-		const workspaceRoot = this.getWorkspaceRoot()?.trim();
+	stopRoom(roomId: string, workspaceRoot?: string): Promise<void> {
+		const root = workspaceRoot?.trim();
 
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
@@ -145,7 +157,7 @@ export class HubDriveRoomsSource implements DriveRoomsSource {
 				type: "call_end",
 				roomId,
 				actorId: DRIVE_PARTICIPANT_HUMAN,
-				...(workspaceRoot ? { workspaceRoot } : {}),
+				...(root ? { workspaceRoot: root } : {}),
 			});
 		});
 	}
