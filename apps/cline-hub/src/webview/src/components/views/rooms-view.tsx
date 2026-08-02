@@ -103,10 +103,17 @@ function RoomCard({
 export function RoomsView({
 	onOpenRoom,
 	roomsSource,
+	workspaceRoot,
 }: {
 	/** Join or rejoin the room — the same flow the Drive page uses. */
 	onOpenRoom: (roomId: string) => void;
 	roomsSource: DriveRoomsSource;
+	/**
+	 * Where the durable room log lives. The hub reports it asynchronously, so
+	 * this is often undefined on the first render — listing again when it
+	 * arrives is what stops the page sitting on an empty, unbound directory.
+	 */
+	workspaceRoot?: string;
 }) {
 	const [cards, setCards] = useState<RoomCardModel[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -116,7 +123,7 @@ export function RoomsView({
 	const refresh = useCallback(async () => {
 		setLoading(true);
 		try {
-			const entries = await roomsSource.listRooms();
+			const entries = await roomsSource.listRooms(workspaceRoot);
 			setCards(entries.map((entry) => roomCardModel(entry)));
 			setError(null);
 		} catch (cause) {
@@ -124,7 +131,7 @@ export function RoomsView({
 		} finally {
 			setLoading(false);
 		}
-	}, [roomsSource]);
+	}, [roomsSource, workspaceRoot]);
 
 	useEffect(() => {
 		void refresh();
@@ -134,7 +141,7 @@ export function RoomsView({
 		async (roomId: string) => {
 			setStoppingRoomId(roomId);
 			try {
-				await roomsSource.stopRoom(roomId);
+				await roomsSource.stopRoom(roomId, workspaceRoot);
 				setStoppingRoomId(null);
 				// refresh() clears the error banner on success.
 				await refresh();
@@ -143,7 +150,7 @@ export function RoomsView({
 				setError(cause instanceof Error ? cause.message : String(cause));
 			}
 		},
-		[refresh, roomsSource],
+		[refresh, roomsSource, workspaceRoot],
 	);
 
 	const liveCount = cards.filter((card) => card.status === "live").length;

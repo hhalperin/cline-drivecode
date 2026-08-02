@@ -1304,19 +1304,18 @@ function App() {
 		return new HubStatusSessionRollupSource(resolveWorkspaceRoot);
 	}, [demoHub.useDemoSessionsAdapter, resolveWorkspaceRoot]);
 	/**
-	 * Read the resolver through a ref so the source keeps one identity. The
-	 * hub rebroadcasts sessions every few seconds, and the Rooms page reloads
-	 * whenever its source changes — a fresh source per broadcast would turn
-	 * that into a poll that re-reads every room's event log.
+	 * The source holds no state, so one instance lasts the session. The Rooms
+	 * page re-lists on the workspace root *value* instead: it settles from
+	 * undefined once the hub reports it, and then stays put across the hub's
+	 * periodic rebroadcasts rather than re-reading every room's event log.
 	 */
-	const resolveWorkspaceRootRef = useRef(resolveWorkspaceRoot);
-	useEffect(() => {
-		resolveWorkspaceRootRef.current = resolveWorkspaceRoot;
-	}, [resolveWorkspaceRoot]);
 	const roomsSource = useMemo(
-		(): DriveRoomsSource =>
-			new HubDriveRoomsSource(() => resolveWorkspaceRootRef.current()),
+		(): DriveRoomsSource => new HubDriveRoomsSource(),
 		[],
+	);
+	const roomsWorkspaceRoot = useMemo(
+		() => resolveWorkspaceRoot(),
+		[resolveWorkspaceRoot],
 	);
 
 	useEffect(() => {
@@ -1512,7 +1511,13 @@ function App() {
 			);
 		}
 		if (view === "rooms") {
-			return <RoomsView onOpenRoom={openRoom} roomsSource={roomsSource} />;
+			return (
+				<RoomsView
+					onOpenRoom={openRoom}
+					roomsSource={roomsSource}
+					workspaceRoot={roomsWorkspaceRoot}
+				/>
+			);
 		}
 		if (view === "status") {
 			return (
@@ -1634,6 +1639,7 @@ function App() {
 		openRoom,
 		openStatusSessionRoom,
 		roomsSource,
+		roomsWorkspaceRoot,
 		statusSessionSource,
 		statusTeamsSource,
 		hubState,
