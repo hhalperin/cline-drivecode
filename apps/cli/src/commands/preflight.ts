@@ -11,6 +11,7 @@
  * are worth hearing. `cline doctor preflight` runs the same checks after.
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import net from "node:net";
 import { homedir } from "node:os";
@@ -367,6 +368,21 @@ export function checkProvider(input: {
 	};
 }
 
+/**
+ * The installed Node, not Bun's emulated one.
+ *
+ * Under Bun `process.versions.node` reports whatever Node API level Bun claims
+ * (24.x today), which says nothing about whether Node is installed — so asking
+ * the binary is the only way to check `engines.node` honestly.
+ */
+export function detectNodeVersion(): string | undefined {
+	if (!process.versions.bun) {
+		return process.versions.node;
+	}
+	const result = spawnSync("node", ["--version"], { encoding: "utf8" });
+	return result.status === 0 ? result.stdout.trim() : undefined;
+}
+
 export type RunPreflightOptions = {
 	/** Checkout to inspect. Defaults to the current working directory. */
 	readonly cwd?: string;
@@ -385,7 +401,7 @@ export async function runPreflight(
 	const root = findRepoRoot(start);
 	const checks: PreflightCheck[] = [
 		checkBunVersion({ actual: options.bunVersion ?? process.versions.bun }),
-		checkNodeVersion({ actual: options.nodeVersion ?? process.versions.node }),
+		checkNodeVersion({ actual: options.nodeVersion ?? detectNodeVersion() }),
 	];
 
 	if (root) {
