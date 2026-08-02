@@ -204,6 +204,83 @@ describe("RoomEventLog + DriveRoomStore", () => {
 		}
 	});
 
+	it("flushes the in-memory pre-bind buffer into the durable log when it attaches", () => {
+		// Regression (Bugbot on #132): DriveRoomStore starts on a bounded
+		// in-memory buffer so commits before a workspace root is known are
+		// never silently un-durable. If rebind only migrated from an
+		// *existing JsonlRoomEventLog*, the buffer's events had nowhere to
+		// go — the durable log would attach having never seen the room's
+		// start, and a restart would hydrate an incomplete history.
+		const dir = mkdtempSync(join(tmpdir(), "drive-room-buffer-"));
+		try {
+			// DriveRoomStore's real default, not a fresh MemoryRoomEventLog —
+			// this is what a hub actually runs on before a workspace is known.
+			expect(store.getEventLog()).toBeInstanceOf(MemoryRoomEventLog);
+			store.create("r1");
+			store.join({
+				roomId: "r1",
+				participant: {
+					id: "h1",
+					kind: "human",
+					displayName: "H",
+					role: "host",
+					status: "idle",
+				},
+			});
+			store.mute({ roomId: "r1", participantId: "h1", muted: true });
+			expect(store.lastSeq("r1")).toBe(2);
+
+			rebindJsonlRoomEventLog(store, dir, ["r1"]);
+
+			const log = store.getEventLog();
+			expect(log).toBeInstanceOf(JsonlRoomEventLog);
+			expect(log?.readSinceSync("r1", 0)).toHaveLength(2);
+			expect(store.lastSeq("r1")).toBe(2);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("does not flush an unrelated buffered room into a differently-scoped bind", () => {
+		// Companion to the flush test: a second room this same process
+		// happens to have resident (also on the pre-bind buffer) must not
+		// ride along just because it is in store.rooms — only the room the
+		// caller's operation names may cross into the newly bound workspace.
+		const dir = mkdtempSync(join(tmpdir(), "drive-room-scoped-"));
+		try {
+			store.create("r1");
+			store.join({
+				roomId: "r1",
+				participant: {
+					id: "h1",
+					kind: "human",
+					displayName: "H",
+					role: "host",
+					status: "idle",
+				},
+			});
+			store.create("unrelated");
+			store.join({
+				roomId: "unrelated",
+				participant: {
+					id: "h2",
+					kind: "human",
+					displayName: "H2",
+					role: "host",
+					status: "idle",
+				},
+			});
+
+			rebindJsonlRoomEventLog(store, dir, ["r1"]);
+
+			const log = store.getEventLog() as JsonlRoomEventLog;
+			expect(log.listRoomIds()).toEqual(["r1"]);
+			expect(log.readSinceSync("unrelated", 0)).toHaveLength(0);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
 	it("rebindJsonlRoomEventLog is a no-op for the same configParent", () => {
 		const dir = mkdtempSync(join(tmpdir(), "drive-room-same-"));
 		try {

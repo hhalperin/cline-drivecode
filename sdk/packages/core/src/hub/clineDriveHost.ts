@@ -18,7 +18,7 @@ import { parseDriveFacetValues } from "@cline/shared";
 import {
 	type DriveRoomStore,
 	getDriveRoomStore,
-	JsonlRoomEventLog,
+	rebindJsonlRoomEventLog,
 } from "./collaboration";
 import {
 	advanceScriptOnStore,
@@ -52,8 +52,11 @@ export function createClineDriveHost(
 	options: ClineDriveHostOptions,
 ): DriveHostPort {
 	const store = options.store ?? getDriveRoomStore();
-	if (options.configParent && !store.getEventLog()) {
-		store.attachEventLog(new JsonlRoomEventLog(options.configParent));
+	if (options.configParent) {
+		// Idempotent and migration-aware: replays whatever the store was
+		// durable to before (the in-memory pre-bind buffer, or a prior real
+		// log) into this configParent, and no-ops if already bound to it.
+		rebindJsonlRoomEventLog(store, options.configParent);
 	}
 
 	const subscribers = new Set<(event: DriveEvent) => void>();

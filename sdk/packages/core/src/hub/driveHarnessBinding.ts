@@ -50,8 +50,10 @@ export function getHubDriveHarness(input?: {
 		if (nextParent && nextParent !== existing.configParent) {
 			existing.configParent = nextParent;
 			// Keep durable room events aligned with registry resolution parent.
-			// First bind may have attached under tmpdir() before workspaceRoot existed;
-			// rebind migrates prior records so seq stays monotonic.
+			// The store may still be on its in-memory pre-bind buffer (no
+			// workspaceRoot was known at first bind) or bound to a different
+			// root; rebind replays whichever it holds so seq stays monotonic
+			// and nothing committed before this point is lost.
 			rebindJsonlRoomEventLog(store, nextParent);
 		}
 		return existing;
