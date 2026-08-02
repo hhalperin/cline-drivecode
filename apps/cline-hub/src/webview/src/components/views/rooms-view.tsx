@@ -191,7 +191,9 @@ export function RoomsView({
 					here after you stop it.
 				</PageEmptyState>
 			) : (
-				<ul className="grid list-none gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(19rem,1fr))]">
+				// 24rem keeps name + status + meta + both buttons on one row; below
+				// that the grid drops to a single column rather than truncating.
+				<ul className="grid list-none gap-2.5 [grid-template-columns:repeat(auto-fill,minmax(24rem,1fr))]">
 					{cards.map((card) => (
 						<RoomCard
 							card={card}

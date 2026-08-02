@@ -62,7 +62,7 @@ describe("roomCardModel", () => {
 		expect(card.meta).toBe("act mode kept · 1 card of history");
 	});
 
-	it("falls back when Drive is active with nobody seated", () => {
+	it("falls back when a live entry names nobody", () => {
 		const card = roomCardModel(entry({ participantNames: [] }), NOW);
 		expect(card.meta).toBe("Drive active · started 2m ago");
 	});

@@ -145,32 +145,52 @@ describe("projectRoomDirectoryEntry", () => {
 		expect(entry.cardCount).toBe(2);
 	});
 
-	it("calls a drained room paused, not ended", () => {
-		const entry = projectRoomDirectoryEntry({
-			roomId: ROOM,
-			events: [
-				{
-					schemaVersion: 1,
-					id: "e1",
-					roomId: ROOM,
-					at: ts(10),
-					type: "control.join",
-					track: "control",
-					participant: HUMAN,
-				},
-				{
-					schemaVersion: 1,
-					id: "e2",
-					roomId: ROOM,
-					at: ts(20),
-					type: "control.leave",
-					track: "control",
-					participantId: HUMAN.id,
-				},
-			],
-		});
+	/**
+	 * Regression: `control.leave` does not clear `driveActive`, so a room
+	 * everyone left still carries the flag. Reading liveness off it left
+	 * drained rooms stuck on "Live" against a real hub.
+	 */
+	it("calls a drained room paused even though driveActive is still set", () => {
+		const events: DriveEvent[] = [
+			{
+				schemaVersion: 1,
+				id: "e1",
+				roomId: ROOM,
+				at: ts(10),
+				type: "control.join",
+				track: "control",
+				participant: HUMAN,
+			},
+			{
+				schemaVersion: 1,
+				id: "e2",
+				roomId: ROOM,
+				at: ts(15),
+				type: "control.mode",
+				track: "control",
+				subMode: "act",
+				driveActive: true,
+			},
+			{
+				schemaVersion: 1,
+				id: "e3",
+				roomId: ROOM,
+				at: ts(20),
+				type: "control.leave",
+				track: "control",
+				participantId: HUMAN.id,
+			},
+		];
 
-		expect(entry.status).toBe("paused");
+		let folded = createEmptyRoomSnapshot({ roomId: ROOM, createdAt: ts(10) });
+		for (const event of events) {
+			folded = reduceRoom(folded, event);
+		}
+		expect(folded.driveActive).toBe(true);
+
+		expect(projectRoomDirectoryEntry({ roomId: ROOM, events }).status).toBe(
+			"paused",
+		);
 	});
 
 	it("prefers the resident snapshot over a trimmed log", () => {

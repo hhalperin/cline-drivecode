@@ -16,7 +16,7 @@ import type { DriveEvent, DriveSubMode, RoomSnapshot } from "@cline/shared";
 import { createEmptyRoomSnapshot, reduceRoom } from "../reduceRoom.js";
 
 /**
- * - `live` — someone is still seated (or Drive is active).
+ * - `live` — someone is still seated.
  * - `ended` — the log tail is a `control.end`: stopped on purpose, handoff
  *   assembled. Resumable — `control.join` reopens it.
  * - `paused` — drained (everyone left) or interrupted, never explicitly
@@ -39,11 +39,16 @@ export type DriveRoomDirectoryEntry = {
 	readonly eventCount: number;
 };
 
+/**
+ * The roster is the only honest liveness signal. `driveActive` is not: only
+ * `control.end` clears it, so a room everyone merely *left* keeps the flag
+ * set and would read live forever.
+ */
 function statusOf(
 	snapshot: RoomSnapshot,
 	endedAtTail: boolean,
 ): DriveRoomStatus {
-	if (snapshot.participants.length > 0 || snapshot.driveActive) {
+	if (snapshot.participants.length > 0) {
 		return "live";
 	}
 	return endedAtTail ? "ended" : "paused";
