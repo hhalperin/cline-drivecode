@@ -97,7 +97,12 @@ function ArtifactCard({
 		<div
 			className={cn(
 				// The frame clips, so the card caps itself and scrolls its body.
-				"flex max-h-full min-h-0 w-full max-w-[42rem] flex-col overflow-hidden rounded-lg border border-amber-400/45 bg-card",
+				// `self-stretch` overrides the screen-body grid's `place-items-center`
+				// (which sizes grid items to content) so the card gets a definite
+				// height to hand its `flex-1` body — without it, a mermaid diagram's
+				// `h-full` SVG has no real height to resolve against and collapses to
+				// a few px regardless of how tall the frame is.
+				"flex max-h-full min-h-0 w-full max-w-[42rem] flex-col self-stretch overflow-hidden rounded-lg border border-amber-400/45 bg-card",
 				className,
 			)}
 		>
@@ -344,7 +349,7 @@ export function ScreenArtifact({ artifact }: { artifact: ArtifactBodySource }) {
 			);
 		case "image":
 			return (
-				<figure className="flex max-h-full min-h-0 w-full max-w-3xl flex-col items-center gap-3">
+				<figure className="flex max-h-full min-h-0 w-full max-w-3xl flex-col items-center gap-3 self-stretch">
 					{/* The screen scales the artifact; it never scrolls out of frame. */}
 					<img
 						// The caption is the fuller description. It renders in the
