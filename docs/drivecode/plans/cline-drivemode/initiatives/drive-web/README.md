@@ -1,8 +1,9 @@
-# drive-web · `drive.cline.bot` responsive prototype
+# drive-web · `cline.drivemode.ai` responsive prototype
 
 **Status:** plan (opened 2026-08-02)
 **Goal:** a working Drive-mode web app prototype that opens on a phone, a
 laptop or a desktop and needs no backend and no credentials.
+**Hosted at:** `cline.drivemode.ai` — see [hosted-preview](../hosted-preview/README.md).
 **Absorbs:** the Phase 1 gate failure (stage renders **624 × 9 px** at the
 gate's own 1280×640 viewport) and the missing `prefers-color-scheme` support.
 
@@ -85,12 +86,11 @@ That is the layout contract to extract — not a pixel tweak.
 
 ## Open questions for the owner
 
-1. **The domain is not ours.** `drive.cline.bot` is a subdomain of
-   **cline.bot**, which belongs to Cline, not to this fork. ADR-0016 decided
-   Route B — stay in `hhalperin/cline-drivecode`, nothing upstream — and a
-   page under Cline's domain reads as an official Cline product. Building and
-   naming the prototype costs nothing; **publishing** it there needs either
-   control of that DNS or a different hostname. Flagging before, not after.
+1. **The domain is settled, and it is not `drive.cline.bot`.** That is a
+   subdomain of Cline's domain, not ours, and a page there would read as an
+   official Cline product. The hostname is **`cline.drivemode.ai`**, on a
+   domain we own, with infrastructure in `drive-mode/site` — see
+   [hosted-preview](../hosted-preview/README.md).
 2. **How honest should the prototype be about being a prototype?** A visible
    "no hub attached" affordance is more trustworthy but less impressive.
    Recommendation: honest, quietly.
