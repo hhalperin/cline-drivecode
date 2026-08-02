@@ -1,6 +1,8 @@
 import type { StageCard } from "@cline/shared";
 import {
 	ApertureIcon,
+	CaptionsIcon,
+	CaptionsOffIcon,
 	EarIcon,
 	HandIcon,
 	HeadphoneOffIcon,
@@ -222,11 +224,12 @@ function StripButton({
  * settings panel edits and the same one `speak()` and `driveEarconVolume()`
  * read. Nothing is stored here.
  *
- * Hidden below `sm`. Measured at 520px the strip is already full — twelve
- * controls come to 477px inside 488px of content box — so 64px of slider is
- * the one thing there is no room for. It yields to the buttons rather than
- * pushing Leave off the edge of a strip whose scrollbar is hidden; volume is
- * still one click away in the settings panel, whose button never leaves.
+ * Hidden below `sm`. Measured at 520px with every optional control present,
+ * the twelve buttons and the mode pill span 469px of a 488px content box —
+ * 19px of slack, against the 72px this slider and its gap want. It yields
+ * rather than pushing Leave past the edge of a strip whose scrollbar is
+ * hidden; volume stays one click away in the settings panel, whose button
+ * never leaves the strip.
  */
 function StripVolume({
 	disabled,
@@ -241,13 +244,17 @@ function StripVolume({
 	volume: number;
 }) {
 	const percent = outputVolumePercent(volume);
-	const label = `Partner volume: ${percent}%`;
+	const valueText = `${percent}%`;
 	return (
 		<Tooltip>
 			<TooltipTrigger
 				render={
 					<input
-						aria-label={label}
+						// The name stays put and the value rides `aria-valuetext`;
+						// baking the percent into the label would rename the control
+						// on every arrow key and say the number twice.
+						aria-label="Partner volume"
+						aria-valuetext={valueText}
 						className={cn(
 							"hidden h-[30px] w-16 shrink-0 cursor-pointer rounded-full accent-amber-600 outline-none sm:block dark:accent-amber-400",
 							// The strip's buttons get their focus ring from the Button
@@ -267,7 +274,7 @@ function StripVolume({
 					/>
 				}
 			/>
-			<TooltipContent>{label}</TooltipContent>
+			<TooltipContent>{`Partner volume: ${valueText}`}</TooltipContent>
 		</Tooltip>
 	);
 }
@@ -333,6 +340,7 @@ function DriveModePill({
 }
 
 export function DriveCallStrip({
+	captionsOpen,
 	drive,
 	disabled,
 	outputVolume,
@@ -343,6 +351,7 @@ export function DriveCallStrip({
 	onDeafenToggle,
 	onHandToggle,
 	onOutputVolumeChange,
+	onToggleCaptions,
 	onSubModeChange,
 	onClearOverride,
 	onLeaveDrive,
@@ -352,6 +361,8 @@ export function DriveCallStrip({
 	onTogglePartnerDeafen,
 	onToggleWorkers,
 }: {
+	/** CC panel open — the strip button is its only control. */
+	captionsOpen: boolean;
 	drive: DriveUiState;
 	disabled?: boolean;
 	/** `driveVoice.hardware.outputVolume` in [0, 1] — never a local copy. */
@@ -365,6 +376,7 @@ export function DriveCallStrip({
 	onDeafenToggle?: () => void;
 	onHandToggle: () => void;
 	onOutputVolumeChange: (volume: number) => void;
+	onToggleCaptions: () => void;
 	onSubModeChange: (mode: DriveSubMode) => void;
 	onClearOverride?: () => void;
 	/** Hang up: leaves the call, work continues. Never the Tier-0 End. */
@@ -503,6 +515,20 @@ export function DriveCallStrip({
 				{/* Their hearing, not yours — the headphones glyph now belongs to
 				    the self-deafen control two buttons back. */}
 				<EarIcon />
+			</StripButton>
+			{/* Canvas position: the last icon before the mode pill. */}
+			<StripButton
+				disabled={disabled}
+				label={
+					captionsOpen
+						? "Hide live captions"
+						: "Show live captions (nothing is saved)"
+				}
+				onClick={onToggleCaptions}
+				pressed={captionsOpen}
+				tone={captionsOpen ? "live" : "neutral"}
+			>
+				{captionsOpen ? <CaptionsIcon /> : <CaptionsOffIcon />}
 			</StripButton>
 			<DriveModePill
 				disabled={disabled}
