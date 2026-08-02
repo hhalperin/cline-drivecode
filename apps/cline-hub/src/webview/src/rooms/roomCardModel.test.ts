@@ -1,6 +1,7 @@
 import type { DriveRoomDirectoryEntry } from "@cline/drive";
 import { describe, expect, it } from "vitest";
 import {
+	endedRoomEntry,
 	roomCardModel,
 	roomDirectoryEntryFromUnknown,
 	roomRelativeTime,
@@ -65,6 +66,35 @@ describe("roomCardModel", () => {
 	it("falls back when a live entry names nobody", () => {
 		const card = roomCardModel(entry({ participantNames: [] }), NOW);
 		expect(card.meta).toBe("Drive active · started 2m ago");
+	});
+});
+
+describe("endedRoomEntry", () => {
+	/**
+	 * A stop that succeeds and a re-list that fails are separate facts. The
+	 * card must stop claiming Live even if the refresh never lands.
+	 */
+	it("clears the roster and stops offering Stop", () => {
+		const card = roomCardModel(endedRoomEntry(entry()), NOW);
+		expect(card.statusLabel).toBe("Stopped");
+		expect(card.canStop).toBe(false);
+		expect(card.primaryAction).toBe("start");
+	});
+
+	it("keeps the configuration and history Start brings back", () => {
+		const ended = endedRoomEntry(entry());
+		expect(ended.subMode).toBe("act");
+		expect(ended.cardCount).toBe(2);
+		expect(ended.addressMode).toBe("everyone");
+		expect(ended.createdAt).toBe(entry().createdAt);
+		expect(roomCardModel(ended, NOW).meta).toBe(
+			"act mode kept · 2 cards of history",
+		);
+	});
+
+	it("leaves an already-ended room untouched", () => {
+		const already = entry({ status: "ended", participantNames: [] });
+		expect(endedRoomEntry(already)).toBe(already);
 	});
 });
 

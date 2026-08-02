@@ -10,14 +10,18 @@
  * normal join flow, so the hub remains the single writer of room state.
  */
 
-import type { DriveRoomStatus } from "@cline/drive";
+import type { DriveRoomDirectoryEntry, DriveRoomStatus } from "@cline/drive";
 import { DoorOpenIcon, RefreshCwIcon } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { DriveRoomsSource } from "../../rooms/drive-rooms-source";
-import { type RoomCardModel, roomCardModel } from "../../rooms/roomCardModel";
+import {
+	endedRoomEntry,
+	type RoomCardModel,
+	roomCardModel,
+} from "../../rooms/roomCardModel";
 import { PageEmptyState, PageFrame, PageHeader } from "./page-layout";
 
 /** Live borrows the Status Hub's "running" ink; stopped rooms stay quiet. */
@@ -115,16 +119,25 @@ export function RoomsView({
 	 */
 	workspaceRoot?: string;
 }) {
-	const [cards, setCards] = useState<RoomCardModel[]>([]);
+	const [entries, setEntries] = useState<DriveRoomDirectoryEntry[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [stoppingRoomId, setStoppingRoomId] = useState<string | null>(null);
+	/** Workspace the rooms on screen were listed for. */
+	const loadedRootRef = useRef<string | undefined>(undefined);
 
 	const refresh = useCallback(async () => {
 		setLoading(true);
+		// Rooms belong to the workspace they were listed for. Drop them the
+		// moment the workspace changes, so a slow or failing list can never
+		// leave another project's rooms on screen.
+		if (loadedRootRef.current !== workspaceRoot) {
+			setEntries([]);
+		}
 		try {
-			const entries = await roomsSource.listRooms(workspaceRoot);
-			setCards(entries.map((entry) => roomCardModel(entry)));
+			const listed = await roomsSource.listRooms(workspaceRoot);
+			loadedRootRef.current = workspaceRoot;
+			setEntries(listed);
 			setError(null);
 		} catch (cause) {
 			setError(cause instanceof Error ? cause.message : String(cause));
@@ -143,6 +156,15 @@ export function RoomsView({
 			try {
 				await roomsSource.stopRoom(roomId, workspaceRoot);
 				setStoppingRoomId(null);
+				// The hub has confirmed this room ended. Land that before
+				// re-listing: a stop that succeeds and a refresh that fails are
+				// separate facts, and the card must not go on offering Stop for a
+				// room we know is closed.
+				setEntries((current) =>
+					current.map((entry) =>
+						entry.roomId === roomId ? endedRoomEntry(entry) : entry,
+					),
+				);
 				// refresh() clears the error banner on success.
 				await refresh();
 			} catch (cause) {
@@ -153,6 +175,10 @@ export function RoomsView({
 		[refresh, roomsSource, workspaceRoot],
 	);
 
+	const cards = useMemo(
+		() => entries.map((entry) => roomCardModel(entry)),
+		[entries],
+	);
 	const liveCount = cards.filter((card) => card.status === "live").length;
 
 	return (

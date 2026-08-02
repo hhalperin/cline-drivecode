@@ -89,6 +89,23 @@ export function roomCardModel(
 }
 
 /**
+ * The entry a room becomes once the hub confirms `call_end` closed it: the
+ * roster is cleared and the room reads Stopped, while its configuration and
+ * stage history — the things Start brings back — are left untouched.
+ *
+ * Applied locally so a confirmed stop survives a failed re-list. It mirrors
+ * what `control.end` does to the snapshot, so the next successful list agrees.
+ */
+export function endedRoomEntry(
+	entry: DriveRoomDirectoryEntry,
+): DriveRoomDirectoryEntry {
+	if (entry.status === "ended") {
+		return entry;
+	}
+	return { ...entry, status: "ended", participantNames: [] };
+}
+
+/**
  * Reject anything that is not the structural entry shape. Unknown fields are
  * dropped rather than passed through, so a future hub cannot widen what the
  * page holds in state without this file agreeing.
