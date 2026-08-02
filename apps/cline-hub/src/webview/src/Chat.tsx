@@ -1818,7 +1818,11 @@ export default function Chat({
 									: null
 							}
 							humanSharing={drive.stageSharer === "you"}
-							narration={driveJoinNote}
+							// The presented show's caption is live narration —
+							// `drive_script_beat` overwrites it with the spoken line, and a
+							// beat can arrive before anything is staged. It outranks the
+							// one-time join note, which is orientation copy.
+							narration={presentedShow?.caption ?? driveJoinNote}
 							nextLabel={
 								drive.bankSnapshot.nextTitle ??
 								drive.bankSnapshot.nextTaskId ??

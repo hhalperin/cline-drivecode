@@ -49,6 +49,11 @@ export type SpotlightArtifact = {
 	/** Director sticky policy for this show ("hold" | "replace"). */
 	sticky?: string;
 	title?: string;
+	/**
+	 * Live narration for this show — the backlog caption until a script beat
+	 * overwrites it. It renders in the frame's subtitle slot rather than the
+	 * figcaption, so a beat that lands before anything is staged stays readable.
+	 */
 	caption?: string;
 	uri?: string;
 };
@@ -324,9 +329,6 @@ function ScreenArtifact({ artifact }: { artifact: SpotlightArtifact }) {
 				<p className="text-sm font-medium text-zinc-100">
 					{artifact.title ?? "Presented artifact"}
 				</p>
-				{artifact.caption ? (
-					<p className="mt-1 text-xs text-zinc-400">{artifact.caption}</p>
-				) : null}
 			</figcaption>
 		</figure>
 	);
