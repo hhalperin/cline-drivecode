@@ -72,6 +72,7 @@ function readPersistedDriveUi(): DriveUiState {
 				bankSnapshot:
 					state.driveUi.bankSnapshot ?? DEFAULT_DRIVE_UI.bankSnapshot,
 				postureOverride: state.driveUi.postureOverride ?? null,
+				deafened: state.driveUi.deafened ?? DEFAULT_DRIVE_UI.deafened,
 				spotlightParticipantId:
 					state.driveUi.spotlightParticipantId ??
 					DEFAULT_DRIVE_UI.spotlightParticipantId,
@@ -624,6 +625,7 @@ export type UseDriveSessionResult = {
 	setForkRetain: (workerSessionId: string, retain: boolean) => void;
 	stripHandlers: {
 		onClearOverride: () => void;
+		onDeafenToggle: () => void;
 		onHandToggle: () => void;
 		onMuteToggle: () => void;
 		onOpenSettings: () => void;
@@ -1312,16 +1314,23 @@ export function useDriveSession(
 		[driveVoice, args.providerId],
 	);
 
-	/** Mute (human or partner) immediately cancels in-flight TTS (DRV-TTS). */
+	/**
+	 * Silencing immediately cancels in-flight TTS (DRV-TTS).
+	 *
+	 * Same instant-cut behaviour as before, on the toggles that actually govern
+	 * output: self-deafen and partner mute. Mic mute is no longer an input here
+	 * — cutting the partner off mid-sentence because you muted your own mic was
+	 * the conflation this separation removes.
+	 */
 	useEffect(() => {
-		if (!drive.muted && !drive.partnerMuted) {
+		if (!drive.deafened && !drive.partnerMuted) {
 			return;
 		}
 		if (!driveVoiceResolved.ok) {
 			return;
 		}
 		createVoiceStack(driveVoiceResolved.topology).tts.cancel();
-	}, [drive.muted, drive.partnerMuted, driveVoiceResolved]);
+	}, [drive.deafened, drive.partnerMuted, driveVoiceResolved]);
 
 	/** Speak partner join note once when TTS is enabled and unmuted. */
 	const spokenJoinNoteRef = useRef<string | null>(null);
@@ -1345,7 +1354,7 @@ export function useDriveSession(
 		if (
 			!shouldSpeakDriveTts({
 				facets: driveVoice.facets,
-				muted: drive.muted,
+				deafened: drive.deafened,
 				partnerMuted: drive.partnerMuted,
 			})
 		) {
@@ -1361,7 +1370,7 @@ export function useDriveSession(
 		);
 	}, [
 		drive.active,
-		drive.muted,
+		drive.deafened,
 		drive.partnerMuted,
 		driveJoinNote,
 		driveVoice.facets,
@@ -1479,6 +1488,11 @@ export function useDriveSession(
 					// remains authoritative via applyRoomSnapshot.
 					return { ...current, handRaised: raised };
 				});
+			},
+			onDeafenToggle: () => {
+				// Purely local: nobody else's experience changes, so there is no
+				// hub op and no wire field to keep in sync.
+				setDrive((current) => ({ ...current, deafened: !current.deafened }));
 			},
 			onMuteToggle: () => {
 				setDrive((current) => {

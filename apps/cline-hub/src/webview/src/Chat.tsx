@@ -1431,7 +1431,7 @@ export default function Chat({
 				driveVoiceResolved.ok &&
 				shouldSpeakDriveTts({
 					facets: driveVoice.facets,
-					muted: drive.muted,
+					deafened: drive.deafened,
 					partnerMuted: drive.partnerMuted,
 				})
 			) {
