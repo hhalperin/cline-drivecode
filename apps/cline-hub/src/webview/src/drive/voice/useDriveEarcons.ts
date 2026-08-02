@@ -46,6 +46,13 @@ export function useDriveEarcons(input: {
 	/** Latest gate + playback settings, so only the signals retrigger. */
 	const settingsRef = useRef(input);
 	settingsRef.current = input;
+	/**
+	 * One playback chain across effect runs. Sequencing inside a single run is
+	 * not enough: two transitions landing a tone-length apart (a task completing
+	 * while an approval arrives) each start their own loop, and the tones stack
+	 * into the chord the in-run ordering exists to avoid.
+	 */
+	const chainRef = useRef<Promise<void>>(Promise.resolve());
 
 	const active = input.active;
 	const planId = input.planId;
@@ -82,16 +89,24 @@ export function useDriveEarcons(input: {
 		if (allowed.length === 0) {
 			return;
 		}
-		const volume = driveEarconVolume(settings.outputVolume);
-		void (async () => {
-			// Sequential so a rare double transition reads as two tones, not a chord.
-			for (const kind of allowed) {
-				await playDriveEarcon({
-					kind,
-					volume,
-					sinkId: settings.speakerDeviceId,
-				});
-			}
-		})();
+		chainRef.current = chainRef.current
+			.then(async () => {
+				// Sequential so a double transition reads as two tones, not a chord.
+				for (const kind of allowed) {
+					// Re-read at play time: a queued tone must not sound after the
+					// user deafens or leaves. Deafen silences immediately (DRV-TTS).
+					const live = settingsRef.current;
+					if (!live.active || live.outputSilenced) {
+						return;
+					}
+					await playDriveEarcon({
+						kind,
+						volume: driveEarconVolume(live.outputVolume),
+						sinkId: live.speakerDeviceId,
+					});
+				}
+			})
+			// A failed tone must not poison the chain for every later earcon.
+			.catch(() => undefined);
 	}, [active, planId, openTaskKey, approvalKey, participantKey]);
 }
