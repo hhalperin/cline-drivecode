@@ -999,4 +999,142 @@ describe("handleDriveRoomCommand", () => {
 		expect(capped.ok).toBe(false);
 		expect(capped.error?.code).toBe("seat_cap_exceeded");
 	});
+
+	/**
+	 * The Rooms gate: stop a room, restart it, config + history survive —
+	 * across a hub process restart. `resetDriveRoomStoreForTests()` between
+	 * the phases stands in for the new process: nothing but the JSONL under
+	 * the workspace root carries state across it.
+	 */
+	it("call_list_rooms surfaces stopped rooms across a hub restart", async () => {
+		const workspaceRoot = mkdtempSync(join(tmpdir(), "drive-rooms-"));
+		try {
+			resetDriveRoomStoreForTests();
+			let ctx = makeCtx();
+
+			await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_join",
+				requestId: "rl_join",
+				payload: {
+					roomId: "demo-polish",
+					human: { id: "you", displayName: "You" },
+					agent: { id: "adam", displayName: "Adam" },
+					workspaceRoot,
+				},
+			});
+			await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_set_mode",
+				requestId: "rl_mode",
+				payload: { roomId: "demo-polish", subMode: "act", driveActive: true },
+			});
+			await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_record_work",
+				requestId: "rl_work",
+				payload: {
+					roomId: "demo-polish",
+					work: { kind: "edit", path: "src/rooms.ts" },
+				},
+			});
+
+			const live = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_list_rooms",
+				requestId: "rl_1",
+				payload: { workspaceRoot },
+			});
+			expect(live.ok).toBe(true);
+			const beforeStop = (live.payload?.rooms as Array<{ status: string }>)[0];
+			expect(beforeStop?.status).toBe("live");
+
+			await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_end",
+				requestId: "rl_stop",
+				payload: { roomId: "demo-polish", actorId: "you", workspaceRoot },
+			});
+
+			// New hub process: only the durable log crosses this line.
+			resetDriveRoomStoreForTests();
+			ctx = makeCtx();
+
+			const listed = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_list_rooms",
+				requestId: "rl_2",
+				payload: { workspaceRoot },
+			});
+			expect(listed.ok).toBe(true);
+			const rooms = listed.payload?.rooms as Array<{
+				roomId: string;
+				status: string;
+				subMode: string;
+				cardCount: number;
+				participantNames: string[];
+			}>;
+			const stopped = rooms.find((room) => room.roomId === "demo-polish");
+			expect(stopped?.status).toBe("ended");
+			expect(stopped?.subMode).toBe("act");
+			expect(stopped?.cardCount).toBe(1);
+			expect(stopped?.participantNames).toEqual([]);
+
+			// Listing must not resurrect the room into live hub state.
+			const store = getDriveRoomStore();
+			expect(store.rooms.has("demo-polish")).toBe(false);
+			expect(store.getActiveCallSessionId("demo-polish")).toBeUndefined();
+
+			// Restart: the room reopens with its configuration and stage intact.
+			const restarted = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_join",
+				requestId: "rl_restart",
+				payload: {
+					roomId: "demo-polish",
+					human: { id: "you", displayName: "You" },
+					agent: { id: "adam", displayName: "Adam" },
+					workspaceRoot,
+				},
+			});
+			expect(restarted.ok).toBe(true);
+			const snapshot = restarted.payload?.snapshot as {
+				subMode: string;
+				stage: { cards: Array<{ title: string }> };
+			};
+			expect(snapshot.subMode).toBe("act");
+			expect(snapshot.stage.cards.map((card) => card.title)).toEqual([
+				"src/rooms.ts",
+			]);
+
+			const afterRestart = await handleDriveRoomCommand(ctx, {
+				version: "v1",
+				command: "call_list_rooms",
+				requestId: "rl_3",
+				payload: { workspaceRoot },
+			});
+			const relisted = (
+				afterRestart.payload?.rooms as Array<{
+					roomId: string;
+					status: string;
+				}>
+			).find((room) => room.roomId === "demo-polish");
+			expect(relisted?.status).toBe("live");
+		} finally {
+			rmSync(workspaceRoot, { recursive: true, force: true });
+		}
+	});
+
+	it("call_list_rooms returns an empty directory when no room exists", async () => {
+		resetDriveRoomStoreForTests();
+		const ctx = makeCtx();
+		const reply = await handleDriveRoomCommand(ctx, {
+			version: "v1",
+			command: "call_list_rooms",
+			requestId: "rl_empty",
+			payload: {},
+		});
+		expect(reply.ok).toBe(true);
+		expect(reply.payload?.rooms).toEqual([]);
+	});
 });

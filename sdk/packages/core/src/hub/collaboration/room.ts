@@ -87,6 +87,19 @@ export class DriveRoomStore {
 		return this.rooms.get(roomId);
 	}
 
+	/**
+	 * Every room this hub can speak for: resident ones plus everything the
+	 * durable log remembers. Read-only — listing a stopped room must not
+	 * hydrate it back into memory or reopen a call session.
+	 */
+	listRoomIds(): string[] {
+		const ids = new Set(this.rooms.keys());
+		for (const roomId of this.eventLog?.listRoomIds() ?? []) {
+			ids.add(roomId);
+		}
+		return [...ids];
+	}
+
 	getOrThrow(roomId: string): RoomSnapshot {
 		const snapshot = this.rooms.get(roomId);
 		if (!snapshot) {

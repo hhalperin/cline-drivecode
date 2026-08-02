@@ -7,6 +7,8 @@ import {
 	formatHandoffNarration,
 	formatWhileAwayLine,
 	type HandoffPacket,
+	projectRoomDirectoryEntry,
+	sortRoomDirectory,
 } from "@cline/drive";
 import type {
 	BankSnapshot,
@@ -83,6 +85,13 @@ const CallLeavePayloadSchema = RoomIdSchema.extend({
 	participantId: z.string().min(1),
 	reason: z.string().optional(),
 }).strict();
+
+const CallListRoomsPayloadSchema = z
+	.object({
+		/** Workspace root for the durable room event log (ADR-0013). */
+		workspaceRoot: z.string().min(1).optional(),
+	})
+	.strict();
 
 const CallEndPayloadSchema = RoomIdSchema.extend({
 	actorId: z.string().min(1).optional(),
@@ -1001,6 +1010,28 @@ export async function handleDriveRoomCommand(
 				const seq = store.lastSeq(payload.roomId);
 				publishRoomSnapshot(ctx, payload.roomId, snapshot, seq);
 				return okReply(envelope, snapshotPayload(snapshot, seq));
+			}
+			case "call_list_rooms": {
+				const payload = CallListRoomsPayloadSchema.parse(
+					envelope.payload ?? {},
+				);
+				ensureEventLog(store, payload.workspaceRoot);
+				const log = store.getEventLog();
+				// Read-only: fold each room's records into a summary without
+				// hydrating it into the store, so listing never revives a
+				// stopped room's live state or its call session.
+				const rooms = sortRoomDirectory(
+					store.listRoomIds().map((roomId) =>
+						projectRoomDirectoryEntry({
+							roomId,
+							events:
+								log?.readSinceSync(roomId, 0).map((record) => record.event) ??
+								[],
+							liveSnapshot: store.get(roomId),
+						}),
+					),
+				);
+				return okReply(envelope, { rooms });
 			}
 			case "call_get_room": {
 				const payload = CallGetRoomPayloadSchema.parse(envelope.payload ?? {});

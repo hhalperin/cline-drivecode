@@ -39,6 +39,12 @@ export type RoomEventLog = {
 	/** Sync gap read for hub command handlers. */
 	readSinceSync(roomId: string, afterSeq: number): RoomLogRecord[];
 	latestSeq(roomId: string): number;
+	/**
+	 * Every room the log has ever recorded, including ones no live process
+	 * holds. The Rooms surface enumerates from here so a stopped room is
+	 * listable without being resident in memory.
+	 */
+	listRoomIds(): string[];
 };
 
 export type RoomEventLogOptions = LogRetentionOptions;
@@ -140,6 +146,10 @@ export class JsonlRoomEventLog implements RoomEventLog {
 	latestSeq(roomId: string): number {
 		const meta = readMeta(resolveDriveRoomMetaPath(this.configParent, roomId));
 		return Math.max(0, meta.nextSeq - 1);
+	}
+
+	listRoomIds(): string[] {
+		return listJsonlRoomIds(this.configParent);
 	}
 
 	/** Ensure subsequent appends allocate seq >= minNextSeq. */
@@ -272,6 +282,10 @@ export class MemoryRoomEventLog implements RoomEventLog {
 		const records = this.byRoom.get(roomId) ?? [];
 		const last = records[records.length - 1];
 		return last?.seq ?? 0;
+	}
+
+	listRoomIds(): string[] {
+		return [...this.byRoom.keys()];
 	}
 
 	appendSync(roomId: string, event: DriveEvent): RoomLogRecord {
