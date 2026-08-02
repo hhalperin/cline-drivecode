@@ -342,6 +342,8 @@ function ScreenIdle({
 	hint?: string;
 	sharerLabel: string;
 }) {
+	// Match ScreenFrame: "You are sharing", everyone else "Riley is sharing".
+	const sharingVerb = sharerLabel === "You" ? "are" : "is";
 	return (
 		<div className="flex max-h-full flex-col items-center gap-2 overflow-auto text-center">
 			<span
@@ -351,7 +353,7 @@ function ScreenIdle({
 				{sharerLabel.slice(0, 1).toUpperCase()}
 			</span>
 			<p className="text-[13px] font-semibold text-zinc-100">
-				{sharerLabel} is sharing
+				{sharerLabel} {sharingVerb} sharing
 			</p>
 			<p className="font-mono text-[10px] uppercase tracking-wide text-zinc-400">
 				workspace
