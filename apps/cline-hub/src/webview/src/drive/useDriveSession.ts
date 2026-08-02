@@ -33,6 +33,7 @@ import {
 	isDrivePartnerId,
 	toggleDriveSpotlightId,
 } from "./participantIds";
+import { resolveNarratorParticipantId } from "./rosterHelpers";
 import {
 	applyBankSnapshot,
 	applyRoomSnapshot,
@@ -48,6 +49,7 @@ import {
 	toSharedDriveSubMode,
 } from "./types";
 import { createVoiceStack } from "./voice/createVoiceStack";
+import { createDriveNarrator, type DriveNarrator } from "./voice/driveNarrator";
 import { normalizeDriveHardwarePrefs } from "./voice/driveHardwarePrefs";
 import {
 	applyHardwarePrefsPatch,
@@ -97,6 +99,8 @@ function readPersistedDriveUi(): DriveUiState {
 					state.driveUi.partnerNameInk ?? DEFAULT_DRIVE_UI.partnerNameInk,
 				callSessionId:
 					state.driveUi.callSessionId ?? DEFAULT_DRIVE_UI.callSessionId,
+				// Transient playback state — a reload is never mid-utterance.
+				speakingParticipantId: null,
 				// One-shot banners should not survive reload.
 				agencyBanner: null,
 				cleanDrainInvite: null,
@@ -604,6 +608,12 @@ export type UseDriveSessionResult = {
 	>;
 	bankSessionRef: React.RefObject<DriveBankSession>;
 	driveVoiceResolved: ReturnType<typeof resolveDriveVoiceTopology>;
+	/**
+	 * Narration playback for the resolved topology. Null until a topology
+	 * resolves. Every spoken line goes through this so the queue and speaking
+	 * presence stay authoritative.
+	 */
+	narrator: DriveNarrator | null;
 	/** Workspace root for durable bank / agent-home hub ops. */
 	workspaceRoot?: string;
 	joinDrive: (roomId?: string) => boolean;
@@ -1315,7 +1325,31 @@ export function useDriveSession(
 	);
 
 	/**
-	 * Silencing immediately cancels in-flight TTS (DRV-TTS).
+	 * Narration playback for this topology: queue, drop-oldest, and the
+	 * speaking-presence edges the roster ring reads (DRV-TTS).
+	 * `createVoiceStack` is memoized per topology, so this stays stable.
+	 */
+	const narratorParticipantIdRef = useRef(DRIVE_PARTICIPANT_PARTNER);
+	narratorParticipantIdRef.current = resolveNarratorParticipantId(drive);
+	const narrator = useMemo(() => {
+		if (!driveVoiceResolved.ok) {
+			return null;
+		}
+		return createDriveNarrator({
+			sink: createVoiceStack(driveVoiceResolved.topology).tts,
+			onSpeakingChange: (speaking) => {
+				setDrive((current) => ({
+					...current,
+					speakingParticipantId: speaking
+						? narratorParticipantIdRef.current
+						: null,
+				}));
+			},
+		});
+	}, [driveVoiceResolved]);
+
+	/**
+	 * Silencing immediately cancels in-flight TTS and drops the queue (DRV-TTS).
 	 *
 	 * Same instant-cut behaviour as before, on the toggles that actually govern
 	 * output: self-deafen and partner mute. Mic mute is no longer an input here
@@ -1326,11 +1360,8 @@ export function useDriveSession(
 		if (!drive.deafened && !drive.partnerMuted) {
 			return;
 		}
-		if (!driveVoiceResolved.ok) {
-			return;
-		}
-		createVoiceStack(driveVoiceResolved.topology).tts.cancel();
-	}, [drive.deafened, drive.partnerMuted, driveVoiceResolved]);
+		narrator?.cancel();
+	}, [drive.deafened, drive.partnerMuted, narrator]);
 
 	/** Speak partner join note once when TTS is enabled and unmuted. */
 	const spokenJoinNoteRef = useRef<string | null>(null);
@@ -1348,7 +1379,7 @@ export function useDriveSession(
 		if (spokenJoinNoteRef.current === driveJoinNote) {
 			return;
 		}
-		if (!driveVoiceResolved.ok) {
+		if (!narrator) {
 			return;
 		}
 		if (
@@ -1361,13 +1392,10 @@ export function useDriveSession(
 			return;
 		}
 		spokenJoinNoteRef.current = driveJoinNote;
-		void createVoiceStack(driveVoiceResolved.topology).tts.speak(
-			driveJoinNote,
-			{
-				volume: driveVoice.hardware.outputVolume,
-				sinkId: driveVoice.hardware.speakerDeviceId,
-			},
-		);
+		narrator.speak(driveJoinNote, {
+			volume: driveVoice.hardware.outputVolume,
+			sinkId: driveVoice.hardware.speakerDeviceId,
+		});
 	}, [
 		drive.active,
 		drive.deafened,
@@ -1376,14 +1404,16 @@ export function useDriveSession(
 		driveVoice.facets,
 		driveVoice.hardware.outputVolume,
 		driveVoice.hardware.speakerDeviceId,
-		driveVoiceResolved,
+		narrator,
 	]);
 
 	useEffect(() => {
 		if (!drive.active) {
 			spokenJoinNoteRef.current = null;
+			// Leaving cuts audio; nothing spoken outlives the call.
+			narrator?.cancel();
 		}
-	}, [drive.active]);
+	}, [drive.active, narrator]);
 
 	const toggleStage = useCallback(() => {
 		setDrive((current) => {
@@ -1610,6 +1640,7 @@ export function useDriveSession(
 		setPlanEditorTasks,
 		bankSessionRef,
 		driveVoiceResolved,
+		narrator,
 		workspaceRoot: args.workspaceRoot,
 		joinDrive,
 		leaveDrive,

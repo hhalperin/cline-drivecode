@@ -55,6 +55,12 @@ export type DriveUiState = {
 	 * full roster ids are wired from the hub.
 	 */
 	spotlightParticipantId: string;
+	/**
+	 * Participant whose narration is playing right now (DRV-TTS speaking
+	 * presence). Transient playback state — set from local TTS, never
+	 * persisted, never sent to the hub.
+	 */
+	speakingParticipantId: string | null;
 	/** Partner agent cannot speak (TTS/narration). */
 	partnerMuted: boolean;
 	/** Partner agent cannot hear (inbound context). */
@@ -154,6 +160,7 @@ export const DEFAULT_DRIVE_UI: DriveUiState = {
 	handRaised: false,
 	bankSnapshot: EMPTY_BANK_SNAPSHOT,
 	spotlightParticipantId: DRIVE_PARTICIPANT_PARTNER,
+	speakingParticipantId: null,
 	partnerMuted: false,
 	partnerDeafened: false,
 	demo: true,
