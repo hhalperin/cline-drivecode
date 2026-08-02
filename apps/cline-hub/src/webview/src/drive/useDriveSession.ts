@@ -1,8 +1,9 @@
-import type {
-	ChatForkRecord,
-	DriveEvent,
-	RoomSnapshot,
-	ShowBacklogItem,
+import {
+	type ChatForkRecord,
+	type DriveEvent,
+	type RoomSnapshot,
+	type ShowBacklogItem,
+	topologyCacheKey,
 } from "@cline/shared";
 import {
 	type Dispatch,
@@ -1313,7 +1314,12 @@ export function useDriveSession(
 			guard: isDriveSessionHostMessage,
 			onMessage,
 		});
-	}, [queueNarration, refreshDriveRoom, resetDriveConnection, seedBankAfterJoin]);
+	}, [
+		queueNarration,
+		refreshDriveRoom,
+		resetDriveConnection,
+		seedBankAfterJoin,
+	]);
 
 	useEffect(() => {
 		// Attachment refs do not render; the revision intentionally re-evaluates
@@ -1354,15 +1360,30 @@ export function useDriveSession(
 	/**
 	 * Narration playback for this topology: queue, drop-oldest, and the
 	 * speaking-presence edges the roster ring reads (DRV-TTS).
-	 * `createVoiceStack` is memoized per topology, so this stays stable.
+	 *
+	 * Keyed by topology fingerprint, not by `driveVoiceResolved` identity —
+	 * that object is rebuilt whenever anything on `driveVoice` changes,
+	 * including opening the settings panel. Minting a narrator there would
+	 * orphan an in-flight utterance and silently drop its queue.
 	 */
 	const narratorParticipantIdRef = useRef(DRIVE_PARTICIPANT_PARTNER);
 	narratorParticipantIdRef.current = resolveNarratorParticipantId(drive);
+	const narratorRef = useRef<{ key: string; narrator: DriveNarrator } | null>(
+		null,
+	);
 	const narrator = useMemo(() => {
 		if (!driveVoiceResolved.ok) {
 			return null;
 		}
-		return createDriveNarrator({
+		const key = topologyCacheKey(driveVoiceResolved.topology);
+		const cached = narratorRef.current;
+		if (cached?.key === key) {
+			return cached.narrator;
+		}
+		// The topology really moved, so the old port is being retired — cut
+		// whatever it was still saying rather than leaving it running.
+		cached?.narrator.cancel();
+		const next = createDriveNarrator({
 			sink: createVoiceStack(driveVoiceResolved.topology).tts,
 			onSpeakingChange: (speaking) => {
 				setDrive((current) => ({
@@ -1373,6 +1394,8 @@ export function useDriveSession(
 				}));
 			},
 		});
+		narratorRef.current = { key, narrator: next };
+		return next;
 	}, [driveVoiceResolved]);
 
 	/**
