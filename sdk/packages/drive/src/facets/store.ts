@@ -4,7 +4,6 @@
  */
 
 import type { DriveFacetDiskSnapshot } from "@cline/shared";
-import { DEFAULT_AGENT_PROFILE_ID } from "@cline/shared";
 import {
 	DRIVE_FACET_CATALOG,
 	type DriveFacetKey,
@@ -59,7 +58,7 @@ export function createFacetStore(
 		}
 
 		if (key === "agent.appearance") {
-			const id = instanceId ?? DEFAULT_AGENT_PROFILE_ID;
+			const id = instanceId ?? "builtin.pair_partner";
 			const fromMap = durable.maps["agent.appearance"]?.[id];
 			if (fromMap !== undefined) {
 				return fromMap as DriveFacetValue<K>;

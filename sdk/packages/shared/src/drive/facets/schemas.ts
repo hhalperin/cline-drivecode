@@ -74,8 +74,13 @@ export function parseAgentAppearance(input: unknown): AgentAppearance {
 }
 
 /**
- * Fallback profile id used when a reader asks for appearance without naming an
- * agent. Matches `agentProfileId({ kind: "builtin", id: "pair_partner" })`.
+ * Profile id the facet store falls back to when a reader asks for appearance
+ * without naming an agent.
+ *
+ * Equals `agentProfileId({ kind: "builtin", id: "pair_partner" })`. The store
+ * lives in `@cline/drive`, which may only type-import this package, so it
+ * repeats the literal rather than importing this. `driveAgentProfileStore.test`
+ * pins the two together from `@cline/core`, where both are visible.
  */
 export const DEFAULT_AGENT_PROFILE_ID = "builtin.pair_partner";
 

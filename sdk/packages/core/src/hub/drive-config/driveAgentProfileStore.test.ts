@@ -6,12 +6,17 @@ import {
 	defaultFacetValuesFromProfile,
 } from "@cline/drive";
 import type { AgentAppearance, AgentRef } from "@cline/shared";
-import { agentProfileId, BUILTIN_BROWSER_TTS_ID } from "@cline/shared";
+import {
+	agentProfileId,
+	BUILTIN_BROWSER_TTS_ID,
+	DEFAULT_AGENT_PROFILE_ID,
+} from "@cline/shared";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
 	__resetCatalogFacetStoresForTests,
 	getAgentAppearance,
 	listAgentProfiles,
+	loadCatalogFacetStore,
 	putCatalogDurableValues,
 	resolveCatalogFacetsPath,
 	upsertAgentProfile,
@@ -217,6 +222,30 @@ describe("appearance survives writes that never read it", () => {
 		expect(put.ok).toBe(false);
 		expect(put.ok === false && put.code).toBe("map_facet_rejected");
 		expect(appearanceOnDisk(PARTNER)).toEqual(PARTNER_LOOK);
+	});
+});
+
+describe("the default agent's profile id", () => {
+	/**
+	 * `@cline/drive` may only type-import `@cline/shared`, so the facet store's
+	 * fallback instance id is a literal there while `agentProfileId` derives it
+	 * here. Nothing in either package can see both — if they drift, the default
+	 * agent's appearance is written under a key the no-instance read never
+	 * looks up, and it silently renders as the catalog default forever.
+	 */
+	it("is the key the facet store falls back to with no instance id", () => {
+		const ref: AgentRef = { kind: "builtin", id: "pair_partner" };
+		expect(agentProfileId(ref)).toBe(DEFAULT_AGENT_PROFILE_ID);
+
+		upsertAgentProfile({
+			workspaceRoot: root,
+			ref,
+			appearance: PARTNER_LOOK,
+		});
+		__resetCatalogFacetStoresForTests();
+
+		const store = loadCatalogFacetStore({ workspaceRoot: root });
+		expect(store.get("agent.appearance")).toEqual(PARTNER_LOOK);
 	});
 });
 
