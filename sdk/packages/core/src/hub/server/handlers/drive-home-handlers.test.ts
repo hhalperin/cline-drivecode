@@ -27,6 +27,24 @@ function command(
 	};
 }
 
+/**
+ * A context whose calling client is attached to `workspaceRoot`.
+ *
+ * The put lane refuses a payload naming a root the requesting client does not
+ * own, so a test that wants to exercise anything past that gate has to look
+ * like a client that legitimately lives there.
+ */
+function ctxFor(workspaceRoot: string): HubTransportContext {
+	const base = ctx() as unknown as {
+		clients: Map<string, unknown>;
+	};
+	base.clients.set("test", {
+		clientId: "test",
+		workspaceContext: { workspaceRoot },
+	});
+	return base as unknown as HubTransportContext;
+}
+
 function ctx(): HubTransportContext {
 	return {
 		clients: new Map(),
@@ -210,7 +228,7 @@ describe("handleDriveHomeCommand — drive_agent_home_put", () => {
 		slug = "pair-partner",
 	): Promise<Awaited<ReturnType<typeof handleDriveHomeCommand>>> {
 		return handleDriveHomeCommand(
-			ctx(),
+			ctxFor(root),
 			command("drive_agent_home_put", {
 				workspaceRoot: root,
 				slug,
@@ -218,6 +236,43 @@ describe("handleDriveHomeCommand — drive_agent_home_put", () => {
 			}),
 		);
 	}
+
+	/**
+	 * `workspaceRoot` reaches this handler from a browser page. Left unpinned it
+	 * names any directory on the host holding a `.driveagent/<slug>/`, so a
+	 * config editor becomes a writer for other people's repositories.
+	 */
+	it("refuses a workspaceRoot the requesting client does not own", async () => {
+		const mine = await seededRoot();
+		const theirs = await seededRoot();
+		const before = await readFile(agentYamlPath(theirs), "utf8");
+
+		const reply = await handleDriveHomeCommand(
+			ctxFor(mine),
+			command("drive_agent_home_put", {
+				workspaceRoot: theirs,
+				slug: "pair-partner",
+				patch: { agent: { description: "Reaching into another checkout." } },
+			}),
+		);
+		expect(reply.ok).toBe(false);
+		expect(reply.error?.code).toBe("workspace_not_bound");
+		expect(await readFile(agentYamlPath(theirs), "utf8")).toBe(before);
+	});
+
+	it("refuses a client with no workspace of its own", async () => {
+		const root = await seededRoot();
+		const reply = await handleDriveHomeCommand(
+			ctx(),
+			command("drive_agent_home_put", {
+				workspaceRoot: root,
+				slug: "pair-partner",
+				patch: { agent: { description: "No client root." } },
+			}),
+		);
+		expect(reply.ok).toBe(false);
+		expect(reply.error?.code).toBe("workspace_not_bound");
+	});
 
 	it("requires workspaceRoot, slug, and a patch object", async () => {
 		const root = await seededRoot();
@@ -280,6 +335,10 @@ describe("handleDriveHomeCommand — drive_agent_home_put", () => {
 		const after = await readAgentFromDisk(root);
 		expect(after.systemPrompt).toBe(before.systemPrompt);
 		expect(after.description).toBe(before.description);
+
+		// And it changed nothing at all: a save with no edits in it must not
+		// rewrite the file, or every visit to the sheet produces a diff.
+		expect(reply.payload?.changedFiles).toEqual([]);
 	});
 
 	it("persists a changed field and leaves the file loadable", async () => {

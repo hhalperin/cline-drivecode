@@ -142,6 +142,35 @@ function sanitizeCompiled(value: unknown): SanitizedCompiled | undefined {
 
 type HomeTarget = { workspaceRoot: string; slug: string };
 
+/**
+ * Error codes whose message is safe to show a browser.
+ *
+ * Every one of these is a sentence this code wrote about a payload the browser
+ * sent, so it can only ever repeat what the browser already knew. Everything
+ * else — a YAML parse failure, a filesystem error — carries content the browser
+ * was deliberately not shown: `yaml` embeds a code frame of the offending
+ * source line, which for `agent.yaml` may be the prompt itself, and Node's
+ * errno strings carry the absolute path and the user's name. Relaying those
+ * would undo, through the error channel, exactly what `sanitizeHome` does on
+ * the success channel.
+ */
+const RELAYABLE_ERROR_CODES = new Set([
+	"invalid_payload",
+	"unknown_agent",
+	"workspace_not_bound",
+	"hub_disconnected",
+	"not_editable",
+	"hidden_field_write",
+	"unknown_field",
+	"slug_mismatch",
+	"immutable_field",
+	"plaintext_secret",
+	"invalid_patch",
+]);
+
+const OPAQUE_ERROR_TEXT =
+	"The Driveagent home could not be read or written. Check the hub log for details.";
+
 function sendHomeError(
 	ctx: HubContext,
 	peer: BrowserPeer,
@@ -151,7 +180,7 @@ function sendHomeError(
 ): void {
 	ctx.send(peer, {
 		type: "drive_agent_home_error",
-		text,
+		text: code && RELAYABLE_ERROR_CODES.has(code) ? text : OPAQUE_ERROR_TEXT,
 		code,
 		requestId,
 	});
@@ -322,6 +351,10 @@ export async function handleDriveAgentHomePutWebviewCommand(
 			type: "drive_agent_home_saved",
 			home,
 			compiled,
+			// A workspace-shaped request resolves to `~/.driveagent/` when the
+			// workspace has no home of its own, and an edit that applies to
+			// every workspace on the machine should not read as a local one.
+			tier: reply.payload?.tier === "user" ? "user" : "workspace",
 			requestId,
 		});
 	} catch (error) {

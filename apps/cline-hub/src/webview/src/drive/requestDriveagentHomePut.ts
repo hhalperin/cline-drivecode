@@ -15,11 +15,19 @@ import {
 
 const SAVE_TIMEOUT_MS = 5_000;
 
+export type DriveagentHomeTier = "workspace" | "user";
+
+export type DriveagentHomeSaveResult = DriveagentHomeProjection & {
+	/** `user` means the write applies to every workspace on the machine. */
+	tier: DriveagentHomeTier;
+};
+
 type SaveReplyMessage = HostMessage & {
 	type: "drive_agent_home_saved" | "drive_agent_home_error";
 	requestId?: string;
 	home?: unknown;
 	compiled?: unknown;
+	tier?: unknown;
 	text?: string;
 };
 
@@ -49,7 +57,7 @@ export function requestDriveagentHomePut(
 	slug: string,
 	patch: DriveagentHomePatch,
 	options?: { timeoutMs?: number },
-): Promise<DriveagentHomeProjection> {
+): Promise<DriveagentHomeSaveResult> {
 	const timeoutMs = options?.timeoutMs ?? SAVE_TIMEOUT_MS;
 	const root = workspaceRoot.trim();
 	const homeSlug = slug.trim();
@@ -99,6 +107,7 @@ export function requestDriveagentHomePut(
 					agent: message.home.agent,
 					permissions: message.home.permissions,
 					compiled: message.compiled,
+					tier: message.tier === "user" ? "user" : "workspace",
 				});
 			},
 		});

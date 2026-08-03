@@ -303,6 +303,37 @@ describe("Driveagent home writes over a real hub", () => {
 		expect(agentYamlOnDisk()).toBe(before);
 	});
 
+	/**
+	 * `workspaceRoot` crosses the wire from a page. Over a real hub, a payload
+	 * naming a directory the requesting client is not attached to must be
+	 * refused — otherwise a config editor writes other people's checkouts.
+	 */
+	it("refuses a workspaceRoot the client is not attached to", async () => {
+		const stranger = scratch("drive-home-write-e2e-stranger-");
+		mkdirSync(join(stranger, ".driveagent"), { recursive: true });
+		cpSync(EXAMPLE_HOME, join(stranger, ".driveagent", SLUG), {
+			recursive: true,
+		});
+		const before = readFileSync(
+			join(stranger, ".driveagent", SLUG, "agent.yaml"),
+			"utf8",
+		);
+
+		const code = await errorCodeOf(() =>
+			requireClient().command("drive_agent_home_put", {
+				workspaceRoot: stranger,
+				slug: SLUG,
+				patch: { agent: { description: "Reaching next door." } },
+			}),
+		);
+		expect(code).toBe("workspace_not_bound");
+
+		await restartHub();
+		expect(
+			readFileSync(join(stranger, ".driveagent", SLUG, "agent.yaml"), "utf8"),
+		).toBe(before);
+	});
+
 	it("refuses a plaintext secret, leaving env.yaml byte-identical", async () => {
 		const envPath = join(homeDir(), "env.yaml");
 		const before = readFileSync(envPath, "utf8");

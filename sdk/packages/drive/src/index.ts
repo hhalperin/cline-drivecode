@@ -460,7 +460,6 @@ export {
 	serializeDriveagentHomeFile,
 	type CompiledDriveagentView,
 	type DriveagentAgentPatch,
-	type DriveagentEnvPatch,
 	type DriveagentHomeCompileErrorCode,
 	type DriveagentHomeFileTexts,
 	type DriveagentHomePatch,

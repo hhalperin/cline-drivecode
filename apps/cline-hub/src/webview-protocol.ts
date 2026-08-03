@@ -863,6 +863,8 @@ export type WebviewOutboundMessage =
 			/** Same sanitized projection as `drive_agent_home`, after a save. */
 			type: "drive_agent_home_saved";
 			requestId?: string;
+			/** Which home the write landed in — `user` applies machine-wide. */
+			tier?: "workspace" | "user";
 			home: {
 				slug: string;
 				agent: {

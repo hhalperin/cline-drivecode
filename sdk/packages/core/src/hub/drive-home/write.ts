@@ -10,10 +10,19 @@
  * "it did not change".
  *
  * The merged home is re-parsed through the shared zod schemas before a single
- * byte is written, so a save can never leave a home the loader will refuse.
+ * byte is written, and then the rendered YAML is parsed back and compared to
+ * it — see `assertRendersBackTo`. Validating the merged object alone would
+ * only prove the intent was sound; the bytes are what the loader reads.
  */
 
-import { readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import {
+	chmodSync,
+	readFileSync,
+	renameSync,
+	rmSync,
+	statSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import {
 	type DriveagentHomeFileTexts,
@@ -22,6 +31,7 @@ import {
 	serializeDriveagentHome,
 } from "@cline/drive";
 import { type DriveagentHome, parseDriveagentHome } from "@cline/shared";
+import YAML from "yaml";
 import { DriveagentHomeLoadError, loadDriveagentHome } from "./load";
 import {
 	DRIVEAGENT_AGENT_YAML,
@@ -58,24 +68,83 @@ function readTextOrUndefined(path: string): string | undefined {
  */
 function commitFiles(files: readonly { path: string; text: string }[]): void {
 	const staged: { tempPath: string; path: string }[] = [];
-	try {
-		for (const file of files) {
-			const tempPath = `${file.path}.tmp-${process.pid}-${Date.now()}-${staged.length}`;
-			writeFileSync(tempPath, file.text, "utf8");
-			staged.push({ tempPath, path: file.path });
-		}
-	} catch (error) {
-		for (const entry of staged) {
+	const discardStaged = (from: number): void => {
+		for (const entry of staged.slice(from)) {
 			try {
 				rmSync(entry.tempPath, { force: true });
 			} catch {
 				// best-effort
 			}
 		}
+	};
+
+	try {
+		for (const file of files) {
+			const tempPath = `${file.path}.tmp-${process.pid}-${Date.now()}-${staged.length}`;
+			writeFileSync(tempPath, file.text, "utf8");
+			// Carry the original's mode across. The temp is a fresh file, so
+			// without this a `chmod 600` on a home file silently widens to the
+			// directory default on the first save.
+			try {
+				chmodSync(tempPath, statSync(file.path).mode);
+			} catch {
+				// No original to copy from, or a platform that does not care.
+			}
+			staged.push({ tempPath, path: file.path });
+		}
+	} catch (error) {
+		discardStaged(0);
 		throw error;
 	}
-	for (const entry of staged) {
-		renameSync(entry.tempPath, entry.path);
+
+	for (let index = 0; index < staged.length; index += 1) {
+		try {
+			renameSync(staged[index].tempPath, staged[index].path);
+		} catch (error) {
+			// Renames before this one already landed and cannot be taken back,
+			// but the temps behind it are ours to clean up rather than leave
+			// sitting inside a directory the user has checked into git.
+			discardStaged(index);
+			throw error;
+		}
+	}
+}
+
+/**
+ * Read the rendered YAML back and require it to mean what the merge decided.
+ *
+ * Validating the merged object proves the *intent* was sound. It says nothing
+ * about the bytes, and the bytes are what the loader reads — so a serializer
+ * that drops a key, resolves an alias to the wrong scalar, or emits a value it
+ * cannot parse back would sail past a check on the object and corrupt the file
+ * silently. Comparing the round trip turns that entire class of bug into a
+ * refusal with nothing written.
+ */
+function assertRendersBackTo(
+	texts: DriveagentHomeFileTexts,
+	expected: DriveagentHome,
+): void {
+	let reparsed: DriveagentHome;
+	try {
+		reparsed = parseDriveagentHome({
+			slug: expected.slug,
+			agent: YAML.parse(texts.agentYaml),
+			permissions: YAML.parse(texts.permissionsYaml),
+			env: YAML.parse(texts.envYaml),
+		});
+	} catch (error) {
+		throw new DriveagentHomeWriteError(
+			"invalid_patch",
+			`refusing to write a home that does not parse back: ${
+				error instanceof Error ? error.message : String(error)
+			}`,
+		);
+	}
+	if (JSON.stringify(reparsed) !== JSON.stringify(expected)) {
+		throw new DriveagentHomeWriteError(
+			"invalid_patch",
+			"refusing to write: the rendered YAML does not read back as the merged home",
+		);
 	}
 }
 
@@ -132,6 +201,7 @@ export function writeDriveagentHome(input: {
 	};
 
 	const next = serializeDriveagentHome(validated, previous);
+	assertRendersBackTo(next, validated);
 
 	// Render all three before writing any, so a serialisation failure leaves
 	// disk exactly as it was rather than half-updated. Files whose bytes did

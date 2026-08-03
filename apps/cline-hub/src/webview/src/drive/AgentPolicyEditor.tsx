@@ -103,7 +103,15 @@ export function AgentPolicyEditor({
 			.then((next) => {
 				setLoaded(next);
 				setDraft(draftFromProjection(next));
-				setSave({ status: "saved", text: "Saved to .driveagent/." });
+				setSave({
+					status: "saved",
+					// Name the tier: a user-tier home applies to every workspace
+					// on the machine, and that should not read as a local edit.
+					text:
+						next.tier === "user"
+							? "Saved to your user home — this applies to every workspace."
+							: "Saved to .driveagent/ in this workspace.",
+				});
 				onSaved?.(next);
 			})
 			.catch((error: unknown) => {
