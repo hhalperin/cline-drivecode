@@ -11,6 +11,7 @@ import {
 	useMemo,
 	useRef,
 	useState,
+	useSyncExternalStore,
 } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,14 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import {
+	ensureMicPermission,
+	micPermissionState,
+	noteMicPermissionFailure,
+	noteMicPermissionGranted,
+	subscribeMicPermission,
+} from "./micPermissionGate";
+import { MIC_PERMISSION_DENIED_MESSAGE } from "./speechInputSupport";
 
 const deviceIdRegex = /\(([\da-fA-F]{4}:[\da-fA-F]{4})\)$/;
 
@@ -59,6 +68,17 @@ export const useAudioDevices = (kind: AudioDeviceKind = "audioinput") => {
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [hasPermission, setHasPermission] = useState(false);
+	/**
+	 * Subscribed rather than read once: the pickers auto-request labels, so a
+	 * stale "denied" would keep them asking, and a stale "granted" would leave
+	 * them silent after the user allowed the mic.
+	 */
+	const micDenied =
+		useSyncExternalStore(
+			subscribeMicPermission,
+			micPermissionState,
+			micPermissionState,
+		) === "denied";
 
 	const loadDevicesWithoutPermission = useCallback(async () => {
 		try {
@@ -89,11 +109,20 @@ export const useAudioDevices = (kind: AudioDeviceKind = "audioinput") => {
 			setLoading(true);
 			setError(null);
 
+			// Nicer labels are not worth re-triggering a blocked-mic banner: a
+			// remembered denial keeps the unlabeled device list from
+			// loadDevicesWithoutPermission, which is still a usable picker.
+			if ((await ensureMicPermission()) === "denied") {
+				setError(MIC_PERMISSION_DENIED_MESSAGE);
+				return;
+			}
+
 			// Mic permission unlocks labeled device names for inputs and often
 			// outputs; output-only pickers still benefit from the label refresh.
 			const tempStream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
 			});
+			noteMicPermissionGranted();
 
 			for (const track of tempStream.getTracks()) {
 				track.stop();
@@ -103,8 +132,10 @@ export const useAudioDevices = (kind: AudioDeviceKind = "audioinput") => {
 			setDevices(deviceList.filter((device) => device.kind === kind));
 			setHasPermission(true);
 		} catch (caughtError) {
-			const message =
-				caughtError instanceof Error
+			const denied = noteMicPermissionFailure(caughtError);
+			const message = denied
+				? MIC_PERMISSION_DENIED_MESSAGE
+				: caughtError instanceof Error
 					? caughtError.message
 					: "Failed to get audio devices";
 
@@ -144,6 +175,7 @@ export const useAudioDevices = (kind: AudioDeviceKind = "audioinput") => {
 		hasPermission,
 		loadDevices: loadDevicesWithPermission,
 		loading,
+		micDenied,
 	};
 };
 
@@ -175,13 +207,16 @@ export const MicSelector = ({
 		prop: controlledOpen,
 	});
 	const [width, setWidth] = useState(200);
-	const { devices, loading, hasPermission, loadDevices } = useAudioDevices();
+	const { devices, loading, hasPermission, loadDevices, micDenied } =
+		useAudioDevices();
 
 	useEffect(() => {
-		if (open && !hasPermission && !loading) {
+		// `loadDevices` changes identity on every loading flip, so without the
+		// denial guard a blocked mic turns this into a request loop.
+		if (open && !hasPermission && !loading && !micDenied) {
 			loadDevices();
 		}
-	}, [open, hasPermission, loading, loadDevices]);
+	}, [open, hasPermission, loading, loadDevices, micDenied]);
 
 	const contextValue = useMemo(
 		() => ({

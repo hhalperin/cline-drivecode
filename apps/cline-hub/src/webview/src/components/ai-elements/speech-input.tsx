@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import {
+	ensureMicPermission,
+	noteMicPermissionFailure,
+	noteMicPermissionGranted,
+} from "./micPermissionGate";
+import {
 	describeSpeechInputError,
+	MIC_PERMISSION_DENIED_MESSAGE,
 	readSpeechInputCapabilities,
 	resolveSpeechInputMode,
 	type SpeechInputMode,
@@ -235,11 +241,20 @@ export const SpeechInput = ({
 
 		abortedRef.current = false;
 		try {
+			// Asking again after a refusal re-raises the host surface's own blocked-
+			// mic banner, so a remembered denial is answered here. The button stays
+			// live: the copy still points at the keyboard, and Drive's retry
+			// affordance re-arms this without a reload.
+			if ((await ensureMicPermission()) === "denied") {
+				onCaptureErrorRef.current?.(MIC_PERMISSION_DENIED_MESSAGE);
+				return;
+			}
 			const preferredDeviceId = deviceIdRef.current;
 			const audio: MediaTrackConstraints | boolean = preferredDeviceId
 				? { deviceId: { ideal: preferredDeviceId } }
 				: true;
 			const stream = await navigator.mediaDevices.getUserMedia({ audio });
+			noteMicPermissionGranted();
 			// Teardown can land while the permission prompt is open; never keep a
 			// stream that was granted after capture was revoked.
 			if (abortedRef.current) {
@@ -312,6 +327,7 @@ export const SpeechInput = ({
 			setIsListening(true);
 		} catch (error) {
 			setIsListening(false);
+			noteMicPermissionFailure(error);
 			const message = describeSpeechInputError({
 				mode: "media-recorder",
 				error,
