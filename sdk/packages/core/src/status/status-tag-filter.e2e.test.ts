@@ -30,12 +30,16 @@ import { StatusService, setStatusService } from "./index";
  */
 
 /**
- * Scratch ports. Overridable because several worktrees of this repo run their
- * suites at once, and a hub that cannot bind fails the file as EADDRINUSE
- * rather than as anything to do with tags.
+ * Scratch ports, distinct from every other suite that binds a real hub.
+ *
+ * `drive-artifact-corpus.e2e.test.ts` holds 25963/8987, and vitest runs e2e
+ * files in parallel, so sharing them fails whichever file loses the race with
+ * EADDRINUSE — an error about ports, reported as a tag or artifact failure.
+ * Overridable on top of that, because several worktrees of this repo run their
+ * suites at once.
  */
-const HUB_PORT = Number(process.env.CLINE_TEST_HUB_PORT ?? 25963);
-const DASHBOARD_PORT = Number(process.env.CLINE_TEST_DASHBOARD_PORT ?? 8987);
+const HUB_PORT = Number(process.env.CLINE_TEST_HUB_PORT ?? 25971);
+const DASHBOARD_PORT = Number(process.env.CLINE_TEST_DASHBOARD_PORT ?? 8993);
 /** Max rows any single assertion here needs; the schema caps `limit` at 200. */
 const PAGE_LIMIT = 200;
 /**
