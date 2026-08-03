@@ -130,8 +130,7 @@ function readPersistedDriveUi(): DriveUiState {
 				addressFollowsFocusParticipantId:
 					state.driveUi.addressFollowsFocusParticipantId ??
 					DEFAULT_DRIVE_UI.addressFollowsFocusParticipantId,
-				partnerNameInk:
-					state.driveUi.partnerNameInk ?? DEFAULT_DRIVE_UI.partnerNameInk,
+				agentInks: state.driveUi.agentInks ?? DEFAULT_DRIVE_UI.agentInks,
 				callSessionId:
 					state.driveUi.callSessionId ?? DEFAULT_DRIVE_UI.callSessionId,
 				// Transient playback state — a reload is never mid-utterance.
@@ -472,7 +471,7 @@ export function useDriveSession(
 			setDrive({
 				...DEFAULT_DRIVE_UI,
 				partnerName: current.partnerName,
-				partnerNameInk: current.partnerNameInk,
+				agentInks: current.agentInks,
 			});
 			onModeChangeRef.current("act");
 		},
