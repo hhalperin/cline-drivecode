@@ -21,6 +21,7 @@
  */
 
 import {
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
@@ -29,7 +30,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { NodeHubClient } from "@cline/core/hub/client";
+import { HubCommandError, NodeHubClient } from "@cline/core/hub/client";
 import { resetDriveRoomStoreForTests } from "@cline/core/hub/collaboration";
 import { createLocalHubScheduleRuntimeHandlers } from "@cline/core/hub/daemon/runtime-handlers";
 import {
@@ -84,6 +85,21 @@ function scratch(prefix: string): string {
 	const dir = mkdtempSync(join(tmpdir(), prefix));
 	scratchDirs.push(dir);
 	return dir;
+}
+
+/** The hub's error code for a command it was expected to refuse. */
+async function expectRejection(
+	send: () => Promise<unknown>,
+): Promise<string | undefined> {
+	try {
+		await send();
+	} catch (error) {
+		if (error instanceof HubCommandError) {
+			return error.code;
+		}
+		throw error;
+	}
+	throw new Error("expected the hub to reject this command, but it succeeded");
 }
 
 function okPayload(reply: HubReplyEnvelope): Record<string, unknown> {
@@ -426,6 +442,50 @@ describe("agent profile chain over a real hub", () => {
 		);
 		expect(updated?.nameInk).toEqual({ kind: "palette", index: 2 });
 		expect(updated?.bodyInk).toEqual({ kind: "palette", index: 1 });
+	}, 60_000);
+
+	it("refuses an appearance write aimed outside the bound workspace", async () => {
+		// This op became browser-reachable in this change, and `configParent`
+		// arrives in the payload. Unchecked it names any directory on the host
+		// and the store creates `<dir>/.cline/drive/` on the way, which turns an
+		// appearance editor into a writer for other people's repositories.
+		okPayload(
+			await requireClient().command("call_join", {
+				roomId: ROOM_ID,
+				human: { id: "you", displayName: "You", role: "host" },
+				agent: { id: "adam", displayName: "Adam", role: "partner" },
+				workspaceRoot,
+				activateDrive: true,
+			}),
+		);
+		const elsewhere = scratch("agent-profile-e2e-elsewhere-");
+
+		const code = await expectRejection(() =>
+			requireClient().command("drive_config_upsert_profile", {
+				workspaceRoot: elsewhere,
+				profile: {
+					ref: NOVA,
+					nameInk: { kind: "palette", index: 3 },
+					bodyInk: { kind: "palette", index: 4 },
+				},
+			}),
+		);
+		expect(code).toBe("workspace_not_bound");
+		// Refused before the write, so nothing was created out there.
+		expect(existsSync(resolveCatalogFacetsPath(elsewhere))).toBe(false);
+
+		// The bound workspace still writes.
+		okPayload(
+			await requireClient().command("drive_config_upsert_profile", {
+				workspaceRoot,
+				profile: {
+					ref: NOVA,
+					nameInk: { kind: "palette", index: 3 },
+					bodyInk: { kind: "palette", index: 4 },
+				},
+			}),
+		);
+		expect(existsSync(resolveCatalogFacetsPath(workspaceRoot))).toBe(true);
 	}, 60_000);
 
 	it("never stores a resolved colour, only a theme-agnostic ink ref", async () => {

@@ -209,13 +209,21 @@ export async function handleDriveAgentProfilePutWebviewCommand(
 			);
 			return;
 		}
+		// Read back so the reply describes what was stored rather than what was
+		// asked for — the whole point of a durable appearance is that the disk
+		// answers, not the request. If the read fails the write still happened,
+		// so fall back to the profile the upsert returned: an empty list would
+		// read to the browser as "nothing is stored", which is the opposite of
+		// what just occurred.
 		const readBack = await ctx.uiClient.command(
 			"drive_config_get" as HubCommandName,
 			{ workspaceRoot },
 		);
 		ctx.send(peer, {
 			type: "drive_agent_profiles",
-			profiles: readBack.ok ? sanitizeProfiles(readBack.payload?.profiles) : [],
+			profiles: readBack.ok
+				? sanitizeProfiles(readBack.payload?.profiles)
+				: sanitizeProfiles([reply.payload?.profile]),
 			requestId,
 		});
 	} catch (error) {

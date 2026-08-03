@@ -8,7 +8,7 @@
  * source, so "the team spawns itself" is not a thing this can show.
  */
 
-import { type AgentRef, agentProfileId, type RosterPack } from "@cline/shared";
+import type { AgentRef, RosterPack } from "@cline/shared";
 
 export type AgentTeam = {
 	id: string;
@@ -68,9 +68,4 @@ export function teamsForProfile(
 /** The `.driveagent/<slug>/` home a ref names, or null when it has none. */
 export function homeSlugForRef(ref: AgentRef | null): string | null {
 	return ref?.kind === "driveagent" ? ref.slug : null;
-}
-
-/** Profile id → ref, for callers that hold only the flattened id. */
-export function profileIdForRef(ref: AgentRef): string {
-	return agentProfileId(ref);
 }

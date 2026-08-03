@@ -406,7 +406,15 @@ export default function Chat({
 		[driveagentHomes],
 	);
 
-	const rosterParticipants = resolveRosterParticipants(drive);
+	/**
+	 * Memoized: the feed's ink map is derived from this, and resolving an ink
+	 * walks a contrast search per agent. A fresh array identity every render
+	 * would defeat that memo on a surface that re-renders per token.
+	 */
+	const rosterParticipants = useMemo(
+		() => resolveRosterParticipants(drive),
+		[drive],
+	);
 	const spotlightSharerInk = resolveSpotlightSharerInk(
 		drive,
 		DRIVE_SCREEN_INK_THEME,
