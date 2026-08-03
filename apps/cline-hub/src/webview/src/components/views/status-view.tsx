@@ -43,6 +43,8 @@ import {
 	hasActiveFilters,
 	matchesStatusFilters,
 	sectionHeadingCount,
+	statusTagFacets,
+	toggleTagFilter,
 } from "./status-filters";
 import { relativeTime, STATE_STYLES, StatusRow } from "./status-row";
 import {
@@ -129,6 +131,7 @@ export function StatusView(props: {
 	const [error, setError] = useState<string | null>(null);
 	const [stateFilter, setStateFilter] = useState<StatusState[]>([]);
 	const [agentFilter, setAgentFilter] = useState<string | null>(null);
+	const [tagFilter, setTagFilter] = useState<string[]>([]);
 	const [searchDraft, setSearchDraft] = useState("");
 	const [search, setSearch] = useState("");
 	const [teams, setTeams] = useState<TeamRuntimeState[]>([]);
@@ -149,7 +152,12 @@ export function StatusView(props: {
 	 */
 	const replaceRequestRef = useRef(false);
 
-	const filtersActive = hasActiveFilters({ stateFilter, agentFilter, search });
+	const filtersActive = hasActiveFilters({
+		stateFilter,
+		agentFilter,
+		tagFilter,
+		search,
+	});
 
 	const request = useCallback(
 		(cursor: number | null, replace: boolean) => {
@@ -168,10 +176,11 @@ export function StatusView(props: {
 				...(cursor != null ? { cursor } : {}),
 				...(stateFilter.length ? { state: stateFilter } : {}),
 				...(agentFilter ? { agentId: agentFilter } : {}),
+				...(tagFilter.length ? { tags: tagFilter } : {}),
 				...(search ? { text: search } : {}),
 			});
 		},
-		[mode, stateFilter, agentFilter, search],
+		[mode, stateFilter, agentFilter, tagFilter, search],
 	);
 
 	const requestSummary = useCallback(() => {
@@ -247,6 +256,7 @@ export function StatusView(props: {
 					const matches = matchesStatusFilters(live, {
 						stateFilter,
 						agentFilter,
+						tagFilter,
 						search,
 					});
 					setUpdates((current) => {
@@ -265,7 +275,15 @@ export function StatusView(props: {
 				}
 			},
 		});
-	}, [mode, requestSummary, requestTasks, stateFilter, agentFilter, search]);
+	}, [
+		mode,
+		requestSummary,
+		requestTasks,
+		stateFilter,
+		agentFilter,
+		tagFilter,
+		search,
+	]);
 
 	const toggleState = useCallback((value: StatusState) => {
 		setStateFilter((current) =>
@@ -274,6 +292,20 @@ export function StatusView(props: {
 				: [...current, value],
 		);
 	}, []);
+
+	const toggleTag = useCallback((value: string) => {
+		setTagFilter((current) => toggleTagFilter(current, value));
+	}, []);
+
+	/**
+	 * Chips are counted over the rows on screen, so they describe what a click
+	 * would actually do. `updates` is already the tag-filtered page, which is
+	 * what makes a second chip narrow rather than reset.
+	 */
+	const tagFacets = useMemo(
+		() => statusTagFacets(updates, tagFilter),
+		[updates, tagFilter],
+	);
 
 	const sections = useMemo(() => {
 		if (mode !== "board") return null;
@@ -423,12 +455,13 @@ export function StatusView(props: {
 					</div>
 				) : null}
 
-				{stateFilter.length > 0 || agentFilter || search ? (
+				{filtersActive ? (
 					<Button
 						className="h-7 px-2 text-xs"
 						onClick={() => {
 							setStateFilter([]);
 							setAgentFilter(null);
+							setTagFilter([]);
 							setSearch("");
 							setSearchDraft("");
 						}}
@@ -440,6 +473,46 @@ export function StatusView(props: {
 					</Button>
 				) : null}
 			</div>
+
+			{mode !== "dependency-map" && tagFacets.length > 0 ? (
+				<div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+					<div className="flex gap-1.5 overflow-x-auto pb-1">
+						{tagFacets.map((facet) => (
+							<Button
+								aria-pressed={facet.selected}
+								className="h-7 shrink-0 px-2 text-xs"
+								key={facet.tag}
+								onClick={() => toggleTag(facet.tag)}
+								size="sm"
+								type="button"
+								variant={facet.selected ? "default" : "outline"}
+							>
+								<span className="truncate">{facet.tag}</span>
+								<span className="ml-1 rounded bg-background/30 px-1 tabular-nums opacity-70">
+									{facet.count}
+								</span>
+							</Button>
+						))}
+					</div>
+					<div className="flex min-h-7 shrink-0 items-center gap-2 text-xs text-muted-foreground">
+						<span className="font-medium text-foreground tabular-nums">
+							{updates.length}
+						</span>
+						<span>{updates.length === 1 ? "result" : "results"}</span>
+						{tagFilter.length > 0 ? (
+							<Button
+								className="h-7 px-2 text-xs"
+								onClick={() => setTagFilter([])}
+								size="sm"
+								type="button"
+								variant="ghost"
+							>
+								Clear filters
+							</Button>
+						) : null}
+					</div>
+				</div>
+			) : null}
 
 			{activeAgent ? (
 				<p className="mb-3 text-xs text-muted-foreground">
@@ -492,7 +565,12 @@ export function StatusView(props: {
 							<div className="rounded-lg border bg-card">
 								<ul>
 									{section.rows.map((update) => (
-										<StatusRow key={update.updateId} update={update} />
+										<StatusRow
+											activeTags={tagFilter}
+											key={update.updateId}
+											onTagClick={toggleTag}
+											update={update}
+										/>
 									))}
 								</ul>
 							</div>
@@ -503,7 +581,13 @@ export function StatusView(props: {
 				<div className="rounded-lg border bg-card">
 					<ul>
 						{updates.map((update) => (
-							<StatusRow key={update.updateId} showTransition update={update} />
+							<StatusRow
+								activeTags={tagFilter}
+								key={update.updateId}
+								onTagClick={toggleTag}
+								showTransition
+								update={update}
+							/>
 						))}
 					</ul>
 				</div>

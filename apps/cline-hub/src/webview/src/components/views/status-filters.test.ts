@@ -4,8 +4,10 @@ import {
 	EMPTY_STATUS_FILTERS,
 	hasActiveFilters,
 	matchesStatusFilters,
-	sectionHeadingCount,
 	type StatusFilters,
+	sectionHeadingCount,
+	statusTagFacets,
+	toggleTagFilter,
 } from "./status-filters";
 
 function update(overrides: Partial<StatusUpdate> = {}): StatusUpdate {
@@ -37,6 +39,7 @@ describe("hasActiveFilters", () => {
 	it("is true for any single filter", () => {
 		expect(hasActiveFilters(filters({ stateFilter: ["blocked"] }))).toBe(true);
 		expect(hasActiveFilters(filters({ agentFilter: "adam" }))).toBe(true);
+		expect(hasActiveFilters(filters({ tagFilter: ["auth"] }))).toBe(true);
 		expect(hasActiveFilters(filters({ search: "token" }))).toBe(true);
 	});
 });
@@ -48,12 +51,12 @@ describe("matchesStatusFilters", () => {
 
 	it("rejects a row outside the selected states", () => {
 		const blockedOnly = filters({ stateFilter: ["blocked"] });
-		expect(matchesStatusFilters(update({ state: "running" }), blockedOnly)).toBe(
-			false,
-		);
-		expect(matchesStatusFilters(update({ state: "blocked" }), blockedOnly)).toBe(
-			true,
-		);
+		expect(
+			matchesStatusFilters(update({ state: "running" }), blockedOnly),
+		).toBe(false);
+		expect(
+			matchesStatusFilters(update({ state: "blocked" }), blockedOnly),
+		).toBe(true);
 	});
 
 	it("accepts a row in any of several selected states", () => {
@@ -85,6 +88,34 @@ describe("matchesStatusFilters", () => {
 		);
 	});
 
+	it("rejects a row missing the filtered tag", () => {
+		const f = filters({ tagFilter: ["auth"] });
+		expect(matchesStatusFilters(update({ tags: ["auth", "p0"] }), f)).toBe(
+			true,
+		);
+		expect(matchesStatusFilters(update({ tags: ["docs"] }), f)).toBe(false);
+		// An untagged row carries no tag, so it is not `auth` either.
+		expect(matchesStatusFilters(update(), f)).toBe(false);
+	});
+
+	it("requires all filtered tags, not any of them", () => {
+		const f = filters({ tagFilter: ["auth", "p0"] });
+		expect(matchesStatusFilters(update({ tags: ["auth", "p0"] }), f)).toBe(
+			true,
+		);
+		expect(matchesStatusFilters(update({ tags: ["auth"] }), f)).toBe(false);
+		expect(matchesStatusFilters(update({ tags: ["p0"] }), f)).toBe(false);
+	});
+
+	it("matches a tag exactly, not as a prefix of another tag", () => {
+		expect(
+			matchesStatusFilters(
+				update({ tags: ["authz"] }),
+				filters({ tagFilter: ["auth"] }),
+			),
+		).toBe(false);
+	});
+
 	it("requires every active filter to pass, not just one", () => {
 		const f = filters({ stateFilter: ["blocked"], agentFilter: "adam" });
 		expect(
@@ -96,6 +127,56 @@ describe("matchesStatusFilters", () => {
 		expect(
 			matchesStatusFilters(update({ state: "blocked", agentId: "adam" }), f),
 		).toBe(true);
+	});
+});
+
+describe("statusTagFacets", () => {
+	it("counts each tag over the rows it was given", () => {
+		const facets = statusTagFacets(
+			[
+				update({ updateId: "a", tags: ["auth", "p0"] }),
+				update({ updateId: "b", tags: ["auth"] }),
+				update({ updateId: "c", tags: ["docs"] }),
+			],
+			[],
+		);
+		expect(facets).toEqual([
+			{ tag: "auth", count: 2, selected: false },
+			{ tag: "docs", count: 1, selected: false },
+			{ tag: "p0", count: 1, selected: false },
+		]);
+	});
+
+	it("offers no chip for a tag no row on screen carries", () => {
+		const facets = statusTagFacets([update({ tags: ["auth"] })], []);
+		expect(facets.map((facet) => facet.tag)).toEqual(["auth"]);
+	});
+
+	it("returns nothing when no row is tagged", () => {
+		expect(statusTagFacets([update(), update({ updateId: "b" })], [])).toEqual(
+			[],
+		);
+	});
+
+	it("keeps a selected tag first, and keeps it even at zero", () => {
+		const facets = statusTagFacets(
+			[update({ tags: ["docs"] }), update({ updateId: "b", tags: ["docs"] })],
+			["auth"],
+		);
+		// `auth` matched nothing on this page, but dropping its chip would leave
+		// the filter on with no way to switch it back off.
+		expect(facets).toEqual([
+			{ tag: "auth", count: 0, selected: true },
+			{ tag: "docs", count: 2, selected: false },
+		]);
+	});
+});
+
+describe("toggleTagFilter", () => {
+	it("adds a tag it does not have and removes one it does", () => {
+		expect(toggleTagFilter([], "auth")).toEqual(["auth"]);
+		expect(toggleTagFilter(["auth"], "p0")).toEqual(["auth", "p0"]);
+		expect(toggleTagFilter(["auth", "p0"], "auth")).toEqual(["p0"]);
 	});
 });
 

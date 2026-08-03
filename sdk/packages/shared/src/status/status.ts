@@ -146,6 +146,15 @@ export const StatusQuerySchema = z
 		subjectPrefix: z.string().min(1).max(512).optional(),
 		state: z.array(StatusStateSchema).nonempty().optional(),
 		priority: z.array(StatusPrioritySchema).nonempty().optional(),
+		/**
+		 * Rows carrying *every* one of these tags.
+		 *
+		 * AND rather than the IN semantics `state` and `priority` use, because a
+		 * tag chip row is a narrowing facet: the counts beside each chip are
+		 * computed over what is already showing, so a second click has to shrink
+		 * the result set. OR would grow it and make those counts a lie.
+		 */
+		tags: z.array(z.string().min(1)).nonempty().optional(),
 		sessionId: z.string().min(1).optional(),
 		agentId: z.string().min(1).optional(),
 		workspaceRoot: z.string().min(1).optional(),

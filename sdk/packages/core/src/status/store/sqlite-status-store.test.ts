@@ -172,6 +172,90 @@ describe("SqliteStatusStore", () => {
 		expect(read?.progress).toBe(0.5);
 	});
 
+	it("filters to rows carrying a tag", () => {
+		publish({ subject: "a", tags: ["auth", "p0"] });
+		publish({ subject: "b", tags: ["docs"] });
+		publish({ subject: "c", tags: [] });
+
+		const page = store.query(parseStatusQuery({ tags: ["auth"], limit: 10 }));
+		expect(page.updates.map((u) => u.subject)).toEqual(["a"]);
+	});
+
+	it("narrows with each extra tag rather than widening", () => {
+		publish({ subject: "a", tags: ["auth", "p0"] });
+		publish({ subject: "b", tags: ["auth"] });
+		publish({ subject: "c", tags: ["p0"] });
+
+		expect(
+			store
+				.query(parseStatusQuery({ tags: ["auth"], limit: 10 }))
+				.updates.map((u) => u.subject)
+				.sort(),
+		).toEqual(["a", "b"]);
+		// AND, not OR: adding `p0` must drop `b`, not add `c`.
+		expect(
+			store
+				.query(parseStatusQuery({ tags: ["auth", "p0"], limit: 10 }))
+				.updates.map((u) => u.subject),
+		).toEqual(["a"]);
+	});
+
+	it("returns nothing for a tag no row carries", () => {
+		publish({ subject: "a", tags: ["auth"] });
+		expect(
+			store.query(parseStatusQuery({ tags: ["nope"], limit: 10 })).updates,
+		).toHaveLength(0);
+	});
+
+	it("matches a tag exactly rather than as a substring of another tag", () => {
+		publish({ subject: "a", tags: ["auth"] });
+		publish({ subject: "b", tags: ["authz"] });
+
+		expect(
+			store
+				.query(parseStatusQuery({ tags: ["auth"], limit: 10 }))
+				.updates.map((u) => u.subject),
+		).toEqual(["a"]);
+	});
+
+	it("survives a legacy row whose tags_json was never written", () => {
+		publish({ subject: "a", tags: ["auth"] });
+		// Rows predating the always-stringify publish path, and any row inserted
+		// by something other than publish, leave the nullable column NULL.
+		// json_each over NULL raises rather than yielding no rows, which would
+		// take the whole query down instead of excluding the row.
+		store.query(parseStatusQuery({ limit: 10 }));
+		const raw = store as unknown as {
+			db: { exec: (sql: string) => void };
+		};
+		raw.db.exec(
+			"UPDATE status_updates SET tags_json = NULL WHERE subject='a';",
+		);
+		publish({ subject: "b", tags: ["auth"] });
+
+		expect(() =>
+			store.query(parseStatusQuery({ tags: ["auth"], limit: 10 })),
+		).not.toThrow();
+		expect(
+			store
+				.query(parseStatusQuery({ tags: ["auth"], limit: 10 }))
+				.updates.map((u) => u.subject),
+		).toEqual(["b"]);
+	});
+
+	it("combines the tag filter with the other filters", () => {
+		publish({ subject: "a", state: "blocked", tags: ["auth"] });
+		publish({ subject: "b", state: "running", tags: ["auth"] });
+
+		expect(
+			store
+				.query(
+					parseStatusQuery({ tags: ["auth"], state: ["blocked"], limit: 10 }),
+				)
+				.updates.map((u) => u.subject),
+		).toEqual(["a"]);
+	});
+
 	it("prunes superseded history but never the current row", () => {
 		publish({ headline: "one" });
 		publish({ headline: "two" });
@@ -332,9 +416,7 @@ describe("SqliteStatusStore", () => {
 		expect(history.updates[2]?.previousState).toBeUndefined();
 	});
 
-	it(
-		"summarizes live rows across the whole table, not a page",
-		() => {
+	it("summarizes live rows across the whole table, not a page", () => {
 		for (let i = 0; i < 60; i += 1) {
 			publish({
 				subject: `t/${i}`,
@@ -368,9 +450,7 @@ describe("SqliteStatusStore", () => {
 			parseStatusQuery({ currentOnly: true, limit: 10 }),
 		);
 		expect(page.updates).toHaveLength(10);
-	},
-		20_000,
-	);
+	}, 20_000);
 
 	it("summarizes an empty store without throwing", () => {
 		const summary = store.summary();

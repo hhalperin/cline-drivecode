@@ -513,6 +513,8 @@ export type WebviewInboundMessage =
 				"queued" | "running" | "blocked" | "done" | "failed" | "cancelled"
 			>;
 			priority?: Array<"low" | "normal" | "high" | "critical">;
+			/** Rows carrying every one of these tags. */
+			tags?: string[];
 			sessionId?: string;
 			agentId?: string;
 			text?: string;
@@ -526,6 +528,8 @@ export type WebviewInboundMessage =
 			state?: Array<
 				"queued" | "running" | "blocked" | "done" | "failed" | "cancelled"
 			>;
+			/** Rows carrying every one of these tags. */
+			tags?: string[];
 			sessionId?: string;
 			agentId?: string;
 			text?: string;

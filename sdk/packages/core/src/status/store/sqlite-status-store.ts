@@ -277,6 +277,18 @@ export class SqliteStatusStore {
 			where.push(`s.priority IN (${query.priority.map(() => "?").join(", ")})`);
 			params.push(...query.priority);
 		}
+		if (query.tags?.length) {
+			// One EXISTS per tag, so several tags narrow (AND) rather than widen.
+			// `tags_json` is nullable and predates any writer that always fills it,
+			// so a legacy NULL has to read as "no tags" instead of raising
+			// "malformed JSON" out of json_each and failing the whole query.
+			for (const tag of query.tags) {
+				where.push(
+					`EXISTS (SELECT 1 FROM json_each(IFNULL(s.tags_json, '[]')) WHERE json_each.value = ?)`,
+				);
+				params.push(tag);
+			}
+		}
 		if (query.sessionId) {
 			where.push("s.session_id = ?");
 			params.push(query.sessionId);
