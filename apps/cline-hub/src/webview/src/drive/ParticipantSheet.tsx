@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { postToHost } from "../vscode";
+import { AgentPolicyEditor } from "./AgentPolicyEditor";
 import {
 	driveParticipantInk,
 	driveParticipantProfileId,
@@ -496,6 +497,19 @@ function AgentProfileSections({
 				</h3>
 				<CapabilitiesSection homeState={homeState} />
 			</section>
+
+			{homeState.status === "ready" && root ? (
+				<section className="space-y-2">
+					<h3 className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+						Configuration
+					</h3>
+					<AgentPolicyEditor
+						home={homeState.home}
+						onSaved={(next) => setHomeState({ status: "ready", home: next })}
+						workspaceRoot={root}
+					/>
+				</section>
+			) : null}
 
 			<section className="space-y-2">
 				<h3 className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">

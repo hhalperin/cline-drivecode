@@ -447,10 +447,26 @@ export {
 	sortRoomDirectory,
 } from "./room/roomDirectory.js";
 export {
+	assertDriveagentHomePatch,
 	compileDriveagentHome,
+	driveagentHomeIsEditable,
+	DRIVE_ENV_FORBIDDEN_SECRET_KEYS,
+	DRIVEAGENT_AGENT_HIDDEN_FIELDS,
 	DriveagentHomeCompileError,
+	DriveagentHomeWriteError,
+	mergeDriveagentHomePatch,
+	serializeDriveagentHome,
+	serializeDriveagentHomeFile,
 	type CompiledDriveagentView,
+	type DriveagentAgentPatch,
+	type DriveagentEnvPatch,
 	type DriveagentHomeCompileErrorCode,
+	type DriveagentHomeFileTexts,
+	type DriveagentHomePatch,
+	type DriveagentHomePreviousTexts,
+	type DriveagentHomeWriteErrorCode,
+	type DriveagentPermissionPresetIntentPatch,
+	type DriveagentPermissionsPatch,
 } from "./home/index.js";
 export {
 	applyProjection,

@@ -527,6 +527,37 @@ export type WebviewInboundMessage =
 			requestId?: string;
 	  }
 	| {
+			/**
+			 * Edit a Driveagent home. `patch` carries only the fields the read
+			 * path showed — an absent key means "unchanged", and naming a
+			 * stripped field (systemPrompt, promptPath, providerId, modelId,
+			 * maxIterations) is refused rather than merged.
+			 */
+			type: "drive_agent_home_put";
+			workspaceRoot: string;
+			slug: string;
+			patch: {
+				slug?: string;
+				agent?: {
+					name?: string;
+					description?: string;
+					tools?: string[];
+					skills?: string[];
+					editable?: boolean;
+				};
+				permissions?: {
+					presetIntent?: "readonly" | "standard" | "full";
+					approvalHooks?: string[];
+					notes?: string;
+				};
+				env?: {
+					values?: Record<string, string | number | boolean>;
+					secretRefs?: Array<{ key: string; secretRef: string }>;
+				};
+			};
+			requestId?: string;
+	  }
+	| {
 			/** Paged changelog across every agent. */
 			type: "status_query";
 			requestId: string;
@@ -823,6 +854,33 @@ export type WebviewOutboundMessage =
 			type: "drive_agent_home";
 			requestId?: string;
 			/** Sanitized home projection — no systemPrompt / promptPath. */
+			home: {
+				slug: string;
+				agent: {
+					name: string;
+					description: string;
+					tools?: string[];
+					skills?: string[];
+					editable?: boolean;
+				};
+				permissions: {
+					presetIntent: "readonly" | "standard" | "full";
+					approvalHooks: string[];
+					notes?: string;
+				};
+			};
+			compiled: {
+				name: string;
+				slug: string;
+				description: string;
+				tools?: string[];
+				skills?: string[];
+			};
+	  }
+	| {
+			/** Same sanitized projection as `drive_agent_home`, after a save. */
+			type: "drive_agent_home_saved";
+			requestId?: string;
 			home: {
 				slug: string;
 				agent: {

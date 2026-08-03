@@ -15,3 +15,7 @@ export {
 	type DriveagentHomeTier,
 	type ResolvedDriveagentHomeDir,
 } from "./resolve";
+export {
+	writeDriveagentHome,
+	type WrittenDriveagentHome,
+} from "./write";
