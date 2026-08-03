@@ -337,9 +337,46 @@ describe("projectArtifactBody", () => {
 		).toEqual({ kind: "image", uri: STUB_URI });
 	});
 
-	it("projects a capture card from the recipe url, with the uri as the shot", () => {
-		// The url is metadata the event log carries; the uri is an out-of-band
-		// pointer. Bytes never ride the event either way.
+	it("falls back when only entering rows survive — there is no comparison", () => {
+		// A BEFORE panel with no rows is an empty feed with a white flash
+		// strobing over nothing, under a caption claiming everything
+		// re-animates.
+		expect(
+			projectArtifactBody({
+				kind: "walkthrough.animation",
+				uri: STUB_URI,
+				produce: {
+					tool: "render_change_animation",
+					args: { entering: ["only the new one"] },
+				},
+			}),
+		).toEqual({ kind: "image", uri: STUB_URI });
+	});
+
+	it("projects a capture card from the recipe url and an out-of-band shot", () => {
+		// The url is metadata the event log carries; the uri is a pointer the
+		// browser resolves. Bytes never ride the event either way.
+		expect(
+			projectArtifactBody({
+				kind: "capture.screenshot",
+				uri: "https://cdn.example/shot.png",
+				produce: {
+					tool: "drive_browser_snapshot",
+					args: { url: "http://127.0.0.1:8787/drive" },
+				},
+			}),
+		).toEqual({
+			kind: "capture",
+			url: "http://127.0.0.1:8787/drive",
+			shot: "https://cdn.example/shot.png",
+		});
+	});
+
+	it("refuses to frame an inline data uri as the captured page", () => {
+		// On this kind a `data:` uri is always the hub's placeholder card
+		// (produceBrowserSnapshot's body literally reads "Demo capture stub").
+		// Drawing it inside browser chrome under the real address bar would
+		// assert it IS the page.
 		expect(
 			projectArtifactBody({
 				kind: "capture.screenshot",
@@ -352,7 +389,7 @@ describe("projectArtifactBody", () => {
 		).toEqual({
 			kind: "capture",
 			url: "http://127.0.0.1:8787/drive",
-			shot: STUB_URI,
+			shot: null,
 		});
 	});
 

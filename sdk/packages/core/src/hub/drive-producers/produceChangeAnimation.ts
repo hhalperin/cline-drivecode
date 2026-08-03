@@ -58,7 +58,7 @@ export function produceChangeAnimationShowArtifact(
 		.join("\n");
 	const svg = buildCardSvg({ title, body });
 	const item: ShowBacklogItem = {
-		id: `show-anim-${title.slice(0, 24).replace(/\s+/g, "-").toLowerCase()}`,
+		id: `show-anim-${title.slice(0, 24).toLowerCase().replace(/\W+/g, "-")}`,
 		ownerParticipantId: input.ownerParticipantId,
 		title,
 		intent: template?.intent ?? "Explain a change with motion",

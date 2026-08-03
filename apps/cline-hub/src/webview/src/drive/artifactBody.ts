@@ -364,11 +364,13 @@ export function projectArtifactBody(
 			);
 			const settled = readStringList(args, "rows").slice(
 				0,
-				ANIMATION_ROW_CAP - entering.length,
+				Math.max(0, ANIMATION_ROW_CAP - entering.length),
 			);
-			// Nothing to compare — the hub stub still says more than an empty
-			// two-up frame would.
-			if (settled.length === 0 && entering.length === 0) {
+			// The artifact IS the comparison: without settled rows the BEFORE
+			// panel is an empty feed with a white flash strobing over nothing,
+			// under a caption claiming everything re-animates. The hub stub says
+			// more than that does.
+			if (settled.length === 0) {
 				return fallback;
 			}
 			const signal = readString(args, "signal").trim();
@@ -401,7 +403,18 @@ export function projectArtifactBody(
 			if (!url) {
 				return fallback;
 			}
-			return { kind: "capture", url, shot: uri ?? null };
+			// A capture's pixels live out-of-band; a `data:` uri is in-band by
+			// definition. On this kind that is always the hub's placeholder card
+			// (`produceBrowserSnapshot`, whose body reads "Demo capture stub") —
+			// not a picture of the page. Framing it inside browser chrome under
+			// the real address bar would assert it IS the page, so the card
+			// shows its metadata state instead. Nothing else can honestly be
+			// drawn from a recipe that produced no capture.
+			return {
+				kind: "capture",
+				url,
+				shot: uri && !uri.startsWith("data:") ? uri : null,
+			};
 		}
 		default:
 			return fallback;

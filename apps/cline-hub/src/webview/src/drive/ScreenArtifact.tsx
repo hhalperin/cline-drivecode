@@ -344,8 +344,8 @@ function WalkthroughArtifact({
  * the keyframe percentages are the canvas's, unchanged.
  *
  * Windows: 0–48% "every beat, the whole page rebuilds" (BEFORE flashes through
- * three rebuild reps, AFTER dimmed); 48–58% focus crossfade; 58–78% the signal
- * chip glows on a still AFTER; 78–95% the entering rows land once; then hold.
+ * three rebuild reps, AFTER dimmed); 48–58% focus crossfade; 56–82% the signal
+ * chip glows on a still AFTER; 76–84% the entering rows land once; then hold.
  *
  * React 19 hoists and de-dupes this by `href`, so it is emitted next to the
  * only component that uses it instead of in the app's global sheet.
@@ -507,10 +507,12 @@ function AnimationPanelColumn({ panel }: { panel: AnimationPanel }) {
 										row.entering ? "bg-emerald-400/55" : "bg-primary/55",
 									)}
 								/>
-								{/* Two columns inside a ~218px frame leave no room for
-								    prose: below the container breakpoint the label
-								    collapses to the canvas's abstract bar. The motion is
-								    the explanation, and it survives any width. */}
+								{/* Two columns inside a frame under 24rem leave no room for
+								    prose — at an 820px viewport the Spotlight is ~218px, so
+								    each column is ~73px and every label is pure ellipsis.
+								    There the label collapses to the canvas's abstract bar:
+								    the motion is the explanation, and it survives any
+								    width. */}
 								<span className="min-w-0 flex-1 truncate text-[10px] text-zinc-300 @max-sm:hidden">
 									{row.label}
 								</span>
@@ -560,12 +562,35 @@ function AnimationArtifact({
 				eyebrow="walkthrough.animation · before and after"
 				title={title}
 			/>
-			<div className="screen-anim grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-hidden p-3">
+			{/* Remount per artifact, for the same reason `MermaidArtifact` keys on
+			    its source. Every rule runs once and holds, and the animation-name
+			    never changes between two animation shows — so without a new key
+			    React updates the existing nodes in place and the browser restarts
+			    nothing. The second show would render frozen in the first one's end
+			    state: no flash, chip already reverted, entering rows already
+			    landed. The payload is the motion, so that is the whole artifact
+			    missing. */}
+			<div
+				className="screen-anim grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-hidden p-3"
+				key={animationReplayKey(before, after)}
+			>
 				<AnimationPanelColumn panel={before} />
 				<AnimationPanelColumn panel={after} />
 			</div>
 		</ArtifactCard>
 	);
+}
+
+/**
+ * Identity of the comparison: a different one replays, the same one holds
+ * its end state. Same semantics as `MermaidArtifact`'s `key={source}` —
+ * re-presenting what the screen already shows is not a new thing to watch.
+ */
+function animationReplayKey(
+	before: AnimationPanel,
+	after: AnimationPanel,
+): string {
+	return JSON.stringify([before, after]);
 }
 
 /**
