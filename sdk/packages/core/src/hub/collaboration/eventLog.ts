@@ -21,6 +21,7 @@ import {
 	resolveDriveRoomMetaPath,
 	resolveDriveRoomsDir,
 } from "@cline/shared";
+import { migrateArtifactCorpus } from "./artifactEventLog";
 import {
 	countNonEmptyLines,
 	DEFAULT_ROOM_EVENT_LOG_MAX_RECORDS,
@@ -38,6 +39,13 @@ export type RoomLogRecord = {
 };
 
 export type RoomEventLog = {
+	/**
+	 * Workspace root this log is durable to, when it has one. The artifact
+	 * corpus lives beside the room logs under the same root, so whoever holds
+	 * the store can find it without a second binding to keep in sync. Undefined
+	 * on the pre-bind memory buffer — no workspace root, no durable corpus.
+	 */
+	readonly configParent?: string;
 	appendSync(roomId: string, event: DriveEvent): RoomLogRecord;
 	readSince(roomId: string, afterSeq: number): Promise<RoomLogRecord[]>;
 	/** Sync gap read for hub command handlers. */
@@ -170,6 +178,8 @@ export class JsonlRoomEventLog implements RoomEventLog {
 	 */
 	private readonly explicitMaxRecords: number | undefined;
 	private readonly lineCounts = new Map<string, number>();
+	/** Last skip count warned per room, so a stuck bad line warns once. */
+	private readonly warnedSkips = new Map<string, number>();
 
 	constructor(
 		readonly configParent: string,
@@ -252,21 +262,59 @@ export class JsonlRoomEventLog implements RoomEventLog {
 		}
 		const text = readFileSync(eventsPath, "utf8");
 		const out: RoomLogRecord[] = [];
+		let skipped = 0;
+		let total = 0;
+		// One corrupt or forward-incompatible record must degrade a single
+		// event, never the whole room history.
 		for (const line of text.split("\n")) {
 			const trimmed = line.trim();
 			if (!trimmed) {
 				continue;
 			}
-			const raw = JSON.parse(trimmed) as { seq?: unknown; event?: unknown };
-			if (typeof raw.seq !== "number" || raw.seq <= afterSeq) {
+			total += 1;
+			let raw: { seq?: unknown; event?: unknown };
+			try {
+				raw = JSON.parse(trimmed) as { seq?: unknown; event?: unknown };
+			} catch {
+				skipped += 1;
 				continue;
 			}
-			out.push({
-				seq: raw.seq,
-				event: parseDriveEvent(raw.event),
-			});
+			if (typeof raw.seq !== "number") {
+				skipped += 1;
+				continue;
+			}
+			// Already-seen records are a normal skip, not a corrupt one.
+			if (raw.seq <= afterSeq) {
+				continue;
+			}
+			try {
+				out.push({ seq: raw.seq, event: parseDriveEvent(raw.event) });
+			} catch {
+				skipped += 1;
+			}
 		}
+		this.warnOnceForSkips(roomId, skipped, total);
 		return out;
+	}
+
+	private warnOnceForSkips(
+		roomId: string,
+		skipped: number,
+		total: number,
+	): void {
+		if (skipped === 0) {
+			this.warnedSkips.delete(roomId);
+			return;
+		}
+		if (this.warnedSkips.get(roomId) === skipped) {
+			return;
+		}
+		this.warnedSkips.set(roomId, skipped);
+		const detail =
+			skipped === total
+				? `every one of its ${total} record(s) is unreadable; the room cannot be restored`
+				: `skipped ${skipped} of ${total} unreadable event log record(s)`;
+		console.warn(`[drive] room ${roomId}: ${detail}`);
 	}
 }
 
@@ -318,6 +366,13 @@ export function rebindJsonlRoomEventLog(
 	const scopedRoomIds = new Set<string>(roomIds ?? store.rooms.keys());
 	if (existing) {
 		migrateRoomEventLog(existing, next, scopedRoomIds);
+		// The artifact corpus is durable to the same root and must move with the
+		// rooms whose logs just moved — otherwise a workspace switch leaves a
+		// room's events under the new root and its artifacts under the old one,
+		// and the split is permanent.
+		if (existing.configParent) {
+			migrateArtifactCorpus(existing.configParent, nextParent, scopedRoomIds);
+		}
 	}
 
 	// In-memory commits may already have published higher seq than an empty dest.
