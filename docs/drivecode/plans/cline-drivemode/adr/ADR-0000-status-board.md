@@ -37,7 +37,7 @@
 | [ADR-0004](ADR-0004-gated-learn-privacy.md) | Gated learn; no transcript dump | **Accepted** | partial | Event privacy yes; knowledge learn UI open |
 | [ADR-0005](ADR-0005-status-hub.md) | Status Hub: SQLite status log in the Cline SDK | **Accepted** | shipped | Store, service, hub ops, `report_status`, dashboard |
 | [ADR-0006](ADR-0006-pip-partner-companion.md) | PiP Partner is a companion surface | **Accepted** | decision | Companion IA; no PipPartner UI yet |
-| [ADR-0007](ADR-0007-drive-as-cline-mode.md) | Drive is a Cline mode | **Accepted** | partial | Join/Leave + postures; not Plan\|Act peer pill yet |
+| [ADR-0007](ADR-0007-drive-as-cline-mode.md) | Drive is a Cline mode | **Accepted** | partial | Drive owns work surface (hub IA); Join/Leave + postures; not Plan\|Act peer pill yet |
 | [ADR-0008](ADR-0008-task-bank.md) | Task bank is Drive’s execution primitive | **Accepted** | partial | Workspace bank shipped; receipt / covered-check → ADR-0018 |
 | [ADR-0009](ADR-0009-runtime-topology-local-cloud.md) | Runtime topology local / cloud / hybrid | **Accepted** | partial | `assertTopologyLegal` + seeds; cap name drift noted |
 | [ADR-0010](ADR-0010-provider-harness-byok.md) | Provider harness (BYOK) | **Accepted** | partial | Facets + secrets forbid; adapters not fully registry-wired |
@@ -55,6 +55,7 @@
 | [ADR-0022](ADR-0022-agent-economics.md) | Agent economics — context, model, spend per agent | **Proposed** | none | Measurement is real per-message (`agent-runtime.ts:309-354`); **no Drive surface shows any of it**. `.driveagent/agent.yaml` already declares `providerId`/`modelId`/`maxIterations` and compiles them, but they dead-end at a read-only handler — the vocabulary was designed and never connected. Two agents in one room cannot run different models. Only cost control is a process-global env var that aborts with no warning |
 | [ADR-0023](ADR-0023-agent-spawn-governance.md) | Agent spawn governance (consult vs delegate) | **Proposed** | none | **Live defect:** agents already cause forks implicitly (any tool event → `runChatForkDirectorTick`), and worker sessions re-enter the same path, so generations are **unbounded** — width is capped at 2, depth is not guarded at all. Agents cannot seat agents, so that capability gets limits built in. `capPreset = min(parent, child)` already exists and is unwired |
 | [ADR-0024](ADR-0024-drive-web-runtime.md) | Drive web runtime — conformant browser host behind a transport port | **Proposed** | none | The transport is one branch in one file (`vscode.ts:114-124`); `new WebSocket` appears once in the app. `memoryDriveHost` already implements `DriveHostPort` beside `runHostConformance`, and `@cline/drive` has zero runtime deps — so the browser runs a **conformant host**, not a mock. Load-bearing clause: it must pass the same suite as the daemon, or it drifts like the canvas did |
+| [ADR-0025](ADR-0025-codebase-map-firewall.md) | Codebase map graph is explain/showcase only | **Accepted** | partial | Skill + shared projection + Drive propose helpers; Spotlight card path still host-wired. Firewalls portfolio (ADR-0002) and Status DEP-MAP |
 
 ## Leadership decisions (this wave)
 
