@@ -43,7 +43,9 @@ export function driveParticipantInk(
 	if (!stored) {
 		return null;
 	}
-	return channel === "body" ? (stored.bodyInk ?? null) : (stored.nameInk ?? null);
+	return channel === "body"
+		? (stored.bodyInk ?? null)
+		: (stored.nameInk ?? null);
 }
 
 /**
@@ -94,9 +96,7 @@ function readThemeMode(): "light" | "dark" {
 	if (typeof document === "undefined") {
 		return "light";
 	}
-	return document.documentElement.classList.contains("dark")
-		? "dark"
-		: "light";
+	return document.documentElement.classList.contains("dark") ? "dark" : "light";
 }
 
 /**

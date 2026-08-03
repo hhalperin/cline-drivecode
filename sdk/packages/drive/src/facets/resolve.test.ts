@@ -94,12 +94,10 @@ describe("contrast clamp", () => {
 			expect(resolved.color).not.toBe(input);
 			expect(resolved.clamped).toBe(true);
 			expect(resolved.fallbackToken).toBeNull();
-			expect(resolved.contrast).toBeGreaterThanOrEqual(
-				DRIVE_INK_MIN_CONTRAST,
-			);
-			expect(measuredContrast(resolved.color, theme.well)).toBeGreaterThanOrEqual(
-				DRIVE_INK_MIN_CONTRAST,
-			);
+			expect(resolved.contrast).toBeGreaterThanOrEqual(DRIVE_INK_MIN_CONTRAST);
+			expect(
+				measuredContrast(resolved.color, theme.well),
+			).toBeGreaterThanOrEqual(DRIVE_INK_MIN_CONTRAST);
 		},
 	);
 
@@ -148,7 +146,11 @@ describe("contrast clamp", () => {
 		const hue = srgbToOklch(
 			parseCssColor(resolved.color)?.rgb ?? { r: 0, g: 0, b: 0 },
 		).h;
-		expect(Math.abs(hue - srgbToOklch(parseCssColor(raw)?.rgb ?? { r: 0, g: 0, b: 0 }).h)).toBeLessThan(2);
+		expect(
+			Math.abs(
+				hue - srgbToOklch(parseCssColor(raw)?.rgb ?? { r: 0, g: 0, b: 0 }).h,
+			),
+		).toBeLessThan(2);
 	});
 
 	it("leaves an ink that already clears the ratio exactly where it was", () => {
@@ -160,9 +162,7 @@ describe("contrast clamp", () => {
 		});
 		expect(resolved.clamped).toBe(false);
 		expect(resolved.fallbackToken).toBeNull();
-		expect(resolved.color).toBe(
-			tokenColor(DRIVE_DARK_INK_THEME, "foreground"),
-		);
+		expect(resolved.color).toBe(tokenColor(DRIVE_DARK_INK_THEME, "foreground"));
 	});
 });
 

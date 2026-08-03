@@ -400,7 +400,10 @@ function parseOklchColor(value: string): { rgb: Rgb; alpha: number } | null {
 	if (l === null || Number.isNaN(c) || Number.isNaN(h)) {
 		return null;
 	}
-	return { rgb: oklchToSrgb({ l, c, h }), alpha: parsePercentOrUnit(alphaPart) ?? 1 };
+	return {
+		rgb: oklchToSrgb({ l, c, h }),
+		alpha: parsePercentOrUnit(alphaPart) ?? 1,
+	};
 }
 
 function parsePercentOrUnit(input: string | undefined): number | null {

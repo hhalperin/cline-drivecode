@@ -17,10 +17,7 @@ import {
 } from "@cline/drive";
 import { describe, expect, it } from "vitest";
 
-const CSS = readFileSync(
-	join(import.meta.dirname, "..", "index.css"),
-	"utf8",
-);
+const CSS = readFileSync(join(import.meta.dirname, "..", "index.css"), "utf8");
 
 /** Body of a top-level `:root { … }` / `.dark { … }` block. */
 function block(selector: string): string {
@@ -31,9 +28,7 @@ function block(selector: string): string {
 }
 
 function customProperty(source: string, name: string): string {
-	const match = source.match(
-		new RegExp(`--${name}:\\s*([^;]+);`),
-	);
+	const match = source.match(new RegExp(`--${name}:\\s*([^;]+);`));
 	expect(match, `--${name} missing`).not.toBeNull();
 	return (match?.[1] ?? "").trim();
 }
@@ -60,9 +55,7 @@ describe("drive ink palette mirrors index.css", () => {
 
 	it("pins the well each theme clamps against", () => {
 		// Light: --background is var(--brand-white); resolve the indirection.
-		expect(customProperty(lightBlock, "background")).toBe(
-			"var(--brand-white)",
-		);
+		expect(customProperty(lightBlock, "background")).toBe("var(--brand-white)");
 		expect(customProperty(brandBlock, "brand-white")).toBe(
 			DRIVE_LIGHT_INK_THEME.well,
 		);
@@ -72,9 +65,7 @@ describe("drive ink palette mirrors index.css", () => {
 	});
 
 	it("pins the fallback tokens the clamp lands on", () => {
-		expect(customProperty(lightBlock, "foreground")).toBe(
-			"var(--brand-black)",
-		);
+		expect(customProperty(lightBlock, "foreground")).toBe("var(--brand-black)");
 		expect(customProperty(brandBlock, "brand-black")).toBe(
 			DRIVE_LIGHT_INK_THEME.tokens.foreground,
 		);
