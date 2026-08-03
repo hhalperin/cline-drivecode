@@ -18,18 +18,33 @@ import {
 	type FacetStore,
 } from "@cline/drive";
 import type {
+	AgentAppearance,
+	AgentProfile,
+	AgentRef,
 	DriveFacetDiskFile,
 	DriveFacetDiskSnapshot,
 	DriveSubMode,
 } from "@cline/shared";
 import {
+	agentProfileId,
 	DRIVE_FACET_SCHEMA_VERSION,
 	mergeFacetScopes,
+	parseAgentAppearance,
 	parseDriveFacetDiskFile,
 	resolveDriveConfigDir,
+	toAgentProfile,
 } from "@cline/shared";
 
 export const CATALOG_FACETS_FILE_NAME = "catalog-facets.v1.json";
+
+/**
+ * Facets whose durable shape is a per-entity map, not a scalar.
+ *
+ * `putCatalogDurableValues` writes `{ kind: "value" }` entries, so letting one
+ * of these through would replace the whole map with a scalar and drop every
+ * entity in it — silently, since the reader ignores non-map entries here.
+ */
+const MAP_FACET_KEYS = new Set<DriveFacetKey>(["agent.appearance"]);
 
 const stores = new Map<string, FacetStore>();
 
@@ -121,6 +136,13 @@ export function putCatalogDurableValues(input: {
 				message: `Facet "${key}" is not durable`,
 			};
 		}
+		if (MAP_FACET_KEYS.has(key as DriveFacetKey)) {
+			return {
+				ok: false,
+				code: "map_facet_rejected",
+				message: `Facet "${key}" is a per-entity map; use its dedicated upsert command`,
+			};
+		}
 	}
 
 	const previous = readCatalogFile(input.workspaceRoot) ?? {
@@ -138,6 +160,85 @@ export function putCatalogDurableValues(input: {
 	writeCatalogFileAtomic(input.workspaceRoot, next);
 	const store = loadCatalogFacetStore({ workspaceRoot: input.workspaceRoot });
 	return { ok: true, snapshot: store.snapshot().durable };
+}
+
+export type UpsertAgentProfileResult =
+	| { ok: true; profile: AgentProfile }
+	| { ok: false; code: string; message: string };
+
+/**
+ * Persist one agent's appearance into the `agent.appearance` map.
+ *
+ * Merge-preserving on both axes: `...previous.entries` keeps every other facet
+ * in the file, and `...existing.entries` keeps every other agent's appearance.
+ * Neither is optional — the write is an atomic whole-file replace, so anything
+ * not carried forward here is gone with no error and no warning.
+ *
+ * The voice lane (`facets.v1.json`, `drive_config_put`) is a different file
+ * entirely, so a TTS change cannot reach these bytes.
+ */
+export function upsertAgentProfile(input: {
+	workspaceRoot: string;
+	ref: AgentRef;
+	appearance: AgentAppearance;
+}): UpsertAgentProfileResult {
+	let appearance: AgentAppearance;
+	try {
+		appearance = parseAgentAppearance(input.appearance);
+	} catch (error) {
+		return {
+			ok: false,
+			code: "invalid_payload",
+			message: error instanceof Error ? error.message : String(error),
+		};
+	}
+
+	const id = agentProfileId(input.ref);
+	const previous = readCatalogFile(input.workspaceRoot) ?? {
+		schemaVersion: DRIVE_FACET_SCHEMA_VERSION,
+		entries: {},
+	};
+	const existing = previous.entries["agent.appearance"];
+	const mapEntries = existing?.kind === "map" ? { ...existing.entries } : {};
+	mapEntries[id] = { kind: "value", value: appearance };
+
+	const next: DriveFacetDiskFile = {
+		schemaVersion: DRIVE_FACET_SCHEMA_VERSION,
+		entries: {
+			...previous.entries,
+			"agent.appearance": { kind: "map", entries: mapEntries },
+		},
+	};
+	writeCatalogFileAtomic(input.workspaceRoot, next);
+	loadCatalogFacetStore({ workspaceRoot: input.workspaceRoot });
+	return { ok: true, profile: { id, ref: input.ref, ...appearance } };
+}
+
+/** One agent's appearance, read back through the facet store's map lane. */
+export function getAgentAppearance(input: {
+	workspaceRoot: string;
+	ref: AgentRef;
+}): AgentAppearance {
+	const store = loadCatalogFacetStore({ workspaceRoot: input.workspaceRoot });
+	return store.get("agent.appearance", agentProfileId(input.ref));
+}
+
+/** Every stored agent profile, keyed back into full `AgentProfile` records. */
+export function listAgentProfiles(workspaceRoot: string): AgentProfile[] {
+	const store = loadCatalogFacetStore({ workspaceRoot });
+	const ids = Object.keys(
+		store.snapshot().durable.maps["agent.appearance"] ?? {},
+	);
+	const profiles: AgentProfile[] = [];
+	for (const id of ids.sort()) {
+		const profile = toAgentProfile(id, store.get("agent.appearance", id));
+		// An id that is not a canonical ref key names no agent; skip rather than
+		// invent a ref for it.
+		if (profile) {
+			profiles.push(profile);
+		}
+	}
+	return profiles;
 }
 
 export function catalogSnapshotView(workspaceRoot: string): {

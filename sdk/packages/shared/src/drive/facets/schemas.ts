@@ -3,7 +3,7 @@
  */
 
 import { z } from "zod";
-import { AgentRefSchema } from "../agentRef";
+import { type AgentRef, AgentRefSchema, DriveagentSlugSchema } from "../agentRef";
 import { DriveSubModeSchema } from "../room";
 import {
 	DRIVE_FACET_SCHEMA_VERSION,
@@ -68,6 +68,61 @@ export const AgentProfileSchema = z
 	})
 	.strict();
 export type AgentProfile = z.infer<typeof AgentProfileSchema>;
+
+export function parseAgentAppearance(input: unknown): AgentAppearance {
+	return AgentAppearanceSchema.parse(input);
+}
+
+/**
+ * Fallback profile id used when a reader asks for appearance without naming an
+ * agent. Matches `agentProfileId({ kind: "builtin", id: "pair_partner" })`.
+ */
+export const DEFAULT_AGENT_PROFILE_ID = "builtin.pair_partner";
+
+/**
+ * Canonical durable key for an agent's appearance profile.
+ *
+ * The id *is* the ref, flattened — `agentProfileId` and `parseAgentProfileId`
+ * round-trip, so the `agent.appearance` map needs no second file to remember
+ * which agent a stored appearance paints. `kind` never contains a `.`, and the
+ * split is on the first one, so ids with dots in them survive the round trip.
+ */
+export function agentProfileId(ref: AgentRef): string {
+	return ref.kind === "driveagent"
+		? `driveagent.${ref.slug}`
+		: `${ref.kind}.${ref.id}`;
+}
+
+/** Inverse of `agentProfileId`; null when the id is not a canonical ref key. */
+export function parseAgentProfileId(id: string): AgentRef | null {
+	const separator = id.indexOf(".");
+	if (separator <= 0) {
+		return null;
+	}
+	const kind = id.slice(0, separator);
+	const rest = id.slice(separator + 1);
+	if (!rest) {
+		return null;
+	}
+	if (kind === "driveagent") {
+		return DriveagentSlugSchema.safeParse(rest).success
+			? { kind: "driveagent", slug: rest }
+			: null;
+	}
+	if (kind === "builtin" || kind === "configured") {
+		return { kind, id: rest };
+	}
+	return null;
+}
+
+/** Rebuild the full profile from its durable key + stored appearance. */
+export function toAgentProfile(
+	id: string,
+	appearance: AgentAppearance,
+): AgentProfile | null {
+	const ref = parseAgentProfileId(id);
+	return ref ? { id, ref, ...appearance } : null;
+}
 
 export const DriveDefaultsSubModeSchema = DriveSubModeSchema;
 export type DriveDefaultsSubMode = z.infer<typeof DriveDefaultsSubModeSchema>;

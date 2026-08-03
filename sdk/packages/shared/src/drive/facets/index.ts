@@ -24,8 +24,10 @@ export {
 	type RosterPackMemberRole,
 } from "./rosterPack";
 export {
+	agentProfileId,
 	AgentAppearanceSchema,
 	AgentProfileSchema,
+	DEFAULT_AGENT_PROFILE_ID,
 	DRIVE_FACET_FORBIDDEN_PROMPT_KEYS,
 	DriveDefaultsSubModeSchema,
 	DriveFacetDiskFileSchema,
@@ -33,7 +35,10 @@ export {
 	FacetDiskEntrySchema,
 	InkRefSchema,
 	migrateDriveFacetDiskFile,
+	parseAgentAppearance,
+	parseAgentProfileId,
 	parseDriveFacetDiskFile,
+	toAgentProfile,
 	type AgentAppearance,
 	type AgentProfile,
 	type DriveDefaultsSubMode,
