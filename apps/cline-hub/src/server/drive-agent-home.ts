@@ -76,9 +76,7 @@ function sanitizeHome(value: unknown): SanitizedHome | undefined {
 	}
 	const name = typeof agentRaw.name === "string" ? agentRaw.name.trim() : "";
 	const description =
-		typeof agentRaw.description === "string"
-			? agentRaw.description.trim()
-			: "";
+		typeof agentRaw.description === "string" ? agentRaw.description.trim() : "";
 	const presetIntent = permissionsRaw.presetIntent;
 	if (
 		!name ||
@@ -170,7 +168,13 @@ function resolveHomeTarget(
 	requestId: string | undefined,
 ): HomeTarget | undefined {
 	if (!ctx.uiClient) {
-		sendHomeError(ctx, peer, requestId, "Hub is not connected.", "hub_disconnected");
+		sendHomeError(
+			ctx,
+			peer,
+			requestId,
+			"Hub is not connected.",
+			"hub_disconnected",
+		);
 		return undefined;
 	}
 	const workspaceRoot =
@@ -282,7 +286,9 @@ export async function handleDriveAgentHomePutWebviewCommand(
 			peer,
 			requestId,
 			error instanceof Error ? error.message : String(error),
-			error instanceof DriveagentHomeWriteError ? error.code : "invalid_payload",
+			error instanceof DriveagentHomeWriteError
+				? error.code
+				: "invalid_payload",
 		);
 		return;
 	}

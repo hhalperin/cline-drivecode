@@ -51,17 +51,17 @@ import {
 	type PendingCapabilityRequest,
 } from "./handlers/context";
 import { handleDriveBankCommand } from "./handlers/drive-bank-handlers";
-import { handleDriveSessionRollupsCommand } from "./handlers/drive-session-rollups-handlers";
-import { handleDriveConfigCommand } from "./handlers/drive-config-handlers";
 import { handleDriveCatalogCommand } from "./handlers/drive-catalog-handlers";
-import { handleDriveCommand } from "./handlers/drive-handlers";
-import { handleDrivePrivacyCommand } from "./handlers/drive-privacy-handlers";
+import { handleDriveConfigCommand } from "./handlers/drive-config-handlers";
+import { handleDrivePlanCommand } from "./handlers/drive-driveplan-handlers";
 import { handleDriveForkCommand } from "./handlers/drive-fork-handlers";
 import { handleDriveForkTickCommand } from "./handlers/drive-fork-tick";
-import { handleDriveWaveCommand } from "./handlers/drive-wave-handlers";
-import { handleDrivePlanCommand } from "./handlers/drive-driveplan-handlers";
+import { handleDriveCommand } from "./handlers/drive-handlers";
 import { handleDriveHomeCommand } from "./handlers/drive-home-handlers";
+import { handleDrivePrivacyCommand } from "./handlers/drive-privacy-handlers";
 import { handleDriveRoomCommand } from "./handlers/drive-room-handlers";
+import { handleDriveSessionRollupsCommand } from "./handlers/drive-session-rollups-handlers";
+import { handleDriveWaveCommand } from "./handlers/drive-wave-handlers";
 import {
 	handleRunAbort,
 	handleSessionHook,

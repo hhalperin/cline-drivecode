@@ -124,10 +124,7 @@ export class DriveagentHomeWriteError extends Error {
 	}
 }
 
-function fail(
-	code: DriveagentHomeWriteErrorCode,
-	message: string,
-): never {
+function fail(code: DriveagentHomeWriteErrorCode, message: string): never {
 	throw new DriveagentHomeWriteError(code, message);
 }
 
@@ -135,10 +132,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function assertRecord(
-	value: unknown,
-	label: string,
-): Record<string, unknown> {
+function assertRecord(value: unknown, label: string): Record<string, unknown> {
 	if (!isRecord(value)) {
 		fail("invalid_patch", `${label} must be an object`);
 	}
@@ -266,7 +260,9 @@ function assertEnvPatch(value: unknown): DriveagentEnvPatch {
 		const values = assertRecord(record.values, "env.values");
 		const next: Record<string, string | number | boolean> = {};
 		for (const [key, entry] of Object.entries(values)) {
-			if ((DRIVE_ENV_FORBIDDEN_SECRET_KEYS as readonly string[]).includes(key)) {
+			if (
+				(DRIVE_ENV_FORBIDDEN_SECRET_KEYS as readonly string[]).includes(key)
+			) {
 				fail(
 					"plaintext_secret",
 					`plaintext secret key '${key}' is forbidden in env.yaml values; use secretRefs`,
@@ -312,9 +308,7 @@ function assertEnvPatch(value: unknown): DriveagentEnvPatch {
  * and every plaintext secret — so the editor can reject a bad draft before it
  * reaches the hub, and the hub can reject one that skipped the editor.
  */
-export function assertDriveagentHomePatch(
-	input: unknown,
-): DriveagentHomePatch {
+export function assertDriveagentHomePatch(input: unknown): DriveagentHomePatch {
 	const record = assertRecord(input, "patch");
 	assertKnownKeys(record, HOME_PATCH_FIELDS, "patch");
 

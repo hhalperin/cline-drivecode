@@ -111,16 +111,8 @@ export function writeDriveagentHome(input: {
 	// disk exactly as it was rather than half-updated.
 	const changedFiles: string[] = [];
 	const files: [keyof DriveagentHomeFileTexts, string, string][] = [
-		[
-			"agentYaml",
-			paths.agentYaml,
-			DRIVEAGENT_AGENT_YAML,
-		],
-		[
-			"permissionsYaml",
-			paths.permissionsYaml,
-			DRIVEAGENT_PERMISSIONS_YAML,
-		],
+		["agentYaml", paths.agentYaml, DRIVEAGENT_AGENT_YAML],
+		["permissionsYaml", paths.permissionsYaml, DRIVEAGENT_PERMISSIONS_YAML],
 		["envYaml", paths.envYaml, DRIVEAGENT_ENV_YAML],
 	];
 	for (const [key, path, fileName] of files) {

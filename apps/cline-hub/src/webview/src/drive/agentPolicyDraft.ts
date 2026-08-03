@@ -63,7 +63,10 @@ function listsEqual(a: readonly string[], b: readonly string[]): boolean {
 	return a.length === b.length && a.every((entry, index) => entry === b[index]);
 }
 
-export type AgentPolicyDraftIssue = { field: keyof AgentPolicyDraft; message: string };
+export type AgentPolicyDraftIssue = {
+	field: keyof AgentPolicyDraft;
+	message: string;
+};
 
 /** Client-side checks that mirror the schema, so a bad draft never leaves. */
 export function validatePolicyDraft(

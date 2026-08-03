@@ -536,25 +536,7 @@ export type WebviewInboundMessage =
 			type: "drive_agent_home_put";
 			workspaceRoot: string;
 			slug: string;
-			patch: {
-				slug?: string;
-				agent?: {
-					name?: string;
-					description?: string;
-					tools?: string[];
-					skills?: string[];
-					editable?: boolean;
-				};
-				permissions?: {
-					presetIntent?: "readonly" | "standard" | "full";
-					approvalHooks?: string[];
-					notes?: string;
-				};
-				env?: {
-					values?: Record<string, string | number | boolean>;
-					secretRefs?: Array<{ key: string; secretRef: string }>;
-				};
-			};
+			patch: import("@cline/drive").DriveagentHomePatch;
 			requestId?: string;
 	  }
 	| {

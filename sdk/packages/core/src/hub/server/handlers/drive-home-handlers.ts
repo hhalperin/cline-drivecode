@@ -52,11 +52,7 @@ function handleDriveAgentHomeGet(
 	const workspaceRoot = readString(envelope.payload, "workspaceRoot");
 	const slug = readString(envelope.payload, "slug");
 	if (!workspaceRoot) {
-		return errorReply(
-			envelope,
-			"invalid_payload",
-			"workspaceRoot is required",
-		);
+		return errorReply(envelope, "invalid_payload", "workspaceRoot is required");
 	}
 	if (!slug) {
 		return errorReply(envelope, "invalid_payload", "slug is required");
@@ -80,11 +76,7 @@ function handleDriveAgentHomePut(
 	const workspaceRoot = readString(envelope.payload, "workspaceRoot");
 	const slug = readString(envelope.payload, "slug");
 	if (!workspaceRoot) {
-		return errorReply(
-			envelope,
-			"invalid_payload",
-			"workspaceRoot is required",
-		);
+		return errorReply(envelope, "invalid_payload", "workspaceRoot is required");
 	}
 	if (!slug) {
 		return errorReply(envelope, "invalid_payload", "slug is required");

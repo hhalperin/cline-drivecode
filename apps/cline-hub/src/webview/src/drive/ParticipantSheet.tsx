@@ -22,10 +22,7 @@ import {
 	resolveParticipantNameInk,
 	useDriveInkTheme,
 } from "./agentInk";
-import {
-	buildHumanPinDefaults,
-	type HumanPinKind,
-} from "./pinDefaults";
+import { buildHumanPinDefaults, type HumanPinKind } from "./pinDefaults";
 import {
 	type DriveagentHomeProjection,
 	requestDriveagentHome,
