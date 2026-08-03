@@ -4,6 +4,10 @@
  * values that live in `index.css`. Two copies drift silently — a palette edit
  * in CSS would leave the contrast clamp measuring against the old colours and
  * nothing would fail. This is the pin, run from the hub where both are visible.
+ *
+ * It lives on the hub's node side rather than beside the stylesheet because it
+ * reads from disk: the webview tsconfig is DOM-only, and `build:webview` runs
+ * `tsc -b` across its tests, so a `node:fs` import there fails the build.
  */
 
 import { readFileSync } from "node:fs";
@@ -13,11 +17,13 @@ import {
 	DRIVE_INK_PALETTE,
 	DRIVE_INK_VIOLET_INDEX,
 	DRIVE_LIGHT_INK_THEME,
+	DRIVE_SCREEN_INK_THEME,
 	formatOklch,
 } from "@cline/drive";
 import { describe, expect, it } from "vitest";
 
-const CSS = readFileSync(join(import.meta.dirname, "..", "index.css"), "utf8");
+const WEBVIEW_SRC = join(import.meta.dirname, "..", "webview", "src");
+const CSS = readFileSync(join(WEBVIEW_SRC, "index.css"), "utf8");
 
 /** Body of a top-level `:root { … }` / `.dark { … }` block. */
 function block(selector: string): string {
@@ -81,6 +87,28 @@ describe("drive ink palette mirrors index.css", () => {
 	});
 });
 
+describe("the shared screen well", () => {
+	// The screen theme is the copy that had already drifted, and it was the one
+	// the pin skipped: `SCREEN_SURFACE` re-pins only `--background`, so the rest
+	// of the tokens must stay exactly the dark-theme ones.
+	it("pins the well to Spotlight's SCREEN_SURFACE background", () => {
+		const spotlight = readFileSync(
+			join(WEBVIEW_SRC, "drive", "Spotlight.tsx"),
+			"utf8",
+		);
+		const match = spotlight.match(/"--background":\s*"([^"]+)"/);
+		expect(match, "SCREEN_SURFACE --background missing").not.toBeNull();
+		expect(DRIVE_SCREEN_INK_THEME.well).toBe(match?.[1]);
+	});
+
+	it("inherits the dark tokens rather than restating them", () => {
+		// SCREEN_SURFACE overrides no foreground token, and the subtree keeps
+		// `dark`, so any divergence here would be measuring a colour the screen
+		// never uses.
+		expect(DRIVE_SCREEN_INK_THEME.tokens).toEqual(DRIVE_DARK_INK_THEME.tokens);
+	});
+});
+
 describe("violet stays product chrome", () => {
 	it("is the accent, and the accent is not an agent default", () => {
 		// DRV-AGENT-PROFILE: violet is selectable, never a default agent ink.
@@ -90,7 +118,7 @@ describe("violet stays product chrome", () => {
 
 	it("leaves no hardcoded violet utility on a Drive agent chip", () => {
 		const spotlight = readFileSync(
-			join(import.meta.dirname, "Spotlight.tsx"),
+			join(WEBVIEW_SRC, "drive", "Spotlight.tsx"),
 			"utf8",
 		);
 		expect(spotlight).not.toMatch(/(border|bg|text)-violet-\d/);
@@ -98,7 +126,7 @@ describe("violet stays product chrome", () => {
 
 	it("leaves no hardcoded ink hex in the webview Drive chrome", () => {
 		// The old `nameInkPaletteColor` switch lived here.
-		const types = readFileSync(join(import.meta.dirname, "types.ts"), "utf8");
+		const types = readFileSync(join(WEBVIEW_SRC, "drive", "types.ts"), "utf8");
 		expect(types).not.toMatch(/#[0-9a-f]{6}/i);
 	});
 });

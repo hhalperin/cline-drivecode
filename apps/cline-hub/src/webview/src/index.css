@@ -64,6 +64,10 @@
 	 * identity; lightness is theme-derived, which is why these are OKLCH and why
 	 * the .dark block below restates them at a higher lightness.
 	 *
+	 * Chroma is the in-gamut value, matching what the resolver emits — an
+	 * out-of-gamut oklch() is remapped by the browser in a way that moves
+	 * lightness and hue, so the two copies would render differently.
+	 *
 	 * `--drive-ink-5` is Cline's accent violet. It stays selectable but is never
 	 * a default — accent is product chrome, not an agent identity colour. The
 	 * default is a stable hash over the other seven, in
@@ -73,7 +77,7 @@
 	--drive-ink-well: var(--background);
 	--drive-ink-0: oklch(0.52 0.0861 186.39);
 	--drive-ink-1: oklch(0.52 0.2172 264.38);
-	--drive-ink-2: oklch(0.52 0.1455 49);
+	--drive-ink-2: oklch(0.52 0.1396 49);
 	--drive-ink-3: oklch(0.52 0.1978 16.93);
 	--drive-ink-4: oklch(0.52 0.1049 165.61);
 	--drive-ink-5: oklch(0.52 0.1073 277.02);
@@ -284,9 +288,9 @@
 
 	/* Same hues, lifted to the dark-theme lightness seed. */
 	--drive-ink-0: oklch(0.78 0.0861 186.39);
-	--drive-ink-1: oklch(0.78 0.2172 264.38);
-	--drive-ink-2: oklch(0.78 0.1455 49);
-	--drive-ink-3: oklch(0.78 0.1978 16.93);
+	--drive-ink-1: oklch(0.78 0.1111 264.38);
+	--drive-ink-2: oklch(0.78 0.141 49);
+	--drive-ink-3: oklch(0.78 0.1293 16.93);
 	--drive-ink-4: oklch(0.78 0.1049 165.61);
 	--drive-ink-5: oklch(0.78 0.1073 277.02);
 	--drive-ink-6: oklch(0.78 0.0936 223.13);

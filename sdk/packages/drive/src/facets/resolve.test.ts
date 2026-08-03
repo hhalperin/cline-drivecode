@@ -235,13 +235,73 @@ describe("token fallback", () => {
 	});
 });
 
-describe("default ink hash", () => {
-	it("is stable for the same profile id", () => {
-		const id = "driveagent.pair-partner";
-		const first = defaultNameInkIndex(id);
-		for (let n = 0; n < 25; n += 1) {
-			expect(defaultNameInkIndex(id)).toBe(first);
+describe("emitted colour is the measured colour", () => {
+	// The guarantee is about the string handed to CSS, not an internal seed.
+	// An out-of-gamut oklch() is remapped by the browser (moving lightness AND
+	// hue), so if the clip were dropped the reported ratio would describe a
+	// colour nobody ever sees. Re-parsing what we emit is what catches that.
+	it.each([
+		{ mode: "light" as const, theme: DRIVE_LIGHT_INK_THEME },
+		{ mode: "dark" as const, theme: DRIVE_DARK_INK_THEME },
+		{ mode: "screen" as const, theme: DRIVE_SCREEN_INK_THEME },
+	])("re-measures to the reported contrast on the $mode well", ({ theme }) => {
+		for (let index = 0; index < DRIVE_INK_PALETTE.length; index += 1) {
+			const resolved = resolveInk({
+				ink: { kind: "palette", index: index as 0 },
+				channel: "name",
+				profileId: "a",
+				theme,
+			});
+			const emitted = measuredContrast(resolved.color, theme.well);
+			// Tolerance covers formatOklch rounding only; the bug this catches
+			// (emitting an unclipped colour) moved contrast by 0.3-1.1.
+			expect(emitted).toBeCloseTo(resolved.contrast, 2);
+			expect(emitted).toBeGreaterThanOrEqual(DRIVE_INK_MIN_CONTRAST);
 		}
+	});
+
+	it("emits an in-gamut colour for an out-of-gamut request", () => {
+		// Rose at dark-theme lightness asks for more chroma than sRGB has.
+		const requested = { l: 0.78, c: 0.1978, h: 16.93 };
+		const emitted = formatOklch(requested);
+		const parsed = parseCssColor(emitted);
+		if (!parsed) {
+			throw new Error(emitted);
+		}
+		const back = srgbToOklch(parsed.rgb);
+		expect(back.c).toBeLessThan(requested.c);
+		// Lightness and hue survive; only chroma gives way.
+		expect(back.l).toBeCloseTo(requested.l, 2);
+		expect(back.h).toBeCloseTo(requested.h, 1);
+	});
+
+	it("clamped tokens re-measure too, not just palette entries", () => {
+		const resolved = resolveInk({
+			ink: { kind: "token", token: "success" },
+			channel: "name",
+			profileId: "a",
+			theme: DRIVE_LIGHT_INK_THEME,
+		});
+		expect(resolved.clamped).toBe(true);
+		expect(
+			measuredContrast(resolved.color, DRIVE_LIGHT_INK_THEME.well),
+		).toBeCloseTo(resolved.contrast, 2);
+	});
+});
+
+describe("default ink hash", () => {
+	// Golden values. Asserting the function agrees with itself passes for any
+	// implementation, including `return 0`; these change only if the hash does,
+	// which is the thing that must not drift — an agent's colour is durable.
+	it.each([
+		{ id: "driveagent.pair-partner", index: 6 },
+		{ id: "builtin.pair_partner", index: 2 },
+		{ id: "driveagent.reviewer", index: 7 },
+		{ id: "driveagent.nova", index: 3 },
+		{ id: "driveagent.scout", index: 2 },
+		{ id: "drive:partner", index: 7 },
+	])("pins $id to palette $index", ({ id, index }) => {
+		expect(defaultNameInkIndex(id)).toBe(index);
 	});
 
 	it("spreads distinct agents across the palette", () => {
@@ -254,7 +314,16 @@ describe("default ink hash", () => {
 			"driveagent.scout",
 		];
 		const picked = new Set(ids.map(defaultNameInkIndex));
-		expect(picked.size).toBeGreaterThan(1);
+		// A two-bucket hash would satisfy `> 1`.
+		expect(picked.size).toBeGreaterThanOrEqual(3);
+	});
+
+	it("uses the whole default pool, not a corner of it", () => {
+		const seen = new Set<number>();
+		for (let n = 0; n < 500; n += 1) {
+			seen.add(defaultNameInkIndex(`driveagent.agent-${n}`));
+		}
+		expect(seen.size).toBe(DRIVE_INK_DEFAULT_INDICES.length);
 	});
 
 	it("never defaults an agent to Cline violet", () => {
@@ -299,7 +368,13 @@ describe("palette", () => {
 			profileId: "a",
 			theme: DRIVE_LIGHT_INK_THEME,
 		});
-		expect(violet.color).toContain("277");
+		const hue = srgbToOklch(
+			parseCssColor(violet.color)?.rgb ?? { r: 0, g: 0, b: 0 },
+		).h;
+		expect(hue).toBeCloseTo(
+			DRIVE_INK_PALETTE[DRIVE_INK_VIOLET_INDEX]?.h ?? 0,
+			0,
+		);
 	});
 
 	it("renders every palette index as a distinct colour per theme", () => {

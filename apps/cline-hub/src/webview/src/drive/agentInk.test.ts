@@ -170,6 +170,61 @@ describe("spotlight sharer ink", () => {
 		);
 	});
 
+	it("follows the spotlight holder, not whichever agent sorts first", () => {
+		// With one agent these coincide, which is why a single-agent fixture
+		// cannot catch this; the feature exists for the multi-agent case.
+		const drive = {
+			...applyAgentNameInk(DEFAULT_DRIVE_UI, "driveagent.nova", 4),
+			spotlightParticipantId: reviewer.id,
+		};
+		const participants = [human, nova, reviewer];
+
+		expect(
+			resolveSpotlightSharerInk(drive, DRIVE_SCREEN_INK_THEME, participants),
+		).toBe(
+			resolveParticipantNameInk({
+				drive,
+				participant: reviewer,
+				theme: DRIVE_SCREEN_INK_THEME,
+			}),
+		);
+		expect(
+			resolveSpotlightSharerInk(drive, DRIVE_SCREEN_INK_THEME, participants),
+		).not.toBe(
+			resolveParticipantNameInk({
+				drive,
+				participant: nova,
+				theme: DRIVE_SCREEN_INK_THEME,
+			}),
+		);
+	});
+
+	it("falls back to the partner when the spotlight id names no agent", () => {
+		const drive = {
+			...DEFAULT_DRIVE_UI,
+			spotlightParticipantId: "drive:human",
+		};
+		const partner = agent({
+			id: "seat_partner",
+			displayName: "Cline",
+			role: "partner",
+			ref: { kind: "driveagent", slug: "pair-partner" },
+		});
+		expect(
+			resolveSpotlightSharerInk(drive, DRIVE_SCREEN_INK_THEME, [
+				human,
+				reviewer,
+				partner,
+			]),
+		).toBe(
+			resolveParticipantNameInk({
+				drive,
+				participant: partner,
+				theme: DRIVE_SCREEN_INK_THEME,
+			}),
+		);
+	});
+
 	it("is undefined when no agent is seated", () => {
 		expect(
 			resolveSpotlightSharerInk(DEFAULT_DRIVE_UI, DRIVE_SCREEN_INK_THEME, [

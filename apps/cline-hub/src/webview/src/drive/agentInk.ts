@@ -77,19 +77,29 @@ export function resolveParticipantNameInk(input: {
  * Reads the same roster projection the byline does, so the shared screen's chip
  * and the roster row cannot drift apart — resolving a guessed profile id here
  * would tint the chip differently from the name it belongs to.
+ *
+ * `spotlightParticipantId` is the sharer, not "the first agent seated": once a
+ * second agent joins, those stop being the same participant, and the chip would
+ * otherwise carry one agent's colour under another agent's name.
  */
 export function resolveSpotlightSharerInk(
 	drive: DriveUiState,
 	theme: DriveInkTheme,
 	participants: readonly Participant[],
 ): string | undefined {
-	const agent = participants.find(
+	const agents = participants.filter(
 		(participant) => participant.kind === "agent",
 	);
-	if (!agent) {
+	const sharer =
+		agents.find(
+			(participant) => participant.id === drive.spotlightParticipantId,
+		) ??
+		agents.find((participant) => participant.role === "partner") ??
+		agents[0];
+	if (!sharer) {
 		return undefined;
 	}
-	return resolveParticipantNameInk({ drive, participant: agent, theme });
+	return resolveParticipantNameInk({ drive, participant: sharer, theme });
 }
 
 function readThemeMode(): "light" | "dark" {

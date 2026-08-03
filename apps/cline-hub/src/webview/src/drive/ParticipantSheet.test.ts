@@ -90,6 +90,22 @@ describe("applyAgentNameInk", () => {
 		);
 	});
 
+	it("clearing nameInk keeps a bodyInk the sibling channel may have set", () => {
+		const withBody = {
+			...DEFAULT_DRIVE_UI,
+			agentInks: {
+				"driveagent.nova": {
+					nameInk: { kind: "palette", index: 2 },
+					bodyInk: { kind: "token", token: "muted" },
+				},
+			},
+		} as typeof DEFAULT_DRIVE_UI;
+		const cleared = applyAgentNameInk(withBody, "driveagent.nova", null);
+		expect(cleared.agentInks["driveagent.nova"]).toEqual({
+			bodyInk: { kind: "token", token: "muted" },
+		});
+	});
+
 	it("leaves other agents alone — the old global field repainted all of them", () => {
 		const one = applyAgentNameInk(DEFAULT_DRIVE_UI, "driveagent.nova", 3);
 		const two = applyAgentNameInk(one, "driveagent.reviewer", 1);

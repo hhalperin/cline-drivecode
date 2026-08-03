@@ -16,6 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { postToHost } from "../vscode";
 import {
+	driveParticipantInk,
+	driveParticipantProfileId,
+	resolveParticipantNameInk,
+	useDriveInkTheme,
+} from "./agentInk";
+import {
 	buildHumanPinDefaults,
 	type HumanPinKind,
 } from "./pinDefaults";
@@ -37,12 +43,6 @@ import {
 	DRIVE_PARTICIPANT_PARTNER,
 	type DriveUiState,
 } from "./types";
-import {
-	driveParticipantInk,
-	driveParticipantProfileId,
-	resolveParticipantNameInk,
-	useDriveInkTheme,
-} from "./agentInk";
 
 export type ParticipantSheetMode = "chooser" | "profile";
 

@@ -119,15 +119,14 @@ export function driveInkTheme(mode: "light" | "dark"): DriveInkTheme {
  * The shared screen is a fixed-dark surface in both host themes
  * (`ScreenFrame` in `Spotlight.tsx`), so chips painted on it resolve against a
  * dark well even when the host theme is light.
+ *
+ * `SCREEN_SURFACE` there re-pins `--background` only; the subtree still carries
+ * `dark`, so `--foreground` and `--muted-foreground` stay the dark-theme
+ * values. Inheriting the tokens rather than restating them is the point.
  */
 export const DRIVE_SCREEN_INK_THEME: DriveInkTheme = {
 	...DRIVE_DARK_INK_THEME,
-	well: "#18181b",
-	tokens: {
-		...DRIVE_DARK_INK_THEME.tokens,
-		foreground: "#f4f4f5",
-		muted: "#a1a1aa",
-	},
+	well: "#0e0f13",
 };
 
 export type ResolvedInk = {
@@ -303,10 +302,15 @@ function clampForContrast(
 	return null;
 }
 
+/**
+ * The single point where a colour leaves this module, so the gamut clip cannot
+ * be forgotten at one call site and applied at another.
+ */
 export function formatOklch(oklch: Oklch): string {
-	const l = round(oklch.l, 4);
-	const c = round(oklch.c, 4);
-	const h = round(oklch.h, 2);
+	const clipped = clipToGamut(oklch);
+	const l = round(clipped.l, 4);
+	const c = round(clipped.c, 4);
+	const h = round(clipped.h, 2);
 	return `oklch(${l} ${c} ${h})`;
 }
 
@@ -506,41 +510,47 @@ function oklchToLinearSrgb(oklch: Oklch): {
 	};
 }
 
+function inSrgbGamut(candidate: Oklch): boolean {
+	const linear = oklchToLinearSrgb(candidate);
+	return (
+		linear.r >= -1e-4 &&
+		linear.r <= 1 + 1e-4 &&
+		linear.g >= -1e-4 &&
+		linear.g <= 1 + 1e-4 &&
+		linear.b >= -1e-4 &&
+		linear.b <= 1 + 1e-4
+	);
+}
+
 /**
- * OKLCH → sRGB, reducing chroma until the colour fits the gamut.
+ * Reduce chroma until the colour fits sRGB, keeping lightness and hue.
  *
- * Contrast is measured on what actually paints, so the clip has to happen
- * before the ratio is computed, not after.
+ * Every colour this module *emits* goes through here first. A CSS `oklch()`
+ * outside the gamut is gamut-mapped by the browser in a way that moves both
+ * lightness and hue, so returning an unclipped value would hand CSS a colour
+ * whose contrast was never the one measured — the AA guarantee would be
+ * arithmetic about a colour nobody ever sees.
  */
-export function oklchToSrgb(oklch: Oklch): Rgb {
-	const inGamut = (candidate: Oklch) => {
-		const linear = oklchToLinearSrgb(candidate);
-		return (
-			linear.r >= -1e-4 &&
-			linear.r <= 1 + 1e-4 &&
-			linear.g >= -1e-4 &&
-			linear.g <= 1 + 1e-4 &&
-			linear.b >= -1e-4 &&
-			linear.b <= 1 + 1e-4
-		);
-	};
-
-	let resolved = oklch;
-	if (!inGamut(oklch)) {
-		let low = 0;
-		let high = oklch.c;
-		for (let i = 0; i < 16; i += 1) {
-			const mid = (low + high) / 2;
-			if (inGamut({ ...oklch, c: mid })) {
-				low = mid;
-			} else {
-				high = mid;
-			}
-		}
-		resolved = { ...oklch, c: low };
+export function clipToGamut(oklch: Oklch): Oklch {
+	if (inSrgbGamut(oklch)) {
+		return oklch;
 	}
+	let low = 0;
+	let high = oklch.c;
+	for (let i = 0; i < 24; i += 1) {
+		const mid = (low + high) / 2;
+		if (inSrgbGamut({ ...oklch, c: mid })) {
+			low = mid;
+		} else {
+			high = mid;
+		}
+	}
+	return { ...oklch, c: low };
+}
 
-	const linear = oklchToLinearSrgb(resolved);
+/** OKLCH → sRGB, through the same clip the emitted colour goes through. */
+export function oklchToSrgb(oklch: Oklch): Rgb {
+	const linear = oklchToLinearSrgb(clipToGamut(oklch));
 	const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 	return {
 		r: clamp01(toGamma(clamp01(linear.r))),
