@@ -37,6 +37,10 @@ import {
 	buildRaiseHandFrame,
 	buildSetStageFrame,
 } from "../webview/src/drive/driveCallOps";
+import {
+	DRIVE_PARTICIPANT_HUMAN,
+	DRIVE_PARTICIPANT_PARTNER,
+} from "../webview/src/drive/types";
 
 /**
  * Scratch ports, distinct from every other suite that binds a real hub:
@@ -51,8 +55,11 @@ const DASHBOARD_PORT = Number(
 	process.env.CLINE_TEST_CALL_OPS_DASHBOARD_PORT ?? 9027,
 );
 const ROOM_ID = "room_call_ops_e2e";
-const HUMAN_ID = "drive:human";
-const PARTNER_ID = "drive:partner";
+// The real ids the strip posts, so a rename cannot silently diverge from the
+// suite. `"default"` in the GOLDEN fixtures below stays a literal on purpose:
+// it is the wire value, and pinning it catches a change to the constant.
+const HUMAN_ID = DRIVE_PARTICIPANT_HUMAN;
+const PARTNER_ID = DRIVE_PARTICIPANT_PARTNER;
 
 /**
  * The frames `origin/main` built inline, before `driveCallOps` existed.

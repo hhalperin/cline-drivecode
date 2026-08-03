@@ -7,6 +7,12 @@
  * place these frames are constructed, so every builder here is pure and every
  * caller (call strip, roster sheet, PiP, Chat recovery) goes through it.
  *
+ * Scope is mute / raise hand / leave, plus `call_set_stage` because the strip
+ * and the roster sheet already shared it. Membership projection is read from
+ * `room_snapshot`, not written, so it has no frame here. `call_set_mode`,
+ * `call_end`, `call_join` and `call_get_room` are still inlined by their
+ * callers — they are outside this ADR clause.
+ *
  * The pre-join `driveCommand` fallbacks live here too. They are the branches a
  * second implementation would silently get wrong: a surface that only knows the
  * `call_mute` path drops the mute on the floor before the room exists.
@@ -85,6 +91,9 @@ export function buildMuteFrame(
 		type: "driveCommand",
 		command: "drive.participant.mute.set",
 		payload: {
+			// `??`, not `||`: this branch is already falsy, so an empty room id
+			// stays empty rather than becoming "default". That is what the strip
+			// did before the extraction — do not "tidy" it into `||`.
 			roomId: input.roomId ?? DRIVE_DEFAULT_ROOM_ID,
 			participantId: input.participantId,
 			muted: input.muted,
