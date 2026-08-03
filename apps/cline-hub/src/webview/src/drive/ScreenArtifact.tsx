@@ -478,22 +478,26 @@ function AnimationPanelColumn({ panel }: { panel: AnimationPanel }) {
 						className="screen-anim-flash pointer-events-none absolute inset-0 z-10 bg-white opacity-0"
 					/>
 				) : panel.signal ? (
-					<span className="screen-anim-sig absolute right-1.5 top-1.5 z-20 whitespace-nowrap rounded-full border px-1.5 py-[3px] font-mono text-[9px] text-zinc-400">
+					<span className="screen-anim-sig absolute right-1.5 top-1.5 z-20 max-w-[calc(100%-0.75rem)] truncate rounded-full border px-1.5 py-[3px] font-mono text-[9px] text-zinc-400">
 						{panel.signal}
 					</span>
 				) : null}
 				<ol className="flex flex-col gap-1.5">
 					{panel.rows.map((row, index) => (
 						<li className="relative" key={`${index}-${row.label}`}>
-							<span
-								aria-hidden
-								className="screen-anim-ghost pointer-events-none absolute inset-0 rounded border border-dashed border-rose-400/45 opacity-60"
-							/>
+							{/* Reduced motion only, and only here: the ghost stands for the
+							    mount this row replaced, which is a thing that happens on
+							    the broken side alone. */}
+							{isBefore ? (
+								<span
+									aria-hidden
+									className="screen-anim-ghost pointer-events-none absolute inset-0 rounded border border-dashed border-rose-400/45 opacity-60"
+								/>
+							) : null}
 							<div
 								className={cn(
 									"screen-anim-row flex items-center gap-2 rounded border border-white/[0.08] bg-card px-1.5 py-1",
-									row.entering &&
-										"screen-anim-row-new border-emerald-400/45",
+									row.entering && "screen-anim-row-new border-emerald-400/45",
 								)}
 							>
 								<span
@@ -503,9 +507,17 @@ function AnimationPanelColumn({ panel }: { panel: AnimationPanel }) {
 										row.entering ? "bg-emerald-400/55" : "bg-primary/55",
 									)}
 								/>
-								<span className="min-w-0 flex-1 truncate text-[10px] text-zinc-300">
+								{/* Two columns inside a ~218px frame leave no room for
+								    prose: below the container breakpoint the label
+								    collapses to the canvas's abstract bar. The motion is
+								    the explanation, and it survives any width. */}
+								<span className="min-w-0 flex-1 truncate text-[10px] text-zinc-300 @max-sm:hidden">
 									{row.label}
 								</span>
+								<span
+									aria-hidden
+									className="hidden h-1 min-w-0 flex-1 rounded-full bg-white/15 @max-sm:block"
+								/>
 							</div>
 						</li>
 					))}

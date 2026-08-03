@@ -197,10 +197,7 @@ function readString(args: Record<string, unknown>, key: string): string {
 }
 
 /** Non-empty trimmed strings from an args array; everything else dropped. */
-function readStringList(
-	args: Record<string, unknown>,
-	key: string,
-): string[] {
+function readStringList(args: Record<string, unknown>, key: string): string[] {
 	const value = args[key];
 	if (!Array.isArray(value)) {
 		return [];

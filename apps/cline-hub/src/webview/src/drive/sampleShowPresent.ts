@@ -133,9 +133,7 @@ export function presentSampleArchitectureShow(roomId?: string | null): void {
 }
 
 /** Post drive.show.present for the sample before/after animation. */
-export function presentSampleChangeAnimationShow(
-	roomId?: string | null,
-): void {
+export function presentSampleChangeAnimationShow(roomId?: string | null): void {
 	postToHost({
 		type: "driveCommand",
 		command: "drive.show.present",
