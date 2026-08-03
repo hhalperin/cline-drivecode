@@ -62,7 +62,15 @@ export function facetValuesToDiskFile(
 	};
 }
 
-/** Raw envelope on disk, or null when absent / not in envelope form. */
+/**
+ * Raw envelope on disk, or null when there is nothing to carry forward.
+ *
+ * Unparseable bytes yield null so a corrupt file is still repaired by the next
+ * write, as it was before this merge existed — an unreadable file holds no
+ * entries worth preserving anyway. A *future* schemaVersion is different, and
+ * `parseDriveFacetDiskFile` is left to throw on it: overwriting a v2 file with
+ * a v1 one is the exact silent downgrade this merge exists to prevent.
+ */
 function readDriveFacetsDiskFile(
 	configParent: string,
 ): DriveFacetDiskFile | null {
@@ -70,7 +78,12 @@ function readDriveFacetsDiskFile(
 	if (!existsSync(path)) {
 		return null;
 	}
-	const raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+	let raw: unknown;
+	try {
+		raw = JSON.parse(readFileSync(path, "utf8")) as unknown;
+	} catch {
+		return null;
+	}
 	if (
 		raw === null ||
 		typeof raw !== "object" ||

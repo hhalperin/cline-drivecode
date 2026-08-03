@@ -13,6 +13,7 @@ import {
 import { dirname, join } from "node:path";
 import {
 	createFacetStore,
+	DEFAULT_AGENT_APPEARANCE,
 	DRIVE_FACET_CATALOG,
 	type DriveFacetKey,
 	type FacetStore,
@@ -26,6 +27,7 @@ import type {
 	DriveSubMode,
 } from "@cline/shared";
 import {
+	AgentAppearanceSchema,
 	agentProfileId,
 	DRIVE_FACET_SCHEMA_VERSION,
 	mergeFacetScopes,
@@ -214,13 +216,30 @@ export function upsertAgentProfile(input: {
 	return { ok: true, profile: { id, ref: input.ref, ...appearance } };
 }
 
+/**
+ * Validate a stored appearance on the way out.
+ *
+ * `upsertAgentProfile` is not the only way bytes get into this file — it is
+ * plain JSON in the workspace, editable by hand and mergeable by git. The
+ * schema is `.strict()` and forbids prompt / tool / model keys precisely so
+ * they cannot ride along inside an appearance, and a read path that trusts the
+ * file would hand exactly those keys back out over `drive_config_get`.
+ */
+function readStoredAppearance(value: unknown): AgentAppearance | null {
+	const parsed = AgentAppearanceSchema.safeParse(value);
+	return parsed.success ? parsed.data : null;
+}
+
 /** One agent's appearance, read back through the facet store's map lane. */
 export function getAgentAppearance(input: {
 	workspaceRoot: string;
 	ref: AgentRef;
 }): AgentAppearance {
 	const store = loadCatalogFacetStore({ workspaceRoot: input.workspaceRoot });
-	return store.get("agent.appearance", agentProfileId(input.ref));
+	const stored = store.get("agent.appearance", agentProfileId(input.ref));
+	// An unreadable entry falls back to the catalog default rather than
+	// propagating; the agent renders plainly instead of not at all.
+	return readStoredAppearance(stored) ?? DEFAULT_AGENT_APPEARANCE;
 }
 
 /** Every stored agent profile, keyed back into full `AgentProfile` records. */
@@ -231,9 +250,13 @@ export function listAgentProfiles(workspaceRoot: string): AgentProfile[] {
 	);
 	const profiles: AgentProfile[] = [];
 	for (const id of ids.sort()) {
-		const profile = toAgentProfile(id, store.get("agent.appearance", id));
-		// An id that is not a canonical ref key names no agent; skip rather than
-		// invent a ref for it.
+		const appearance = readStoredAppearance(
+			store.get("agent.appearance", id),
+		);
+		// An id that is not a canonical ref key names no agent, and an entry
+		// that fails the schema is not an appearance. Skip either rather than
+		// invent a ref or forward whatever the file happened to contain.
+		const profile = appearance ? toAgentProfile(id, appearance) : null;
 		if (profile) {
 			profiles.push(profile);
 		}

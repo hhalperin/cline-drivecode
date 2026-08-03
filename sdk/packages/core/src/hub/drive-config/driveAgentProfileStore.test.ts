@@ -1,7 +1,10 @@
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { defaultFacetValuesFromProfile } from "@cline/drive";
+import {
+	DEFAULT_AGENT_APPEARANCE,
+	defaultFacetValuesFromProfile,
+} from "@cline/drive";
 import type { AgentAppearance, AgentRef } from "@cline/shared";
 import { agentProfileId, BUILTIN_BROWSER_TTS_ID } from "@cline/shared";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -214,6 +217,85 @@ describe("appearance survives writes that never read it", () => {
 		expect(put.ok).toBe(false);
 		expect(put.ok === false && put.code).toBe("map_facet_rejected");
 		expect(appearanceOnDisk(PARTNER)).toEqual(PARTNER_LOOK);
+	});
+});
+
+describe("reading a hand-edited catalog file", () => {
+	/** Replace one agent's stored appearance with arbitrary JSON. */
+	function tamper(ref: AgentRef, value: unknown): void {
+		const path = resolveCatalogFacetsPath(root);
+		const file = JSON.parse(readFileSync(path, "utf8")) as {
+			entries: Record<
+				string,
+				{ kind: string; entries: Record<string, unknown> }
+			>;
+		};
+		file.entries["agent.appearance"].entries[agentProfileId(ref)] = {
+			kind: "value",
+			value,
+		};
+		writeFileSync(path, `${JSON.stringify(file, null, 2)}\n`, "utf8");
+		__resetCatalogFacetStoresForTests();
+	}
+
+	beforeEach(() => {
+		upsertAgentProfile({
+			workspaceRoot: root,
+			ref: PARTNER,
+			appearance: PARTNER_LOOK,
+		});
+	});
+
+	it("does not forward prompt / model keys smuggled into the file", () => {
+		// The upsert validates, but it is not the only writer: this file is
+		// plain JSON in the workspace, hand-editable and git-mergeable. A read
+		// path that trusted it would hand a systemPrompt straight back out over
+		// drive_config_get.
+		tamper(PARTNER, { ...PARTNER_LOOK, systemPrompt: "leak me" });
+
+		expect(listAgentProfiles(root)).toEqual([]);
+		expect(getAgentAppearance({ workspaceRoot: root, ref: PARTNER })).toEqual(
+			DEFAULT_AGENT_APPEARANCE,
+		);
+	});
+
+	it("drops an entry whose ink is not a legal InkRef", () => {
+		tamper(PARTNER, { ...PARTNER_LOOK, nameInk: { kind: "hex", hex: "#f0f" } });
+		expect(listAgentProfiles(root)).toEqual([]);
+	});
+
+	it("keeps the readable agents when one entry is unreadable", () => {
+		upsertAgentProfile({
+			workspaceRoot: root,
+			ref: REVIEWER,
+			appearance: REVIEWER_LOOK,
+		});
+		tamper(PARTNER, { nonsense: true });
+
+		const profiles = listAgentProfiles(root);
+		expect(profiles).toHaveLength(1);
+		expect(profiles[0]?.ref).toEqual(REVIEWER);
+	});
+
+	it("skips an id that names no agent", () => {
+		const path = resolveCatalogFacetsPath(root);
+		const file = JSON.parse(readFileSync(path, "utf8")) as {
+			entries: Record<
+				string,
+				{ kind: string; entries: Record<string, unknown> }
+			>;
+		};
+		file.entries["agent.appearance"].entries["not-a-ref-key"] = {
+			kind: "value",
+			value: REVIEWER_LOOK,
+		};
+		writeFileSync(path, `${JSON.stringify(file, null, 2)}\n`, "utf8");
+		__resetCatalogFacetStoresForTests();
+
+		const profiles = listAgentProfiles(root);
+		expect(profiles.map((profile) => profile.id)).toEqual([
+			agentProfileId(PARTNER),
+		]);
 	});
 });
 
