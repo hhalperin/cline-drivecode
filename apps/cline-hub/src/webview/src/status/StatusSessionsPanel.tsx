@@ -1,6 +1,6 @@
 /**
  * Analytics · Drive sessions accomplishment lens (DRV-ANALYTICS).
- * Lists recent call sessions with S*/E*/P* chips; drill to room/bank by
+ * Lists recent call sessions with S2/S3/E1/E2/P1/P2 chips; drill to room/bank by
  * callSessionId. Distinct from agent Board / Changelog / Dependency map.
  */
 
