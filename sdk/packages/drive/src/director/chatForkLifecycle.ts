@@ -8,6 +8,13 @@ import { rankDoBacklog } from "./rankBacklogs.js";
 
 export const DEFAULT_MAX_CONCURRENT_CHAT_FORKS = 2;
 
+/**
+ * Default ceiling on fork generations: a worker may not cause workers.
+ * Room-global like DEFAULT_MAX_CONCURRENT_CHAT_FORKS, configurable upward via
+ * assertForkLegal's `maxDepth` / the drive.fork.claim payload's `maxDepth`.
+ */
+export const DEFAULT_MAX_CHAT_FORK_DEPTH = 1;
+
 export function activeForkClaimsFromRecords(
 	forks: readonly ChatForkRecord[],
 ): ActiveForkClaim[] {
