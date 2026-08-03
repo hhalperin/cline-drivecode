@@ -170,7 +170,12 @@ export function DependencyMap({
 	const [animate, setAnimate] = useState(false);
 	const [viewportEl, setViewportEl] = useState<HTMLElement | null>(null);
 	const nodeRefs = useRef(new Map<string, HTMLButtonElement>());
-	const dragRef = useRef<{ x: number; y: number; moved: boolean } | null>(null);
+	const dragRef = useRef<{
+		pointerId: number;
+		x: number;
+		y: number;
+		moved: boolean;
+	} | null>(null);
 	const viewport = useMeasuredSize(viewportEl);
 	const reducedMotion = useReducedMotion();
 
@@ -179,6 +184,21 @@ export function DependencyMap({
 		() => new Map(graph.nodes.map((node) => [node.key, node])),
 		[graph],
 	);
+	/**
+	 * `dependsOn` is a plain array, and a task listing the same prerequisite
+	 * twice — literally, or once by bare id and once by node key — projects to
+	 * two identical edges. The card grid only ever joined titles, where that
+	 * was invisible; a keyed `<path>` per edge would collide.
+	 */
+	const edges = useMemo(() => {
+		const seen = new Set<string>();
+		return graph.edges.filter((edge) => {
+			const id = edgeId(edge.from, edge.to);
+			if (seen.has(id)) return false;
+			seen.add(id);
+			return true;
+		});
+	}, [graph]);
 	const layout = useMemo(
 		() =>
 			layoutDependencyGraph(
@@ -195,17 +215,33 @@ export function DependencyMap({
 		() => new Map(layout.positions.map((box) => [box.key, box])),
 		[layout],
 	);
+	/**
+	 * Where every node sits, as a value.
+	 *
+	 * `layout` is a fresh object on every snapshot because `buildDependencyMap`
+	 * reallocates, and the hub re-requests tasks on every `team_progress`. Reset
+	 * the camera on that identity and a running team yanks the view back to Fit
+	 * mid-inspection, several times a minute. Nothing has actually moved unless
+	 * a position or the orientation changed.
+	 */
+	const layoutSignature = useMemo(
+		() =>
+			`${layout.orientation}|${layout.positions
+				.map((box) => `${box.key}@${Math.round(box.x)},${Math.round(box.y)}`)
+				.join("|")}`,
+		[layout],
+	);
 
 	/**
 	 * Tier 0 of the fit ladder. `null` means "no camera of the user's own", so
 	 * the fitted camera shows through — on first paint, and again whenever the
-	 * layout underneath changes (new snapshot, resized viewport), because the
+	 * layout underneath moves (new topology, resized viewport), because the
 	 * offsets of a hand-panned camera stop meaning anything at that point.
 	 */
-	// biome-ignore lint/correctness/useExhaustiveDependencies: the layout identity is the trigger, not a value the body reads.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: the signature is the trigger, not a value the body reads.
 	useEffect(() => {
 		setCamera(null);
-	}, [layout]);
+	}, [layoutSignature]);
 	const activeCamera = camera ?? layout.camera;
 	const lod = levelOfDetail(activeCamera.scale);
 
@@ -245,36 +281,41 @@ export function DependencyMap({
 	}, [viewportEl, zoomBy]);
 
 	/**
-	 * Focus never scrolls. The viewport clips, so letting the browser scroll a
-	 * node into view would slide the content out from under the camera and
-	 * break the mapping `toScreenRect` assumes. The camera moves instead, which
-	 * is also what keeps arrow-key selection visible once the user has zoomed
-	 * in past the fit.
+	 * Bring a node inside the frame, on focus rather than on selection, so
+	 * "focused implies visible" holds however focus arrived — Tab included.
+	 *
+	 * The browser must not do it: the viewport clips, so a scroll would slide
+	 * the content out from under the camera and break the mapping
+	 * `toScreenRect` assumes. Focus is taken with `preventScroll` and the
+	 * camera moves instead. Already-visible nodes return the same camera
+	 * object, so this cannot feed itself.
 	 */
-	const revealNode = useCallback(
+	const bringIntoView = useCallback(
 		(key: string) => {
-			nodeRefs.current.get(key)?.focus({ preventScroll: true });
 			const box = boxes.get(key);
 			if (!box || viewport.width <= 0) return;
-			setAnimate(true);
 			setCamera((current) => {
 				const base = current ?? layout.camera;
 				const { dx, dy } = panIntoView(toScreenRect(box, base), viewport);
-				return dx === 0 && dy === 0 ? current : panCamera(base, dx, dy);
+				if (dx === 0 && dy === 0) return current;
+				setAnimate(true);
+				return panCamera(base, dx, dy);
 			});
 		},
 		[boxes, layout, viewport],
 	);
 
-	const selectNode = useCallback(
-		(key: string) => {
-			setSelected(key);
-			revealNode(key);
-		},
-		[revealNode],
-	);
+	const selectNode = useCallback((key: string) => {
+		setSelected(key);
+		nodeRefs.current.get(key)?.focus({ preventScroll: true });
+	}, []);
 
-	if (loading)
+	/**
+	 * A refresh is not an empty graph. `loading` goes true on every task
+	 * re-request, and unmounting the viewport for it would drop both the camera
+	 * and keyboard focus while a team is running.
+	 */
+	if (loading && !graph.nodes.length)
 		return (
 			<p className="text-sm text-muted-foreground" role="status">
 				Loading dependency map…
@@ -291,12 +332,14 @@ export function DependencyMap({
 	const selectedNode = selected ? byKey.get(selected) : undefined;
 	const anchor = rovingAnchor(keys, selected);
 	const readyCount = graph.nodes.filter((node) => node.isReady).length;
+	const blockedBy = selectedNode
+		? [...new Set(selectedNode.dependsOnKeys)]
+		: [];
+	const unblocks = selectedNode ? [...new Set(selectedNode.dependentKeys)] : [];
 	const incident = selectedNode
 		? new Set([
-				...selectedNode.dependsOnKeys.map((from) =>
-					edgeId(from, selectedNode.key),
-				),
-				...selectedNode.dependentKeys.map((to) => edgeId(selectedNode.key, to)),
+				...blockedBy.map((from) => edgeId(from, selectedNode.key)),
+				...unblocks.map((to) => edgeId(selectedNode.key, to)),
 			])
 		: null;
 	const titleOf = (key: string) => byKey.get(key)?.title ?? key;
@@ -334,7 +377,9 @@ export function DependencyMap({
 
 			<div className="overflow-hidden rounded-lg border bg-card">
 				<div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
-					<span className="text-xs text-muted-foreground">
+					{/* Live, or the zoom and Fit buttons are silent to a screen reader:
+					    the camera is the only thing they change. */}
+					<span aria-live="polite" className="text-xs text-muted-foreground">
 						{layout.orientation === "lr" ? "Left to right" : "Top down"} ·{" "}
 						{Math.round(activeCamera.scale * 100)}%
 					</span>
@@ -388,13 +433,23 @@ export function DependencyMap({
 						if (action.kind === "clear") setSelected(null);
 						else selectNode(action.key);
 					}}
+					onLostPointerCapture={(event) => {
+						if (dragRef.current?.pointerId === event.pointerId)
+							dragRef.current = null;
+					}}
 					onPointerCancel={() => {
 						dragRef.current = null;
 					}}
 					onPointerDown={(event) => {
 						if (event.button !== 0) return;
+						// One gesture at a time. Every touch contact reports button 0,
+						// so without this a second finger would rebase the drag origin
+						// on itself and the first finger's next move would jump the
+						// camera by the distance between the two.
+						if (dragRef.current) return;
 						if ((event.target as HTMLElement).closest("button")) return;
 						dragRef.current = {
+							pointerId: event.pointerId,
 							x: event.clientX,
 							y: event.clientY,
 							moved: false,
@@ -404,7 +459,14 @@ export function DependencyMap({
 					}}
 					onPointerMove={(event) => {
 						const drag = dragRef.current;
-						if (!drag) return;
+						if (!drag || drag.pointerId !== event.pointerId) return;
+						// A gesture whose element was unmounted mid-drag never gets its
+						// pointerup, so the next hover would pan by however far the
+						// pointer travelled in between. No buttons down, no drag.
+						if (event.buttons === 0) {
+							dragRef.current = null;
+							return;
+						}
 						const dx = event.clientX - drag.x;
 						const dy = event.clientY - drag.y;
 						if (
@@ -461,7 +523,7 @@ export function DependencyMap({
 									/>
 								</marker>
 							</defs>
-							{graph.edges.map((edge) => {
+							{edges.map((edge) => {
 								const from = boxes.get(edge.from);
 								const to = boxes.get(edge.to);
 								if (!from || !to) return null;
@@ -498,7 +560,7 @@ export function DependencyMap({
 						{/* Tier 2: artifact labels are the first thing to go at overview
 						    scale, and the projection never invents one. */}
 						{lod === "detail"
-							? graph.edges.map((edge) => {
+							? edges.map((edge) => {
 									const from = boxes.get(edge.from);
 									const to = boxes.get(edge.to);
 									if (!from || !to || !edge.artifactLabel) return null;
@@ -516,57 +578,78 @@ export function DependencyMap({
 								})
 							: null}
 
-						{graph.nodes.map((node) => {
-							const box = boxes.get(node.key);
-							if (!box) return null;
-							const isSelected = selected === node.key;
-							return (
-								<button
-									aria-pressed={isSelected}
-									className={cn(
-										"absolute flex flex-col justify-center overflow-hidden rounded-lg border bg-card px-2.5 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-										isSelected
-											? "border-primary bg-accent"
-											: "hover:border-foreground/25",
-										node.inCycle && !isSelected && "border-destructive/50",
-									)}
-									id={`dependency-${node.key}`}
-									key={node.key}
-									onClick={(event) => {
-										event.stopPropagation();
-										selectNode(node.key);
-									}}
-									ref={(element) => {
-										if (element) nodeRefs.current.set(node.key, element);
-										else nodeRefs.current.delete(node.key);
-									}}
-									style={{
-										height: box.height,
-										left: box.x,
-										top: box.y,
-										width: box.width,
-									}}
-									tabIndex={node.key === anchor ? 0 : -1}
-									title={displayName(node)}
-									type="button"
-								>
-									{node.displayId ? (
-										<span className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-											{node.displayId}
-										</span>
-									) : null}
-									<span className="block truncate text-xs font-semibold">
-										{node.title}
-									</span>
-									<span className="block truncate text-[10px] uppercase tracking-wide text-muted-foreground">
-										<span className={STATUS_TEXT[node.status]}>
-											{statusLabel(node)}
-										</span>
-										{lod === "detail" ? ` · ${stateNote(node)}` : ""}
-									</span>
-								</button>
-							);
-						})}
+						{/* A real list, so the reader still announces "42 items, item 7"
+						    the way the card grid's <ul> did. The <li> carries the layout
+						    box and the button fills it, keeping one element per position. */}
+						<ul
+							aria-label="Tasks in dependency order"
+							className="absolute left-0 top-0 list-none"
+						>
+							{graph.nodes.map((node) => {
+								const box = boxes.get(node.key);
+								if (!box) return null;
+								const isSelected = selected === node.key;
+								return (
+									<li
+										className="absolute"
+										key={node.key}
+										style={{
+											height: box.height,
+											left: box.x,
+											top: box.y,
+											width: box.width,
+										}}
+									>
+										<button
+											aria-pressed={isSelected}
+											className={cn(
+												"flex size-full flex-col justify-center overflow-hidden rounded-lg border bg-card px-2.5 py-1.5 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+												isSelected
+													? "border-primary bg-accent"
+													: "hover:border-foreground/25",
+												node.inCycle && !isSelected && "border-destructive/50",
+											)}
+											id={`dependency-${node.key}`}
+											onClick={(event) => {
+												event.stopPropagation();
+												selectNode(node.key);
+											}}
+											onFocus={() => bringIntoView(node.key)}
+											ref={(element) => {
+												if (element) nodeRefs.current.set(node.key, element);
+												else nodeRefs.current.delete(node.key);
+											}}
+											tabIndex={node.key === anchor ? 0 : -1}
+											title={displayName(node)}
+											type="button"
+										>
+											{node.displayId ? (
+												<span className="block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+													{node.displayId}
+												</span>
+											) : null}
+											<span className="block truncate text-xs font-semibold">
+												{node.title}
+											</span>
+											<span className="block truncate text-[10px] uppercase tracking-wide text-muted-foreground">
+												<span className={STATUS_TEXT[node.status]}>
+													{statusLabel(node)}
+												</span>
+												{/* Level of detail is a visual budget, not an
+												    accessibility one. Ready/waiting/cycle stays in the
+												    accessible name at overview scale — which is exactly
+												    the scale a graph too big to read is fitted at. */}
+												<span
+													className={lod === "detail" ? undefined : "sr-only"}
+												>
+													{` · ${stateNote(node)}`}
+												</span>
+											</span>
+										</button>
+									</li>
+								);
+							})}
+						</ul>
 					</div>
 				</section>
 			</div>
@@ -583,33 +666,20 @@ export function DependencyMap({
 							{statusLabel(selectedNode)} · {stateNote(selectedNode)}
 							{selectedNode.assignee ? ` · ${selectedNode.assignee}` : ""}.
 							Blocked by:{" "}
-							{selectedNode.dependsOnKeys.length
-								? selectedNode.dependsOnKeys.map(titleOf).join(", ")
-								: "Nothing"}
+							{blockedBy.length ? blockedBy.map(titleOf).join(", ") : "Nothing"}
 							. Unblocks:{" "}
-							{selectedNode.dependentKeys.length
-								? selectedNode.dependentKeys.map(titleOf).join(", ")
-								: "Nothing"}
-							.
+							{unblocks.length ? unblocks.map(titleOf).join(", ") : "Nothing"}.
 						</p>
 						{selectedNode.description ? (
 							<p className="mt-2 text-xs text-muted-foreground">
 								{selectedNode.description}
 							</p>
 						) : null}
-						{selectedNode.dependsOnKeys.length +
-							selectedNode.dependentKeys.length >
-						0 ? (
+						{blockedBy.length + unblocks.length > 0 ? (
 							<div className="mt-2 flex flex-wrap gap-1.5">
 								{[
-									...selectedNode.dependsOnKeys.map((key) => ({
-										key,
-										prefix: "Blocked by",
-									})),
-									...selectedNode.dependentKeys.map((key) => ({
-										key,
-										prefix: "Unblocks",
-									})),
+									...blockedBy.map((key) => ({ key, prefix: "Blocked by" })),
+									...unblocks.map((key) => ({ key, prefix: "Unblocks" })),
 								].map(({ key, prefix }) => (
 									<button
 										className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
