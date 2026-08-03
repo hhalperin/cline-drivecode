@@ -188,15 +188,24 @@ export function isDriveRoomSnapshotForTarget({
 	);
 }
 
+/**
+ * Host message types this session subscribes to. Lives beside the guard it is
+ * always paired with (`subscribeToHostMessages` takes `types` + `guard`), and
+ * the message union below is derived from it so the filter and the type cannot
+ * drift apart.
+ */
+export const DRIVE_SESSION_MESSAGE_TYPES = [
+	"drive_show_presented",
+	"drive_script_beat",
+	"call_error",
+	"drive_fork_audit",
+	"room_snapshot",
+	"drive_event",
+	"drive_room_changed",
+] as const;
+
 export type DriveSessionHostMessage = HostMessage & {
-	type:
-		| "drive_show_presented"
-		| "drive_script_beat"
-		| "call_error"
-		| "drive_fork_audit"
-		| "room_snapshot"
-		| "drive_event"
-		| "drive_room_changed";
+	type: (typeof DRIVE_SESSION_MESSAGE_TYPES)[number];
 	text?: string;
 	code?: string;
 	command?: string;
