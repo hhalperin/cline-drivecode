@@ -62,7 +62,10 @@ function appearanceOnDisk(ref: AgentRef): unknown {
 	const raw = JSON.parse(
 		readFileSync(resolveCatalogFacetsPath(root), "utf8"),
 	) as {
-		entries: Record<string, { kind: string; entries?: Record<string, unknown> }>;
+		entries: Record<
+			string,
+			{ kind: string; entries?: Record<string, unknown> }
+		>;
 	};
 	const entry = raw.entries["agent.appearance"];
 	expect(entry?.kind).toBe("map");

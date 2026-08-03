@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { AgentRef } from "../agentRef";
 import {
-	agentProfileId,
 	AgentAppearanceSchema,
 	AgentProfileSchema,
+	agentProfileId,
 	DEFAULT_AGENT_PROFILE_ID,
 	DRIVE_FACET_FORBIDDEN_PROMPT_KEYS,
 	emptyFacetDiskSnapshot,

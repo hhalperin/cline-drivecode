@@ -3,7 +3,11 @@
  */
 
 import { z } from "zod";
-import { type AgentRef, AgentRefSchema, DriveagentSlugSchema } from "../agentRef";
+import {
+	type AgentRef,
+	AgentRefSchema,
+	DriveagentSlugSchema,
+} from "../agentRef";
 import { DriveSubModeSchema } from "../room";
 import {
 	DRIVE_FACET_SCHEMA_VERSION,
@@ -185,9 +189,7 @@ export type DriveFacetDiskSnapshot = {
 	readonly schemaVersion: typeof DRIVE_FACET_SCHEMA_VERSION;
 	readonly values: Readonly<Record<string, unknown>>;
 	/** Per-entity maps (e.g. agent.appearance by profile id). */
-	readonly maps: Readonly<
-		Record<string, Readonly<Record<string, unknown>>>
-	>;
+	readonly maps: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 };
 
 export function parseDriveFacetDiskFile(input: unknown): DriveFacetDiskFile {

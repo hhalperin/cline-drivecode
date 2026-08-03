@@ -250,9 +250,7 @@ export function listAgentProfiles(workspaceRoot: string): AgentProfile[] {
 	);
 	const profiles: AgentProfile[] = [];
 	for (const id of ids.sort()) {
-		const appearance = readStoredAppearance(
-			store.get("agent.appearance", id),
-		);
+		const appearance = readStoredAppearance(store.get("agent.appearance", id));
 		// An id that is not a canonical ref key names no agent, and an entry
 		// that fails the schema is not an appearance. Skip either rather than
 		// invent a ref or forward whatever the file happened to contain.
