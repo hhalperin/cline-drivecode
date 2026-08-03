@@ -97,15 +97,55 @@ export {
 	shouldReattachDriveSession,
 } from "./driveSessionPolicy";
 
+/**
+ * Pre-`agentInks` shape: one palette index for the pair partner, applied to
+ * every seated agent at once.
+ */
+export type LegacyDriveUi = DriveUiState & { partnerNameInk?: number | null };
+
+/**
+ * Carry a pre-`agentInks` colour onto the agent it was chosen for.
+ *
+ * The old field only ever painted the pair partner, and a seat with no `ref`
+ * keys off its participant id — which for that partner is
+ * `DRIVE_PARTICIPANT_PARTNER`, exactly the seats that predate `ref`. Without
+ * this an existing user silently loses the colour they picked.
+ */
+export function migrateLegacyPartnerInk(
+	persisted: LegacyDriveUi,
+): DriveUiState["agentInks"] {
+	const stored = persisted.agentInks ?? DEFAULT_DRIVE_UI.agentInks;
+	const legacy = persisted.partnerNameInk;
+	if (
+		legacy === undefined ||
+		legacy === null ||
+		!Number.isInteger(legacy) ||
+		legacy < 0 ||
+		legacy > 7 ||
+		stored[DRIVE_PARTICIPANT_PARTNER]
+	) {
+		return stored;
+	}
+	return {
+		...stored,
+		[DRIVE_PARTICIPANT_PARTNER]: {
+			nameInk: { kind: "palette", index: legacy as 0 },
+		},
+	};
+}
+
 function readPersistedDriveUi(): DriveUiState {
 	try {
 		const state = getVsCodeApi()?.getState() as
-			| { driveUi?: DriveUiState }
+			| { driveUi?: LegacyDriveUi }
 			| undefined;
 		if (state?.driveUi) {
+			// Spread first, then drop the dead key — otherwise it round-trips
+			// through every persist for the life of the install.
+			const { partnerNameInk: _legacyInk, ...persisted } = state.driveUi;
 			return {
 				...DEFAULT_DRIVE_UI,
-				...state.driveUi,
+				...persisted,
 				bankSnapshot:
 					state.driveUi.bankSnapshot ?? DEFAULT_DRIVE_UI.bankSnapshot,
 				postureOverride: state.driveUi.postureOverride ?? null,
@@ -130,7 +170,7 @@ function readPersistedDriveUi(): DriveUiState {
 				addressFollowsFocusParticipantId:
 					state.driveUi.addressFollowsFocusParticipantId ??
 					DEFAULT_DRIVE_UI.addressFollowsFocusParticipantId,
-				agentInks: state.driveUi.agentInks ?? DEFAULT_DRIVE_UI.agentInks,
+				agentInks: migrateLegacyPartnerInk(state.driveUi),
 				callSessionId:
 					state.driveUi.callSessionId ?? DEFAULT_DRIVE_UI.callSessionId,
 				// Transient playback state — a reload is never mid-utterance.
