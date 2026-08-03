@@ -6,8 +6,8 @@
  * names a field the read path strips is refused rather than merged, because
  * the browser it came from was never shown that field's value.
  *
- * `workspaceRoot` is pinned to the requesting client's own root on the put
- * lane — see `assertClientOwnsWorkspace`.
+ * `workspaceRoot` on the put lane is pinned to the workspace this hub is bound
+ * to — see `assertWorkspaceInBounds`.
  */
 
 import { resolve } from "node:path";
@@ -17,6 +17,7 @@ import {
 	DriveagentHomeWriteError,
 } from "@cline/drive";
 import type { HubCommandEnvelope, HubReplyEnvelope } from "@cline/shared";
+import { getDriveRoomStore } from "../../collaboration";
 import {
 	DriveagentHomeLoadError,
 	loadDriveagentHome,
@@ -45,52 +46,46 @@ function sameWorkspaceRoot(a: string, b: string): boolean {
 }
 
 /**
- * The write must land in the workspace the requesting client is attached to.
+ * The write must land in the workspace this hub is bound to.
  *
  * `workspaceRoot` arrives in the payload, and on the browser lane it arrives
  * from a page. Unchecked, it names any directory on the host that already
  * holds a `.driveagent/<slug>/agent.yaml`, which turns a config editor into a
- * writer for other people's repositories. The requesting client's registered
- * root is not browser-controlled — the hub's own UI client declared it when it
- * connected — so pinning the payload to it keeps the write inside the
- * workspace. `drive_artifacts_list` does the same for a read.
+ * writer for other people's repositories. The bound root is the same anchor
+ * `drive_artifacts_list` uses to keep a *read* inside the workspace.
+ *
+ * When nothing is bound yet there is no workspace to be outside of, and the
+ * write proceeds — refusing instead would break every save made before a room
+ * is joined, and the browser cannot influence whether the hub is bound. That
+ * makes this a containment check rather than an authorization one; per-peer
+ * authority does not exist at this layer yet.
  *
  * Returns an error reply, or undefined when the write may proceed.
  */
-function assertClientOwnsWorkspace(
-	ctx: HubTransportContext,
+function assertWorkspaceInBounds(
 	envelope: HubCommandEnvelope,
 	workspaceRoot: string,
 ): HubReplyEnvelope | undefined {
-	const clientRoot = envelope.clientId
-		? ctx.clients?.get(envelope.clientId)?.workspaceContext?.workspaceRoot
-		: undefined;
-	if (!clientRoot) {
+	const boundRoot = getDriveRoomStore().getEventLog().configParent;
+	if (boundRoot && !sameWorkspaceRoot(boundRoot, workspaceRoot)) {
 		return errorReply(
 			envelope,
 			"workspace_not_bound",
-			"this client has no workspace root, so it may not write a Driveagent home",
-		);
-	}
-	if (!sameWorkspaceRoot(clientRoot, workspaceRoot)) {
-		return errorReply(
-			envelope,
-			"workspace_not_bound",
-			"workspaceRoot must be the workspace this client is attached to",
+			"workspaceRoot must be the workspace this hub is bound to",
 		);
 	}
 	return undefined;
 }
 
 export async function handleDriveHomeCommand(
-	ctx: HubTransportContext,
+	_ctx: HubTransportContext,
 	envelope: HubCommandEnvelope,
 ): Promise<HubReplyEnvelope> {
 	switch (envelope.command) {
 		case "drive_agent_home_get":
 			return handleDriveAgentHomeGet(envelope);
 		case "drive_agent_home_put":
-			return handleDriveAgentHomePut(ctx, envelope);
+			return handleDriveAgentHomePut(envelope);
 		default:
 			return errorReply(
 				envelope,
@@ -125,7 +120,6 @@ function handleDriveAgentHomeGet(
 }
 
 function handleDriveAgentHomePut(
-	ctx: HubTransportContext,
 	envelope: HubCommandEnvelope,
 ): HubReplyEnvelope {
 	const workspaceRoot = readString(envelope.payload, "workspaceRoot");
@@ -140,7 +134,7 @@ function handleDriveAgentHomePut(
 	if (patch === null || typeof patch !== "object" || Array.isArray(patch)) {
 		return errorReply(envelope, "invalid_payload", "patch object is required");
 	}
-	const outOfBounds = assertClientOwnsWorkspace(ctx, envelope, workspaceRoot);
+	const outOfBounds = assertWorkspaceInBounds(envelope, workspaceRoot);
 	if (outOfBounds) {
 		return outOfBounds;
 	}

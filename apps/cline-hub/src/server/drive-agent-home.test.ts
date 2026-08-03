@@ -202,27 +202,15 @@ describe("Driveagent home sanitize/save round trip on real files", () => {
 		}
 	});
 
-	/**
-	 * A uiClient that runs the production hub handler in-process.
-	 *
-	 * `clients` carries a record for the calling client with its
-	 * `workspaceRoot`, because the put lane pins the payload's root to the
-	 * requesting client's own — a browser cannot name someone else's checkout.
-	 */
-	function hubBackedCtx(workspaceRoot: string): {
-		context: HubContext;
-		sent: unknown[];
-	} {
+	/** A uiClient that runs the production hub handler in-process. */
+	function hubBackedCtx(): { context: HubContext; sent: unknown[] } {
 		const sent: unknown[] = [];
-		const clients = new Map([
-			["test", { clientId: "test", workspaceContext: { workspaceRoot } }],
-		]);
 		const command = (
 			name: HubCommandName,
 			payload: Record<string, unknown>,
 		): Promise<HubReplyEnvelope> =>
 			handleDriveHomeCommand(
-				{ clients } as never,
+				{ clients: new Map() } as never,
 				{
 					version: "v1",
 					requestId: "req_bridge",
@@ -277,7 +265,7 @@ describe("Driveagent home sanitize/save round trip on real files", () => {
 		root: string,
 		slug = "pair-partner",
 	): Promise<SanitizedHomeFrame> {
-		const { context, sent } = hubBackedCtx(root);
+		const { context, sent } = hubBackedCtx();
 		await handleDriveAgentHomeWebviewCommand(context, peer(), {
 			type: "drive_agent_home_get",
 			workspaceRoot: root,
@@ -294,7 +282,7 @@ describe("Driveagent home sanitize/save round trip on real files", () => {
 		patch: unknown,
 		slug = "pair-partner",
 	): Promise<Record<string, unknown>> {
-		const { context, sent } = hubBackedCtx(root);
+		const { context, sent } = hubBackedCtx();
 		await handleDriveAgentHomePutWebviewCommand(context, peer(), {
 			type: "drive_agent_home_put",
 			workspaceRoot: root,

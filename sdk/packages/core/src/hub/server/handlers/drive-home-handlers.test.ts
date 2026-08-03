@@ -6,6 +6,11 @@ import type { HubCommandEnvelope, HubEventEnvelope } from "@cline/shared";
 import { parseDriveagentAgentYaml } from "@cline/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import YAML from "yaml";
+import {
+	getDriveRoomStore,
+	JsonlRoomEventLog,
+	resetDriveRoomStoreForTests,
+} from "../../collaboration";
 import type { HubTransportContext } from "./context";
 import { handleDriveHomeCommand } from "./drive-home-handlers";
 
@@ -25,24 +30,6 @@ function command(
 		command: name,
 		payload,
 	};
-}
-
-/**
- * A context whose calling client is attached to `workspaceRoot`.
- *
- * The put lane refuses a payload naming a root the requesting client does not
- * own, so a test that wants to exercise anything past that gate has to look
- * like a client that legitimately lives there.
- */
-function ctxFor(workspaceRoot: string): HubTransportContext {
-	const base = ctx() as unknown as {
-		clients: Map<string, unknown>;
-	};
-	base.clients.set("test", {
-		clientId: "test",
-		workspaceContext: { workspaceRoot },
-	});
-	return base as unknown as HubTransportContext;
 }
 
 function ctx(): HubTransportContext {
@@ -196,6 +183,9 @@ describe("handleDriveHomeCommand — drive_agent_home_put", () => {
 	const dirs: string[] = [];
 
 	afterEach(async () => {
+		// The room store is process-global; a bound root left behind would make
+		// the next file's writes look out of bounds.
+		resetDriveRoomStoreForTests();
 		for (const dir of dirs.splice(0)) {
 			await rm(dir, { recursive: true, force: true });
 		}
@@ -228,7 +218,7 @@ describe("handleDriveHomeCommand — drive_agent_home_put", () => {
 		slug = "pair-partner",
 	): Promise<Awaited<ReturnType<typeof handleDriveHomeCommand>>> {
 		return handleDriveHomeCommand(
-			ctxFor(root),
+			ctx(),
 			command("drive_agent_home_put", {
 				workspaceRoot: root,
 				slug,
@@ -240,38 +230,28 @@ describe("handleDriveHomeCommand — drive_agent_home_put", () => {
 	/**
 	 * `workspaceRoot` reaches this handler from a browser page. Left unpinned it
 	 * names any directory on the host holding a `.driveagent/<slug>/`, so a
-	 * config editor becomes a writer for other people's repositories.
+	 * config editor becomes a writer for other people's checkouts. Bound to a
+	 * workspace, the hub writes that one and no other — the same anchor
+	 * `drive_artifacts_list` uses to keep a read inside the workspace.
 	 */
-	it("refuses a workspaceRoot the requesting client does not own", async () => {
+	it("refuses a workspaceRoot outside the workspace the hub is bound to", async () => {
 		const mine = await seededRoot();
 		const theirs = await seededRoot();
+		getDriveRoomStore().attachEventLog(new JsonlRoomEventLog(mine));
 		const before = await readFile(agentYamlPath(theirs), "utf8");
 
-		const reply = await handleDriveHomeCommand(
-			ctxFor(mine),
-			command("drive_agent_home_put", {
-				workspaceRoot: theirs,
-				slug: "pair-partner",
-				patch: { agent: { description: "Reaching into another checkout." } },
-			}),
-		);
+		const reply = await put(theirs, {
+			agent: { description: "Reaching into another checkout." },
+		});
 		expect(reply.ok).toBe(false);
 		expect(reply.error?.code).toBe("workspace_not_bound");
 		expect(await readFile(agentYamlPath(theirs), "utf8")).toBe(before);
-	});
 
-	it("refuses a client with no workspace of its own", async () => {
-		const root = await seededRoot();
-		const reply = await handleDriveHomeCommand(
-			ctx(),
-			command("drive_agent_home_put", {
-				workspaceRoot: root,
-				slug: "pair-partner",
-				patch: { agent: { description: "No client root." } },
-			}),
-		);
-		expect(reply.ok).toBe(false);
-		expect(reply.error?.code).toBe("workspace_not_bound");
+		// The bound workspace itself still writes, so the gate is a boundary
+		// rather than a blanket refusal.
+		expect(
+			(await put(mine, { agent: { description: "Mine to edit." } })).ok,
+		).toBe(true);
 	});
 
 	it("requires workspaceRoot, slug, and a patch object", async () => {

@@ -24,6 +24,7 @@ import { fileURLToPath } from "node:url";
 import type { HubReplyEnvelope } from "@cline/shared";
 import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import { HubCommandError, NodeHubClient } from "./client";
+import { resetDriveRoomStoreForTests } from "./collaboration";
 import { createLocalHubScheduleRuntimeHandlers } from "./daemon/runtime-handlers";
 import { type HubServer, startHubServer } from "./daemon/start-shared-server";
 
@@ -209,6 +210,10 @@ describe("Driveagent home writes over a real hub", () => {
 
 	afterEach(async () => {
 		await stopHub();
+		// The room store is process-global and outlives the server, so a root
+		// bound by one test would make the next one's fresh scratch workspace
+		// look out of bounds.
+		resetDriveRoomStoreForTests();
 	});
 
 	afterAll(() => {
@@ -304,11 +309,15 @@ describe("Driveagent home writes over a real hub", () => {
 	});
 
 	/**
-	 * `workspaceRoot` crosses the wire from a page. Over a real hub, a payload
-	 * naming a directory the requesting client is not attached to must be
-	 * refused — otherwise a config editor writes other people's checkouts.
+	 * `workspaceRoot` crosses the wire from a page. Once the hub is bound to a
+	 * workspace — which is what joining a room does — a payload naming any
+	 * other directory must be refused, or a config editor writes other people's
+	 * checkouts.
+	 *
+	 * The binding is asserted through the same public surface the hub uses, so
+	 * this fails if the gate stops consulting it.
 	 */
-	it("refuses a workspaceRoot the client is not attached to", async () => {
+	it("refuses a workspaceRoot outside the workspace the hub is bound to", async () => {
 		const stranger = scratch("drive-home-write-e2e-stranger-");
 		mkdirSync(join(stranger, ".driveagent"), { recursive: true });
 		cpSync(EXAMPLE_HOME, join(stranger, ".driveagent", SLUG), {
@@ -317,6 +326,16 @@ describe("Driveagent home writes over a real hub", () => {
 		const before = readFileSync(
 			join(stranger, ".driveagent", SLUG, "agent.yaml"),
 			"utf8",
+		);
+
+		// Bind the hub to this test's workspace, which is what a room join does.
+		okPayload(
+			await requireClient().command("call_join", {
+				roomId: "r_home_write",
+				workspaceRoot,
+				human: { id: "h_1", displayName: "Human" },
+				agent: { id: "a_1", displayName: "Partner" },
+			}),
 		);
 
 		const code = await errorCodeOf(() =>
@@ -328,10 +347,21 @@ describe("Driveagent home writes over a real hub", () => {
 		);
 		expect(code).toBe("workspace_not_bound");
 
+		// The bound workspace still writes, so this is a boundary and not a
+		// blanket refusal.
+		okPayload(
+			await requireClient().command("drive_agent_home_put", {
+				workspaceRoot,
+				slug: SLUG,
+				patch: { agent: { description: "Mine to edit." } },
+			}),
+		);
+
 		await restartHub();
 		expect(
 			readFileSync(join(stranger, ".driveagent", SLUG, "agent.yaml"), "utf8"),
 		).toBe(before);
+		expect(agentYamlOnDisk()).toContain("Mine to edit.");
 	});
 
 	it("refuses a plaintext secret, leaving env.yaml byte-identical", async () => {
