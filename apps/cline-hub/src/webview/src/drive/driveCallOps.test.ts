@@ -1,12 +1,13 @@
-import chatSource from "../Chat.tsx?raw";
 import { describe, expect, it } from "vitest";
-import driveCallOpsSource from "./driveCallOps.ts?raw";
+import chatSource from "../Chat.tsx?raw";
 import {
 	buildLeaveFrame,
 	buildMuteFrame,
 	buildRaiseHandFrame,
 	buildSetStageFrame,
 } from "./driveCallOps";
+import driveCallOpsSource from "./driveCallOps.ts?raw";
+import participantSheetSource from "./ParticipantSheet.tsx?raw";
 import { buildSetStageMessage } from "./stageSharePin";
 import {
 	DRIVE_DEFAULT_ROOM_ID,
@@ -162,13 +163,16 @@ describe("call ops have exactly one writer", () => {
 	}
 
 	const callers = [
-		["useDriveSession.ts", useDriveSessionSource],
-		["Chat.tsx", chatSource],
+		["useDriveSession.ts", useDriveSessionSource, /driveCallOps"/],
+		["Chat.tsx", chatSource, /driveCallOps"/],
+		// The roster sheet reaches call_set_stage through the shared builder in
+		// stageSharePin, which driveCallOps re-exports rather than duplicating.
+		["ParticipantSheet.tsx", participantSheetSource, /stageSharePin"/],
 	] as const;
 
-	for (const [label, source] of callers) {
-		it(`${label} imports the ops module instead of building frames inline`, () => {
-			expect(source).toMatch(/from "\.\.?\/(?:drive\/)?driveCallOps"/);
+	for (const [label, source, importPattern] of callers) {
+		it(`${label} uses the shared builders instead of building frames inline`, () => {
+			expect(source).toMatch(importPattern);
 			expect(inlineFrameLines(source)).toEqual([]);
 		});
 	}

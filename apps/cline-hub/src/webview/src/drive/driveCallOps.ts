@@ -14,17 +14,20 @@
  * `call_set_stage` is deliberately re-exported from `stageSharePin` rather than
  * rebuilt — a second stage payload would be the exact failure this module
  * exists to prevent.
+ *
+ * Every export is a pure builder and nothing here reaches `postToHost`. That
+ * keeps the module free of DOM globals, so the real-hub suite in
+ * `server/drive-call-ops.e2e.test.ts` can import these builders and put their
+ * exact bytes on the wire. Callers wrap the result in `postToHost` themselves.
  */
 
-import { postToHost } from "../vscode";
 import { DRIVE_DEFAULT_ROOM_ID } from "./types";
 
+export type { SetStageInput, StageSharer } from "./stageSharePin";
 export {
 	/** The one `call_set_stage` payload; see `stageSharePin`. */
 	buildSetStageMessage as buildSetStageFrame,
-	postSetStage,
 } from "./stageSharePin";
-export type { SetStageInput, StageSharer } from "./stageSharePin";
 
 export type CallMuteFrame = {
 	type: "call_mute";
@@ -114,21 +117,4 @@ export function buildLeaveFrame(input: CallOpInput): LeaveFrame {
 		roomId: input.roomId ?? DRIVE_DEFAULT_ROOM_ID,
 		participantId: input.participantId,
 	};
-}
-
-export function postMute(input: CallOpInput & { muted: boolean }): void {
-	postToHost(buildMuteFrame(input));
-}
-
-export function postRaiseHand(
-	input: CallOpInput & { raised: boolean },
-): void {
-	const frame = buildRaiseHandFrame(input);
-	if (frame) {
-		postToHost(frame);
-	}
-}
-
-export function postLeave(input: CallOpInput): void {
-	postToHost(buildLeaveFrame(input));
 }
