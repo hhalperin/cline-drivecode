@@ -23,12 +23,13 @@ on:
     # which suppresses mid-stack layers: skipping a middle layer is exactly
     # what let #153 through. Every layer pays for the required check.
     #
-    # `edited` is here for base retargeting — when the layer below merges,
-    # GitHub retargets this PR and fires `edited`, never `synchronize`, so
-    # without it the PR keeps a result computed against the old base. The
-    # `relevant` output below drops the title/body edits that also land here.
+    # Types are left at the default [opened, reopened, synchronize]. Adding
+    # `edited` to catch base retargeting was tried and reverted: `edited` also
+    # fires on every title/body tweak (summary bot, ci/* checkbox sync), and
+    # with `cancel-in-progress` each one killed the real in-flight run and
+    # replaced it with a green result. Retarget staleness is the ordinary
+    # moving-base problem and is backstopped by `push: main` above.
     pull_request:
-        types: [opened, reopened, synchronize, edited]
     workflow_dispatch:
     workflow_call:
         inputs:
@@ -51,11 +52,6 @@ jobs:
         runs-on: ubuntu-latest
         name: Detect Changes
         outputs:
-            # `edited` is subscribed for base retargets, but it also fires on
-            # every title/body tweak (the summary bot, the ci/* checkbox sync).
-            # Only a retarget changes what this PR is diffed against, so the
-            # rest skip the heavy jobs. Non-PR events have no action and pass.
-            relevant: ${{ github.event.action != 'edited' || github.event.changes.base != null }}
             hub: ${{ steps.force.outputs.run_all == 'true' || steps.filter.outputs.hub == 'true' }}
             drive: ${{ steps.force.outputs.run_all == 'true' || steps.filter.outputs.drive == 'true' }}
             demo: ${{ steps.force.outputs.run_all == 'true' || steps.filter.outputs.demo == 'true' }}
@@ -140,7 +136,7 @@ jobs:
 
     hub:
         needs: detect-changes
-        if: needs.detect-changes.outputs.relevant == 'true' && needs.detect-changes.outputs.hub == 'true'
+        if: needs.detect-changes.outputs.hub == 'true'
         runs-on: ubuntu-latest
         name: Hub (@cline/cline-hub)
         steps:
@@ -175,7 +171,7 @@ jobs:
 
     drive:
         needs: detect-changes
-        if: needs.detect-changes.outputs.relevant == 'true' && needs.detect-changes.outputs.drive == 'true'
+        if: needs.detect-changes.outputs.drive == 'true'
         runs-on: ubuntu-latest
         name: Drive kernel (@cline/drive)
         steps:
@@ -199,7 +195,7 @@ jobs:
 
     demo:
         needs: detect-changes
-        if: needs.detect-changes.outputs.relevant == 'true' && needs.detect-changes.outputs.demo == 'true'
+        if: needs.detect-changes.outputs.demo == 'true'
         runs-on: ubuntu-latest
         name: Drive demo (@cline/drivecode-demo)
         steps:
@@ -223,7 +219,7 @@ jobs:
 
     cli:
         needs: detect-changes
-        if: needs.detect-changes.outputs.relevant == 'true' && needs.detect-changes.outputs.cli == 'true'
+        if: needs.detect-changes.outputs.cli == 'true'
         runs-on: ubuntu-latest
         name: CLI Drive surfaces (@cline/cli)
         steps:
