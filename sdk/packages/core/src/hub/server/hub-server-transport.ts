@@ -55,6 +55,7 @@ import { handleDriveSessionRollupsCommand } from "./handlers/drive-session-rollu
 import { handleDriveConfigCommand } from "./handlers/drive-config-handlers";
 import { handleDriveCatalogCommand } from "./handlers/drive-catalog-handlers";
 import { handleDriveCommand } from "./handlers/drive-handlers";
+import { handleDrivePrivacyCommand } from "./handlers/drive-privacy-handlers";
 import { handleDriveForkCommand } from "./handlers/drive-fork-handlers";
 import { handleDriveForkTickCommand } from "./handlers/drive-fork-tick";
 import { handleDriveWaveCommand } from "./handlers/drive-wave-handlers";
@@ -87,6 +88,7 @@ import {
 import {
 	attachStatusBroadcast,
 	handleStatusCommand,
+	seedRepoChangelog,
 } from "./handlers/status-handlers";
 import { eventNameForScheduleCommand } from "./hub-schedule-events";
 import { logHubBoundaryError } from "./hub-server-logging";
@@ -301,6 +303,15 @@ export class HubServerTransport implements NativeHubTransport {
 	}
 
 	async start(): Promise<void> {
+		// Seed before listening: the changelog is empty on a fresh data dir, and
+		// an empty changelog reads as a broken feature rather than as no news.
+		// Idempotent, so restarts republish nothing.
+		const seeded = seedRepoChangelog();
+		if (seeded.published > 0) {
+			console.info(
+				`[hub] seeded ${seeded.published} repo changelog entries from ${seeded.snapshotPath}`,
+			);
+		}
 		await this.schedules.start();
 		if (this.cronService) {
 			try {
@@ -474,6 +485,8 @@ export class HubServerTransport implements NativeHubTransport {
 			case "drive_catalog_get":
 			case "drive_catalog_put":
 				return handleDriveCatalogCommand(this.ctx, envelope);
+			case "drive_privacy_put":
+				return handleDrivePrivacyCommand(this.ctx, envelope);
 			case "drive_bank_get":
 			case "drive_bank_seed":
 			case "drive_bank_create_task":

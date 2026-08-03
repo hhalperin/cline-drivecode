@@ -484,6 +484,7 @@ export type HubCommandName =
 	| "drive_config_put"
 	| "drive_catalog_get"
 	| "drive_catalog_put"
+	| "drive_privacy_put"
 	| "drive_bank_get"
 	| "drive_bank_seed"
 	| "drive_bank_create_task"
