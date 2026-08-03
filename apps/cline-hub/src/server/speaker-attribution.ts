@@ -7,6 +7,9 @@ export type SpeakerAttributionSnapshot = Pick<
 	"addressSet" | "participants"
 >;
 
+/** The slice of {@link HubContext} the turn-speaker lifecycle touches. */
+export type TurnSpeakerStore = Pick<HubContext, "turnSpeakerBySessionId">;
+
 /**
  * The seated agent an assistant turn can honestly be attributed to.
  *
@@ -70,7 +73,7 @@ export async function readAddressedSpeakerId(
  * previous turn would attribute this reply to the wrong agent.
  */
 export function setTurnSpeaker(
-	ctx: HubContext,
+	ctx: TurnSpeakerStore,
 	sessionId: string,
 	speakerId: string | undefined,
 ): void {
@@ -78,5 +81,20 @@ export function setTurnSpeaker(
 		ctx.turnSpeakerBySessionId.set(sessionId, speakerId);
 		return;
 	}
+	ctx.turnSpeakerBySessionId.delete(sessionId);
+}
+
+/**
+ * Drop the attribution when the turn ends.
+ *
+ * Attribution is only valid for the turn it was resolved for. A turn that
+ * starts by some other route — a queued prompt, a resumed session — would
+ * otherwise inherit the previous turn's agent and be labelled with a name
+ * nothing verified. Also keeps the map bounded to in-flight turns.
+ */
+export function clearTurnSpeaker(
+	ctx: TurnSpeakerStore,
+	sessionId: string,
+): void {
 	ctx.turnSpeakerBySessionId.delete(sessionId);
 }

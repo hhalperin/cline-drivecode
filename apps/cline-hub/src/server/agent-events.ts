@@ -2,6 +2,7 @@ import type { CoreSessionEvent } from "@cline/core";
 import type { AgentEvent } from "@cline/shared";
 import type { WebviewToolEvent } from "../webview-protocol";
 import { rejectPendingApprovalsForSession } from "./approvals";
+import { clearTurnSpeaker } from "./speaker-attribution";
 import type { HubContext } from "./state";
 import { broadcastHubState } from "./state-payloads";
 import {
@@ -187,6 +188,7 @@ function forwardAgentEvent(
 		return;
 	}
 	if (event.type === "done") {
+		clearTurnSpeaker(ctx, sessionId);
 		ctx.sendToSelectedPeers(sessionId, {
 			type: "turn_done",
 			finishReason: event.reason,
@@ -204,6 +206,7 @@ function forwardAgentEvent(
 		return;
 	}
 	if (event.type === "error") {
+		clearTurnSpeaker(ctx, sessionId);
 		ctx.sendToSelectedPeers(sessionId, {
 			type: "error",
 			text: event.error.message,
@@ -243,6 +246,7 @@ export function handleSessionEvent(
 		broadcastHubState(ctx);
 	} else if (event.type === "ended") {
 		usageBudgetHandlers.delete(sessionId);
+		clearTurnSpeaker(ctx, sessionId);
 		rejectPendingApprovalsForSession(
 			ctx,
 			sessionId,

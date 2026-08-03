@@ -4,6 +4,7 @@ import {
 	isNonLocalBindHost,
 	rebasePublicUrlForListenPort,
 } from "./options";
+import { resolveAvailablePort } from "./port";
 import {
 	handleToolApprovalResponse,
 	rejectOrphanedApprovals,
@@ -25,16 +26,12 @@ import { handleDesktopCommand } from "./server/desktop-commands";
 import { handleDriveAgentHomeWebviewCommand } from "./server/drive-agent-home";
 import { handleDriveArtifactsWebviewCommand } from "./server/drive-artifacts";
 import { handleDriveBankWebviewCommand } from "./server/drive-bank";
-import { handleDrivePlanImproveWebviewCommand } from "./server/drive-plan-improve";
-import { handleDriveSessionRollupsWebviewCommand } from "./server/drive-session-rollups";
 import { handleCallCommand } from "./server/drive-calls";
 import { handleDriveWebviewCommand } from "./server/drive-commands";
-import { handleDriveRoomsWebviewCommand } from "./server/drive-rooms";
 import { rejectVoiceSendIfMuted } from "./server/drive-mute-gate";
-import {
-	readAddressedSpeakerId,
-	setTurnSpeaker,
-} from "./server/speaker-attribution";
+import { handleDrivePlanImproveWebviewCommand } from "./server/drive-plan-improve";
+import { handleDriveRoomsWebviewCommand } from "./server/drive-rooms";
+import { handleDriveSessionRollupsWebviewCommand } from "./server/drive-session-rollups";
 import {
 	createJsonResponse,
 	isWebviewRoute,
@@ -64,11 +61,14 @@ import {
 	selectSession,
 	sendMessage,
 } from "./server/sessions";
+import {
+	readAddressedSpeakerId,
+	setTurnSpeaker,
+} from "./server/speaker-attribution";
 import { HubContext } from "./server/state";
 import { broadcastHubState, hubStatusPayload } from "./server/state-payloads";
 import { handleStatusCommand } from "./server/status-calls";
 import type { BrowserFrame, BrowserPeer } from "./server/types";
-import { resolveAvailablePort } from "./port";
 import { rejectOversizedWebSocketPayload } from "./server/websocket-transport";
 
 export interface ClineHubDashboardServer {
@@ -289,8 +289,7 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 						if (peer.sending) {
 							// Mid-turn: enqueue as steer (DRV-FELT-AGENCY / DRV-STEER-QUEUE).
 							// Core pending-prompt path already exists; do not hard-reject.
-							const delivery =
-								frame.delivery === "queue" ? "queue" : "steer";
+							const delivery = frame.delivery === "queue" ? "queue" : "steer";
 							try {
 								await sendMessage(
 									ctx,
@@ -310,10 +309,7 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 							} catch (error) {
 								ctx.send(peer, {
 									type: "status",
-									text:
-										error instanceof Error
-											? error.message
-											: String(error),
+									text: error instanceof Error ? error.message : String(error),
 								});
 							}
 							return;
@@ -343,9 +339,7 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 								frame.prompt,
 								frame.config,
 								frame.attachments,
-								frame.delivery
-									? { delivery: frame.delivery }
-									: undefined,
+								frame.delivery ? { delivery: frame.delivery } : undefined,
 							);
 						} finally {
 							peer.sending = false;
@@ -396,17 +390,9 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 					} else if (frame.type === "drive_artifacts_list") {
 						await handleDriveArtifactsWebviewCommand(ctx, peer, frame);
 					} else if (frame.type === "drive_session_rollups") {
-						await handleDriveSessionRollupsWebviewCommand(
-							ctx,
-							peer,
-							frame,
-						);
+						await handleDriveSessionRollupsWebviewCommand(ctx, peer, frame);
 					} else if (frame.type === "drive_plan_improve_resolve") {
-						await handleDrivePlanImproveWebviewCommand(
-							ctx,
-							peer,
-							frame,
-						);
+						await handleDrivePlanImproveWebviewCommand(ctx, peer, frame);
 					} else if (frame.type === "drive_agent_home_get") {
 						await handleDriveAgentHomeWebviewCommand(ctx, peer, frame);
 					} else if (

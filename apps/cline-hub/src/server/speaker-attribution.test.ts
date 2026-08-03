@@ -1,6 +1,11 @@
 import type { AddressSet, Participant } from "@cline/shared";
 import { describe, expect, it } from "vitest";
-import { resolveAddressedSpeakerId } from "./speaker-attribution";
+import {
+	clearTurnSpeaker,
+	resolveAddressedSpeakerId,
+	setTurnSpeaker,
+	type TurnSpeakerStore,
+} from "./speaker-attribution";
 
 const human: Participant = {
 	id: "drive:human",
@@ -110,5 +115,41 @@ describe("resolveAddressedSpeakerId", () => {
 				participants: [human, partner, specialist],
 			}),
 		).toBeUndefined();
+	});
+});
+
+describe("turn speaker lifecycle", () => {
+	const store = (): TurnSpeakerStore => ({
+		turnSpeakerBySessionId: new Map<string, string>(),
+	});
+
+	it("records a resolved speaker for the session", () => {
+		const ctx = store();
+		setTurnSpeaker(ctx, "s1", "drive:partner");
+		expect(ctx.turnSpeakerBySessionId.get("s1")).toBe("drive:partner");
+	});
+
+	it("erases the previous speaker when the next turn is unattributed", () => {
+		// A second agent gets seated: the address is now ambiguous, and the
+		// earlier id must not carry over onto this turn's deltas.
+		const ctx = store();
+		setTurnSpeaker(ctx, "s1", "drive:partner");
+		setTurnSpeaker(ctx, "s1", undefined);
+		expect(ctx.turnSpeakerBySessionId.has("s1")).toBe(false);
+	});
+
+	it("drops the attribution once the turn ends", () => {
+		const ctx = store();
+		setTurnSpeaker(ctx, "s1", "drive:partner");
+		clearTurnSpeaker(ctx, "s1");
+		expect(ctx.turnSpeakerBySessionId.has("s1")).toBe(false);
+	});
+
+	it("keeps sessions independent", () => {
+		const ctx = store();
+		setTurnSpeaker(ctx, "s1", "drive:partner");
+		setTurnSpeaker(ctx, "s2", "agent:reviewer");
+		clearTurnSpeaker(ctx, "s1");
+		expect(ctx.turnSpeakerBySessionId.get("s2")).toBe("agent:reviewer");
 	});
 });
