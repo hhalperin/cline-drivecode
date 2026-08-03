@@ -482,8 +482,8 @@ function AgentProfileSections({
 						))}
 					</select>
 					<p className="text-[11px] text-muted-foreground">
-						Resolved against the active theme and clamped for contrast.
-						Local only — durable facet upsert TBD.
+						Resolved against the active theme and clamped for contrast. Local
+						only — durable facet upsert TBD.
 					</p>
 				</div>
 			</section>
