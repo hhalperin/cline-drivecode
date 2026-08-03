@@ -41,8 +41,12 @@ function readSeedPresence(): DriveCallPresence {
 
 export function useDriveCallPresence(): DriveCallPresence {
 	const [presence, setPresence] = useState<DriveCallPresence>(readSeedPresence);
-	const presenceRef = useRef(presence);
-	presenceRef.current = presence;
+	/**
+	 * The seed, held only until the one allowed read is spent. Clearing it in
+	 * the effect — rather than tracking a boolean — makes "at most one
+	 * `call_get_room`" true even under StrictMode's mount/unmount/mount.
+	 */
+	const unspentSeedRef = useRef<DriveCallPresence | null>(presence);
 
 	useEffect(
 		() =>
@@ -57,11 +61,12 @@ export function useDriveCallPresence(): DriveCallPresence {
 	);
 
 	useEffect(() => {
-		// Exactly one read on mount, and only when persisted state claims a live
-		// call we have no snapshot for. `call_get_room` is idempotent and carries
-		// no afterSeq cursor: gap fill belongs to the writer, not to this reader.
-		const seeded = presenceRef.current;
-		if (!seeded.active) {
+		// One read on mount, and only when persisted state claims a live call this
+		// reader has no snapshot for. `call_get_room` is idempotent and carries no
+		// afterSeq cursor: gap fill belongs to the writer, not to this reader.
+		const seeded = unspentSeedRef.current;
+		unspentSeedRef.current = null;
+		if (!seeded?.active) {
 			return;
 		}
 		postToHost({
