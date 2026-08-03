@@ -32,6 +32,10 @@ import { handleDriveWebviewCommand } from "./server/drive-commands";
 import { handleDriveRoomsWebviewCommand } from "./server/drive-rooms";
 import { rejectVoiceSendIfMuted } from "./server/drive-mute-gate";
 import {
+	readAddressedSpeakerId,
+	setTurnSpeaker,
+} from "./server/speaker-attribution";
+import {
 	createJsonResponse,
 	isWebviewRoute,
 	WebviewAssets,
@@ -319,6 +323,17 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 							if (blocked) {
 								return;
 							}
+						}
+						// Attribute the turn before it starts, so the deltas it emits
+						// carry the addressed agent (DRV-ADDRESS). Resolves to
+						// undefined outside a Drive call, and whenever the address
+						// covers more or fewer than one seated agent.
+						if (peer.selectedSessionId) {
+							setTurnSpeaker(
+								ctx,
+								peer.selectedSessionId,
+								await readAddressedSpeakerId(ctx, peer.selectedSessionId),
+							);
 						}
 						peer.sending = true;
 						try {

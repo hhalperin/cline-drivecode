@@ -43,6 +43,7 @@ export function appendAssistantDelta(
 	current: ChatMessage[],
 	text: string,
 	activeAssistantIdRef: MutableRefObject<string | undefined>,
+	speakerId?: string,
 ): ChatMessage[] {
 	if (!text) {
 		return current;
@@ -58,6 +59,7 @@ export function appendAssistantDelta(
 				index === targetIndex
 					? {
 							...message,
+							...(speakerId ? { speakerId } : {}),
 							text: `${message.text}${text}`,
 							blocks: appendTextBlock(message.blocks, text),
 						}
@@ -73,6 +75,7 @@ export function appendAssistantDelta(
 			...current.slice(0, -1),
 			{
 				...lastMessage,
+				...(speakerId ? { speakerId } : {}),
 				text: `${lastMessage.text}${text}`,
 				blocks: appendTextBlock(lastMessage.blocks, text),
 			},
@@ -81,6 +84,7 @@ export function appendAssistantDelta(
 
 	const assistantMessage = createMessage("assistant", text, {
 		blocks: [{ id: nanoid(), type: "text", text }],
+		...(speakerId ? { speakerId } : {}),
 	});
 	activeAssistantIdRef.current = assistantMessage.id;
 	return [...current, assistantMessage];

@@ -51,6 +51,15 @@ export type WebviewChatMessage = Omit<
 	text: string;
 	reasoning?: string;
 	reasoningRedacted?: boolean;
+	/**
+	 * Drive participant id this message is attributed to (DRV-ADDRESS).
+	 *
+	 * Absent means "not known", and the feed must render no byline at all
+	 * rather than fall back to a likely name. It is absent for every hydrated
+	 * message — attribution is not persisted on chat history — and for any
+	 * live turn whose address did not resolve to exactly one seated agent.
+	 */
+	speakerId?: string;
 	checkpoint?: NonNullable<CoreChatMessage["meta"]>["checkpoint"];
 	toolEvents?: Array<{
 		id: string;
@@ -578,7 +587,7 @@ export type WebviewOutboundMessage =
 			modelId?: string;
 			messages: WebviewChatMessage[];
 	  }
-	| { type: "assistant_delta"; text: string }
+	| { type: "assistant_delta"; text: string; speakerId?: string }
 	| { type: "reasoning_delta"; text: string; redacted?: boolean }
 	| { type: "tool_event"; text: string; event?: WebviewToolEvent }
 	| ({ type: "approval_request" } & WebviewToolApprovalRequest)

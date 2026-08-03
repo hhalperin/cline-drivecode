@@ -91,7 +91,12 @@ function sendChunkToSelectedPeers(
 	text: string,
 ): void {
 	if (!text) return;
-	ctx.sendToSelectedPeers(sessionId, { type: "assistant_delta", text });
+	ctx.sendToSelectedPeers(sessionId, {
+		type: "assistant_delta",
+		text,
+		// Absent unless this turn resolved to exactly one addressed agent.
+		speakerId: ctx.turnSpeakerBySessionId.get(sessionId),
+	});
 }
 
 function forwardAgentEvent(
