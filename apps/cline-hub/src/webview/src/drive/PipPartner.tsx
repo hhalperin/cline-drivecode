@@ -32,7 +32,7 @@ import {
 	PhoneIcon,
 	ScanIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Tooltip,
@@ -60,7 +60,7 @@ function PipButton({
 	pressed,
 	tone = "neutral",
 }: {
-	children: React.ReactNode;
+	children: ReactNode;
 	/** Accessible name — also the tooltip copy. */
 	label: string;
 	onClick: () => void;
@@ -117,12 +117,11 @@ function PipCard({
 
 	const partnerName = presence.partnerName?.trim() || "Drive call";
 
+	// z-40, not z-50: dialogs, sheets and this widget's own tooltips sit at
+	// z-50, and the companion must never cover a modal.
 	if (hidden) {
 		return (
-			<div
-				className="pointer-events-auto fixed bottom-4 right-4 z-40"
-				data-drive-pip="minimised"
-			>
+			<div className="fixed bottom-4 right-4 z-40" data-drive-pip="minimised">
 				<Button
 					aria-label={`Show the ${partnerName} call companion`}
 					className="h-8 gap-2 rounded-full border-amber-500/45 bg-background/95 px-3 shadow-lg backdrop-blur dark:border-amber-400/45"
@@ -144,7 +143,7 @@ function PipCard({
 	return (
 		<aside
 			aria-label={`${partnerName} call companion`}
-			className="pointer-events-auto fixed bottom-4 right-4 z-40 w-60 rounded-lg border border-amber-500/40 bg-background/95 p-3 shadow-lg backdrop-blur dark:border-amber-400/40"
+			className="fixed bottom-4 right-4 z-40 w-60 rounded-lg border border-amber-500/40 bg-background/95 p-3 shadow-lg backdrop-blur dark:border-amber-400/40"
 			// Presence facts as data, so a runtime smoke can read what the widget
 			// is actually showing rather than inferring it from icon glyphs.
 			data-drive-pip="open"
@@ -171,9 +170,12 @@ function PipCard({
 					<ChevronDownIcon />
 				</Button>
 			</div>
+			{/* Clamped, not just min-height: narration is hub text of unbounded
+				length and this card is fixed-position, so an unclamped line would
+				grow it up the viewport. */}
 			<p
 				aria-live="polite"
-				className="mt-1.5 min-h-8 text-[11.5px] leading-4 text-muted-foreground"
+				className="mt-1.5 line-clamp-2 min-h-8 text-[11.5px] leading-4 text-muted-foreground"
 			>
 				{presence.narration ?? "Still in call"}
 			</p>
