@@ -62,6 +62,7 @@ import {
 	sendMessage,
 } from "./server/sessions";
 import {
+	clearTurnSpeaker,
 	readAddressedSpeakerId,
 	setTurnSpeaker,
 } from "./server/speaker-attribution";
@@ -101,6 +102,26 @@ function isPublicStaticAssetPath(pathname: string): boolean {
 
 function isPublicBrowserRoute(_req: Request, url: URL): boolean {
 	return isWebviewRoute(url.pathname) || isPublicStaticAssetPath(url.pathname);
+}
+
+/**
+ * Is another peer already mid-turn on this peer's session?
+ *
+ * `sending` is per-peer but the turn speaker is per-session, so two browsers
+ * attached to one session would let the second send relabel the first's
+ * in-flight reply. Attribution belongs to the turn that is actually running.
+ */
+function isSessionBusyElsewhere(ctx: HubContext, peer: BrowserPeer): boolean {
+	for (const other of ctx.peers) {
+		if (
+			other !== peer &&
+			other.sending &&
+			other.selectedSessionId === peer.selectedSessionId
+		) {
+			return true;
+		}
+	}
+	return false;
 }
 
 export async function startClineHubDashboardServer(): Promise<ClineHubDashboardServer> {
@@ -320,19 +341,23 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 								return;
 							}
 						}
-						// Attribute the turn before it starts, so the deltas it emits
-						// carry the addressed agent (DRV-ADDRESS). Resolves to
-						// undefined outside a Drive call, and whenever the address
-						// covers more or fewer than one seated agent.
-						if (peer.selectedSessionId) {
-							setTurnSpeaker(
-								ctx,
-								peer.selectedSessionId,
-								await readAddressedSpeakerId(ctx, peer.selectedSessionId),
-							);
-						}
+						// Claim the turn before the room lookup awaits, so a second
+						// send cannot slip past the `peer.sending` guard above and
+						// start a competing turn during the round trip.
 						peer.sending = true;
+						const turnSessionId = peer.selectedSessionId;
 						try {
+							// Attribute the turn before it starts, so its deltas carry
+							// the addressed agent (DRV-ADDRESS). Resolves to undefined
+							// outside a Drive call, and whenever the address covers
+							// more or fewer than one seated agent.
+							if (turnSessionId && !isSessionBusyElsewhere(ctx, peer)) {
+								setTurnSpeaker(
+									ctx,
+									turnSessionId,
+									await readAddressedSpeakerId(ctx, turnSessionId),
+								);
+							}
 							await sendMessage(
 								ctx,
 								peer,
@@ -341,6 +366,14 @@ export async function startClineHubDashboardServer(): Promise<ClineHubDashboardS
 								frame.attachments,
 								frame.delivery ? { delivery: frame.delivery } : undefined,
 							);
+						} catch (error) {
+							// No turn started, so no done/error event will arrive to
+							// clear this. Leaving it would attribute a later turn to
+							// an agent this one never reached.
+							if (turnSessionId) {
+								clearTurnSpeaker(ctx, turnSessionId);
+							}
+							throw error;
 						} finally {
 							peer.sending = false;
 						}

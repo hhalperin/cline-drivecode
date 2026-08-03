@@ -11,13 +11,19 @@ export type SpeakerAttributionSnapshot = Pick<
 export type TurnSpeakerStore = Pick<HubContext, "turnSpeakerBySessionId">;
 
 /**
- * The seated agent an assistant turn can honestly be attributed to.
+ * The single agent this turn was **addressed to**, when there is exactly one.
  *
- * Only an address that resolves to exactly one seated agent yields an id.
- * Seating creates no runtime — `call_seat` commits room metadata and a single
- * Cline runtime sits behind the feed — so once two or more agents are
- * addressed there is no signal saying which one produced the reply. Returning
- * undefined there leaves the byline absent instead of guessing.
+ * Read the name literally: this is who the human addressed, not verified
+ * authorship. Nothing routes the addressed agent's persona into the runtime
+ * yet — `resolveAddress` has no reader on the send path (see
+ * `server/sessions.ts`) — so the reply still comes from the one generic Cline
+ * runtime. "Addressed" is the strongest claim the room data supports, and the
+ * byline is scoped to exactly that.
+ *
+ * Only an address resolving to exactly one seated agent yields an id. Seating
+ * creates no runtime — `call_seat` commits room metadata only — so once two or
+ * more agents are addressed nothing distinguishes them and the result is
+ * undefined, leaving the byline absent rather than guessing.
  */
 export function resolveAddressedSpeakerId(
 	snapshot: SpeakerAttributionSnapshot | undefined | null,
@@ -25,14 +31,25 @@ export function resolveAddressedSpeakerId(
 	if (!snapshot?.addressSet || !Array.isArray(snapshot.participants)) {
 		return undefined;
 	}
-	const resolved = resolveAddress({
-		addressSet: snapshot.addressSet,
-		participants: snapshot.participants,
-	});
-	if (!resolved.ok || resolved.participantIds.length !== 1) {
+	let resolved: ReturnType<typeof resolveAddress>;
+	try {
+		resolved = resolveAddress({
+			addressSet: snapshot.addressSet,
+			participants: snapshot.participants,
+		});
+	} catch {
+		// Snapshots arrive as an unchecked cast off the wire; a participant
+		// missing `seatSources` throws inside pack resolution. Unparseable
+		// roster means unknown speaker, not a crashed send.
 		return undefined;
 	}
-	return resolved.participantIds[0];
+	if (!resolved.ok) {
+		return undefined;
+	}
+	// Dedupe first: `resolveAddress` preserves repeats, and `agentIds: [x, x]`
+	// naming one agent twice must not read as an ambiguous two.
+	const unique = [...new Set(resolved.participantIds)];
+	return unique.length === 1 ? unique[0] : undefined;
 }
 
 /**

@@ -116,6 +116,42 @@ describe("resolveAddressedSpeakerId", () => {
 			}),
 		).toBeUndefined();
 	});
+
+	it("treats one agent named twice as one, not as ambiguous", () => {
+		expect(
+			resolveAddressedSpeakerId({
+				addressSet: {
+					mode: "agents",
+					agentIds: ["agent:reviewer", "agent:reviewer"],
+				},
+				participants: [human, partner, specialist],
+			}),
+		).toBe("agent:reviewer");
+	});
+
+	it("returns undefined instead of throwing on a malformed roster", () => {
+		// Snapshots arrive as an unchecked cast off the wire, and pack
+		// resolution reads `seatSources` without a guard.
+		const brokenAgent = {
+			id: "agent:legacy",
+			kind: "agent",
+			displayName: "Legacy",
+			role: "specialist",
+			status: "idle",
+		} as unknown as Participant;
+		expect(() =>
+			resolveAddressedSpeakerId({
+				addressSet: { mode: "pack", packId: "review" },
+				participants: [human, brokenAgent],
+			}),
+		).not.toThrow();
+		expect(
+			resolveAddressedSpeakerId({
+				addressSet: { mode: "pack", packId: "review" },
+				participants: [human, brokenAgent],
+			}),
+		).toBeUndefined();
+	});
 });
 
 describe("turn speaker lifecycle", () => {

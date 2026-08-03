@@ -86,17 +86,25 @@ function agentEventText(event: AgentEvent): string {
 	return "";
 }
 
+/**
+ * `speakerId` is passed in rather than read here on purpose.
+ *
+ * The raw `chunk` stream carries teammate output with its `teamRole` marker
+ * stripped, so a caller on that path cannot tell whose text it is holding and
+ * must send nothing. Only `forwardAgentEvent`, which its caller has already
+ * filtered to non-teammates, may attribute.
+ */
 function sendChunkToSelectedPeers(
 	ctx: HubContext,
 	sessionId: string,
 	text: string,
+	speakerId?: string,
 ): void {
 	if (!text) return;
 	ctx.sendToSelectedPeers(sessionId, {
 		type: "assistant_delta",
 		text,
-		// Absent unless this turn resolved to exactly one addressed agent.
-		speakerId: ctx.turnSpeakerBySessionId.get(sessionId),
+		speakerId,
 	});
 }
 
@@ -131,7 +139,15 @@ function forwardAgentEvent(
 			return;
 		}
 		const text = agentEventText(event);
-		if (text) sendChunkToSelectedPeers(ctx, sessionId, text);
+		if (text) {
+			// Absent unless this turn resolved to exactly one addressed agent.
+			sendChunkToSelectedPeers(
+				ctx,
+				sessionId,
+				text,
+				ctx.turnSpeakerBySessionId.get(sessionId),
+			);
+		}
 		return;
 	}
 	if (event.type === "content_update" && event.contentType === "tool") {

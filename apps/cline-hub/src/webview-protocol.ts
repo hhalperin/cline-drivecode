@@ -52,7 +52,11 @@ export type WebviewChatMessage = Omit<
 	reasoning?: string;
 	reasoningRedacted?: boolean;
 	/**
-	 * Drive participant id this message is attributed to (DRV-ADDRESS).
+	 * Drive participant id the turn was **addressed to** (DRV-ADDRESS).
+	 *
+	 * Not verified authorship: one Cline runtime answers every turn, and
+	 * nothing yet routes the addressed agent's persona into it. "Addressed" is
+	 * the strongest claim the room data supports.
 	 *
 	 * Absent means "not known", and the feed must render no byline at all
 	 * rather than fall back to a likely name. It is absent for every hydrated

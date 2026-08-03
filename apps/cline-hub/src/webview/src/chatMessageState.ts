@@ -39,6 +39,21 @@ export function buildUserMessageLabel(
 	return `${prompt}${prompt.length > 0 ? "\n\n" : ""}[attached ${resolvedCount} file${resolvedCount === 1 ? "" : "s"}]`;
 }
 
+/**
+ * Attribution is written once per message and never rewritten.
+ *
+ * Two browsers can share a session, and the second one's send would otherwise
+ * flip the byline on a reply that is still streaming — text the reader already
+ * saw under another name. First writer wins; a message that started
+ * unattributed can gain a name, but a named one never changes.
+ */
+function stampSpeaker(
+	message: ChatMessage,
+	speakerId: string | undefined,
+): Partial<ChatMessage> {
+	return speakerId && !message.speakerId ? { speakerId } : {};
+}
+
 export function appendAssistantDelta(
 	current: ChatMessage[],
 	text: string,
@@ -59,7 +74,7 @@ export function appendAssistantDelta(
 				index === targetIndex
 					? {
 							...message,
-							...(speakerId ? { speakerId } : {}),
+							...stampSpeaker(message, speakerId),
 							text: `${message.text}${text}`,
 							blocks: appendTextBlock(message.blocks, text),
 						}
@@ -75,7 +90,7 @@ export function appendAssistantDelta(
 			...current.slice(0, -1),
 			{
 				...lastMessage,
-				...(speakerId ? { speakerId } : {}),
+				...stampSpeaker(lastMessage, speakerId),
 				text: `${lastMessage.text}${text}`,
 				blocks: appendTextBlock(lastMessage.blocks, text),
 			},
