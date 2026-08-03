@@ -53,6 +53,12 @@ function readBoolean(
  * metadata rather than the room's (ephemeral, restart-reset) chatForks list.
  * A session that was never a chat-fork worker (root/human session, or
  * unknown) is depth 0, so its children are first-generation (depth 1).
+ *
+ * A session that *is* a worker but carries no recorded depth counts as 1, not
+ * 0. Every worker session created before this shipped is in exactly that
+ * state, and reading them as roots would let their children claim as
+ * first-generation — defeating the bound for precisely the sessions it exists
+ * to catch.
  */
 async function resolveParentForkDepth(
 	ctx: HubTransportContext,
@@ -61,9 +67,10 @@ async function resolveParentForkDepth(
 	try {
 		const parentSession = await ctx.sessionHost.getSession?.(parentSessionId);
 		const raw = parentSession?.metadata?.chatForkDepth;
-		return typeof raw === "number" && Number.isFinite(raw) && raw >= 0
-			? raw
-			: 0;
+		if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
+			return raw;
+		}
+		return parentSession?.metadata?.chatFork === true ? 1 : 0;
 	} catch {
 		return 0;
 	}
