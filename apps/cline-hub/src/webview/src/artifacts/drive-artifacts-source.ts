@@ -17,3 +17,31 @@ import type { DriveArtifactDirectoryEntry } from "@cline/drive";
 export interface DriveArtifactsSource {
 	listArtifacts(workspaceRoot: string): Promise<DriveArtifactDirectoryEntry[]>;
 }
+
+/**
+ * A list that failed, carrying the hub's error code.
+ *
+ * The page has to tell two rejections apart. `workspace_not_bound` means the
+ * hub has no corpus for this root yet — nothing has been presented, or no Drive
+ * call has bound the log — which is an empty page, not a failure. Everything
+ * else is a real error and earns the banner. Without the code the page would
+ * greet a cold hub with a red "could not load" for the ordinary case of having
+ * produced nothing yet.
+ */
+export class DriveArtifactsListError extends Error {
+	readonly code: string | undefined;
+
+	constructor(message: string, code?: string) {
+		super(message);
+		this.name = "DriveArtifactsListError";
+		this.code = code;
+	}
+}
+
+/** True when the hub simply has no corpus bound for this workspace yet. */
+export function isWorkspaceUnboundError(cause: unknown): boolean {
+	return (
+		cause instanceof DriveArtifactsListError &&
+		cause.code === "workspace_not_bound"
+	);
+}

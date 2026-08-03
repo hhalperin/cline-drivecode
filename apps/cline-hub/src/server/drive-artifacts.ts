@@ -1,3 +1,4 @@
+import { HubCommandError } from "@cline/core";
 import type { HubContext } from "./state";
 import type { BrowserPeer } from "./types";
 
@@ -51,15 +52,6 @@ export async function handleDriveArtifactsWebviewCommand(
 		const reply = await ctx.uiClient.command("drive.artifacts.list", {
 			workspaceRoot,
 		});
-		if (!reply.ok) {
-			ctx.send(peer, {
-				type: "drive_artifacts_error",
-				text: reply.error?.message ?? "Listing artifacts failed.",
-				code: reply.error?.code,
-				requestId,
-			});
-			return;
-		}
 		ctx.send(peer, {
 			type: "drive_artifacts",
 			artifacts: Array.isArray(reply.payload?.artifacts)
@@ -68,10 +60,17 @@ export async function handleDriveArtifactsWebviewCommand(
 			requestId,
 		});
 	} catch (error) {
+		// The hub client throws a non-ok reply rather than returning it, so the
+		// hub's own error code only survives if it is read off the thrown error.
+		// The page needs it: `workspace_not_bound` means "no corpus here yet",
+		// which is an empty page, and everything else is a real failure.
 		ctx.send(peer, {
 			type: "drive_artifacts_error",
 			text: error instanceof Error ? error.message : String(error),
-			code: "drive_artifacts_list_failed",
+			code:
+				error instanceof HubCommandError && error.code
+					? error.code
+					: "drive_artifacts_list_failed",
 			requestId,
 		});
 	}

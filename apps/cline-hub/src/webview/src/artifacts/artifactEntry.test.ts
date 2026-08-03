@@ -1,3 +1,8 @@
+import {
+	MediaArtifactStatusSchema,
+	MediaClassSchema,
+	ShowArtifactKindSchema,
+} from "@cline/shared";
 import { describe, expect, it } from "vitest";
 import { artifactDirectoryEntryFromUnknown } from "./artifactEntry";
 
@@ -19,6 +24,31 @@ function wire(
 		...overrides,
 	};
 }
+
+/**
+ * A guard that silently rejects a taxonomy member is worse than one that
+ * crashes: every artifact of the new kind, class or status just disappears from
+ * the page. The membership sets are total `Record`s so the compiler catches a
+ * schema that grew — these run the same check against the schemas themselves,
+ * so drift fails the suite as well.
+ */
+describe("taxonomy coverage", () => {
+	it.each(ShowArtifactKindSchema.options)("accepts kind %s", (artifactKind) => {
+		expect(
+			artifactDirectoryEntryFromUnknown(wire({ artifactKind })),
+		).not.toBeNull();
+	});
+
+	it.each(MediaClassSchema.options)("accepts media class %s", (mediaClass) => {
+		expect(
+			artifactDirectoryEntryFromUnknown(wire({ mediaClass })),
+		).not.toBeNull();
+	});
+
+	it.each(MediaArtifactStatusSchema.options)("accepts status %s", (status) => {
+		expect(artifactDirectoryEntryFromUnknown(wire({ status }))).not.toBeNull();
+	});
+});
 
 describe("artifactDirectoryEntryFromUnknown", () => {
 	it("accepts a well-formed entry", () => {

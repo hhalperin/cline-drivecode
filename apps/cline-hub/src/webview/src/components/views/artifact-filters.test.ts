@@ -5,6 +5,7 @@ import {
 	ARTIFACT_KIND_FACET_BY_KIND,
 	ARTIFACT_KIND_FACETS,
 	type ArtifactFilters,
+	artifactFacetSets,
 	artifactKindFacetCounts,
 	artifactTagFacetCounts,
 	EMPTY_ARTIFACT_FILTERS,
@@ -239,6 +240,15 @@ describe("filterArtifacts", () => {
 		filterArtifacts(input, EMPTY_ARTIFACT_FILTERS);
 		expect(input.map((e) => e.showItemId)).toEqual(["a", "b", "c"]);
 	});
+
+	it("sinks entries with no timestamp rather than floating them", () => {
+		const undated = entry({ showItemId: "z", updatedAt: "" });
+		expect(
+			filterArtifacts([undated, ...corpus], EMPTY_ARTIFACT_FILTERS).map(
+				(e) => e.showItemId,
+			),
+		).toEqual(["b", "c", "a", "z"]);
+	});
 });
 
 describe("facet counts", () => {
@@ -290,5 +300,101 @@ describe("facet counts", () => {
 	it("returns no facets at all for an empty set", () => {
 		expect(artifactKindFacetCounts([])).toEqual([]);
 		expect(artifactTagFacetCounts([])).toEqual([]);
+	});
+});
+
+/**
+ * The wiring, not the counters: which set feeds which row. Swap the two and
+ * every count is still plausible and none is right, so it is asserted directly.
+ */
+describe("artifactFacetSets", () => {
+	const corpus = [
+		entry({ showItemId: "a", artifactKind: "doc.plan", tags: ["scripts"] }),
+		entry({ showItemId: "b", artifactKind: "doc.plan", tags: ["handoff"] }),
+		entry({
+			showItemId: "c",
+			artifactKind: "diagram.architecture",
+			tags: ["scripts"],
+		}),
+		entry({ showItemId: "d", artifactKind: "diagram.sequence", tags: [] }),
+	];
+
+	it("counts both rows over the whole corpus when nothing narrows", () => {
+		const { kinds, tags } = artifactFacetSets(corpus, EMPTY_ARTIFACT_FILTERS);
+		expect(kinds).toEqual([
+			{ id: "plans", label: "Plans", count: 2 },
+			{ id: "diagrams", label: "Diagrams", count: 2 },
+		]);
+		expect(tags).toEqual([
+			{ tag: "handoff", count: 1 },
+			{ tag: "scripts", count: 2 },
+		]);
+	});
+
+	it("counts kinds within the selected tag, not the whole corpus", () => {
+		const { kinds } = artifactFacetSets(corpus, filters({ tag: "scripts" }));
+		expect(kinds).toEqual([
+			{ id: "plans", label: "Plans", count: 1 },
+			{ id: "diagrams", label: "Diagrams", count: 1 },
+		]);
+	});
+
+	it("counts tags within the selected kind, not the whole corpus", () => {
+		const { tags } = artifactFacetSets(corpus, filters({ kindFacet: "plans" }));
+		expect(tags).toEqual([
+			{ tag: "handoff", count: 1 },
+			{ tag: "scripts", count: 1 },
+		]);
+	});
+
+	it("does not let a row narrow itself — its own chips stay reachable", () => {
+		// With Plans selected, Diagrams must still be offered, or selecting a
+		// kind would make every other kind unreachable.
+		const { kinds } = artifactFacetSets(
+			corpus,
+			filters({ kindFacet: "plans" }),
+		);
+		expect(kinds.map((facet) => facet.id)).toEqual(["plans", "diagrams"]);
+		const { tags } = artifactFacetSets(corpus, filters({ tag: "scripts" }));
+		expect(tags.map((facet) => facet.tag)).toEqual(["handoff", "scripts"]);
+	});
+
+	it("narrows both rows by the query", () => {
+		const { kinds, tags } = artifactFacetSets(
+			corpus,
+			filters({ query: "handoff" }),
+		);
+		expect(kinds).toEqual([{ id: "plans", label: "Plans", count: 1 }]);
+		expect(tags).toEqual([{ tag: "handoff", count: 1 }]);
+	});
+
+	it("offers no chips at all when the query matches nothing", () => {
+		expect(artifactFacetSets(corpus, filters({ query: "zzz" }))).toEqual({
+			kinds: [],
+			tags: [],
+		});
+	});
+
+	it("agrees with the list it describes", () => {
+		for (const active of [
+			EMPTY_ARTIFACT_FILTERS,
+			filters({ tag: "scripts" }),
+			filters({ kindFacet: "plans" }),
+			filters({ query: "handoff" }),
+		]) {
+			const { kinds } = artifactFacetSets(corpus, active);
+			for (const facet of kinds) {
+				const listed = filterArtifacts(corpus, {
+					...active,
+					kindFacet: facet.id,
+				});
+				expect(listed.length).toBe(facet.count);
+			}
+			const { tags } = artifactFacetSets(corpus, active);
+			for (const facet of tags) {
+				const listed = filterArtifacts(corpus, { ...active, tag: facet.tag });
+				expect(listed.length).toBe(facet.count);
+			}
+		}
 	});
 });

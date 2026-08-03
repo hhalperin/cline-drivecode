@@ -6,7 +6,10 @@ import {
 } from "../lib/host-message-gateway";
 import { postToHost } from "../vscode";
 import { artifactDirectoryEntryFromUnknown } from "./artifactEntry";
-import type { DriveArtifactsSource } from "./drive-artifacts-source";
+import {
+	DriveArtifactsListError,
+	type DriveArtifactsSource,
+} from "./drive-artifacts-source";
 
 const TIMEOUT_MS = 5_000;
 
@@ -20,17 +23,17 @@ type ArtifactsReply = HostMessage & {
 	requestId?: string;
 	artifacts?: unknown[];
 	text?: string;
+	code?: string;
 };
 
-export function isArtifactsReply(
-	message: HostMessage,
-): message is ArtifactsReply {
+function isArtifactsReply(message: HostMessage): message is ArtifactsReply {
 	return (
 		(message.type === "drive_artifacts" ||
 			message.type === "drive_artifacts_error") &&
 		isOptionalString(message.requestId) &&
 		(message.artifacts === undefined || Array.isArray(message.artifacts)) &&
-		isOptionalString(message.text)
+		isOptionalString(message.text) &&
+		isOptionalString(message.code)
 	);
 }
 
@@ -50,7 +53,12 @@ export class HubDriveArtifactsSource implements DriveArtifactsSource {
 		return new Promise((resolve, reject) => {
 			const timer = setTimeout(() => {
 				unsubscribe();
-				reject(new Error("drive.artifacts.list timed out"));
+				reject(
+					new DriveArtifactsListError(
+						"drive.artifacts.list timed out",
+						"timeout",
+					),
+				);
 			}, TIMEOUT_MS);
 
 			const unsubscribe = subscribeToHostMessages({
@@ -64,7 +72,10 @@ export class HubDriveArtifactsSource implements DriveArtifactsSource {
 					unsubscribe();
 					if (message.type === "drive_artifacts_error") {
 						reject(
-							new Error(message.text?.trim() || "drive.artifacts.list failed"),
+							new DriveArtifactsListError(
+								message.text?.trim() || "drive.artifacts.list failed",
+								message.code,
+							),
 						);
 						return;
 					}

@@ -145,10 +145,12 @@ export function matchesArtifactTag(
 }
 
 /**
- * The list the page paints: every filter applied, then newest first. Sorting
- * reuses the projection's own comparator rather than a second ordering — the
- * hub returns the corpus in first-produced order, and an Artifacts page leads
- * with what was just produced.
+ * The list the page paints: every filter applied, then newest first.
+ *
+ * The live hub already returns the corpus newest-first, so this sort is not
+ * correcting it — it is the page owning its own order, through the projection's
+ * comparator rather than a second one written here. A filtered subset and a
+ * future non-hub adapter both land on the same order that way.
  */
 export function filterArtifacts(
 	entries: readonly DriveArtifactDirectoryEntry[],
@@ -205,4 +207,36 @@ export function artifactTagFacetCounts(
 		tag,
 		count: counts.get(tag) ?? 0,
 	}));
+}
+
+/**
+ * Both chip rows, each counted over the set the *other* axis has already
+ * narrowed — so a chip reading "3" leads to three cards rather than to however
+ * many exist somewhere in the corpus.
+ *
+ * This wiring lives here rather than in the component because which set feeds
+ * which counter is exactly the part that can be silently wrong: swap the two
+ * predicates and every count is plausible and none is right. The suite is
+ * node-only and cannot load the `.tsx`, so logic left there is untestable.
+ */
+export function artifactFacetSets(
+	entries: readonly DriveArtifactDirectoryEntry[],
+	filters: ArtifactFilters,
+): {
+	kinds: Array<{ id: ArtifactKindFacetId; label: string; count: number }>;
+	tags: Array<{ tag: string; count: number }>;
+} {
+	const queryFiltered = entries.filter((entry) =>
+		matchesArtifactQuery(entry, filters.query),
+	);
+	return {
+		kinds: artifactKindFacetCounts(
+			queryFiltered.filter((entry) => matchesArtifactTag(entry, filters.tag)),
+		),
+		tags: artifactTagFacetCounts(
+			queryFiltered.filter((entry) =>
+				matchesArtifactKindFacet(entry, filters.kindFacet),
+			),
+		),
+	};
 }

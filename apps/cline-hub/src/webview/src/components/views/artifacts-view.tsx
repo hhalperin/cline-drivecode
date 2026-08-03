@@ -20,27 +20,32 @@
  */
 
 import type { DriveArtifactDirectoryEntry } from "@cline/drive";
+import type { MediaArtifactStatus } from "@cline/shared";
 import { LayersIcon, RefreshCwIcon, SearchIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import type { DriveArtifactsSource } from "../../artifacts/drive-artifacts-source";
 import {
-	type ArtifactKindFacetId,
-	artifactKindFacetCounts,
-	artifactTagFacetCounts,
+	type DriveArtifactsSource,
+	isWorkspaceUnboundError,
+} from "../../artifacts/drive-artifacts-source";
+import {
+	type ArtifactFilters,
+	artifactFacetSets,
+	EMPTY_ARTIFACT_FILTERS,
 	filterArtifacts,
 	hasActiveArtifactFilters,
-	matchesArtifactKindFacet,
-	matchesArtifactQuery,
-	matchesArtifactTag,
 } from "./artifact-filters";
 import { PageEmptyState, PageFrame, PageHeader } from "./page-layout";
 
-/** `shown` had its moment; `planned` is still waiting for the stage. */
-const STATUS_STYLES: Record<string, string> = {
+/**
+ * `shown` had its moment; `planned` is still waiting for the stage. Total over
+ * the status union, matching the Rooms page — a new status has to be given ink
+ * here rather than quietly inheriting whatever `planned` looks like.
+ */
+const STATUS_STYLES: Record<MediaArtifactStatus, string> = {
 	shown: "border-primary/40 text-primary",
 	showing: "border-primary/40 text-primary",
 	ready: "border-amber-500/50 text-amber-600 dark:text-amber-400",
@@ -83,10 +88,7 @@ function ArtifactCard({ entry }: { entry: DriveArtifactDirectoryEntry }) {
 					{entry.artifactKind}
 				</span>
 				<Badge
-					className={cn(
-						"shrink-0 text-[10px]",
-						STATUS_STYLES[entry.status] ?? STATUS_STYLES.planned,
-					)}
+					className={cn("shrink-0 text-[10px]", STATUS_STYLES[entry.status])}
 					variant="outline"
 				>
 					{entry.status}
@@ -136,9 +138,9 @@ export function ArtifactsView({
 	const [entries, setEntries] = useState<DriveArtifactDirectoryEntry[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [query, setQuery] = useState("");
-	const [kindFacet, setKindFacet] = useState<ArtifactKindFacetId | null>(null);
-	const [tag, setTag] = useState<string | null>(null);
+	const [filters, setFilters] = useState<ArtifactFilters>(
+		EMPTY_ARTIFACT_FILTERS,
+	);
 	/** Workspace the artifacts on screen were listed for. */
 	const loadedRootRef = useRef<string | undefined>(undefined);
 	/**
@@ -151,14 +153,18 @@ export function ArtifactsView({
 	const refresh = useCallback(async () => {
 		const seq = ++requestSeqRef.current;
 		const requestedRoot = workspaceRoot?.trim();
-		// Artifacts belong to the workspace they were listed for. Drop them the
-		// moment the workspace changes, so a slow or failing list can never leave
-		// another project's artifacts on screen.
+		// Artifacts belong to the workspace they were listed for. Drop them — and
+		// the filters that were narrowing them — the moment the workspace changes,
+		// so a slow or failing list can never leave another project's artifacts on
+		// screen, and the new project is not silently narrowed by a tag only the
+		// old one had.
 		if (loadedRootRef.current !== requestedRoot) {
 			setEntries([]);
+			setFilters(EMPTY_ARTIFACT_FILTERS);
 		}
 		if (!requestedRoot) {
 			loadedRootRef.current = undefined;
+			setError(null);
 			setLoading(true);
 			return;
 		}
@@ -175,6 +181,14 @@ export function ArtifactsView({
 			if (seq !== requestSeqRef.current) {
 				return;
 			}
+			// The hub binds its log when a Drive call joins, so before the first
+			// call it has no corpus for this root at all. That is an empty page,
+			// not a failure — a red banner would greet every cold hub.
+			if (isWorkspaceUnboundError(cause)) {
+				loadedRootRef.current = requestedRoot;
+				setError(null);
+				return;
+			}
 			setError(cause instanceof Error ? cause.message : String(cause));
 		} finally {
 			// A superseded request must not clear the newer one's spinner.
@@ -188,47 +202,17 @@ export function ArtifactsView({
 		void refresh();
 	}, [refresh]);
 
-	const filters = useMemo(
-		() => ({ query, kindFacet, tag }),
-		[kindFacet, query, tag],
-	);
 	const filtersActive = hasActiveArtifactFilters(filters);
-
-	const queryFiltered = useMemo(
-		() => entries.filter((entry) => matchesArtifactQuery(entry, query)),
-		[entries, query],
-	);
-	/**
-	 * Each facet row counts over the set the *other* row has already narrowed,
-	 * so a count says how many cards that chip would leave on screen — not how
-	 * many exist somewhere in the corpus.
-	 */
-	const kindFacets = useMemo(
-		() =>
-			artifactKindFacetCounts(
-				queryFiltered.filter((entry) => matchesArtifactTag(entry, tag)),
-			),
-		[queryFiltered, tag],
-	);
-	const tagFacets = useMemo(
-		() =>
-			artifactTagFacetCounts(
-				queryFiltered.filter((entry) =>
-					matchesArtifactKindFacet(entry, kindFacet),
-				),
-			),
-		[kindFacet, queryFiltered],
+	const facets = useMemo(
+		() => artifactFacetSets(entries, filters),
+		[entries, filters],
 	);
 	const visible = useMemo(
 		() => filterArtifacts(entries, filters),
 		[entries, filters],
 	);
 
-	const clearFilters = () => {
-		setQuery("");
-		setKindFacet(null);
-		setTag(null);
-	};
+	const clearFilters = () => setFilters(EMPTY_ARTIFACT_FILTERS);
 
 	const waitingForWorkspace = !workspaceRoot?.trim();
 
@@ -269,51 +253,65 @@ export function ArtifactsView({
 				</PageEmptyState>
 			) : null}
 
-			{entries.length > 0 ? (
+			{/*
+				Kept while filters are active even with nothing listed: a query that
+				matches nothing empties the chip rows, and hiding the whole block
+				would take "Clear filters" with it and strand the filter that caused
+				the emptiness.
+			*/}
+			{entries.length > 0 || filtersActive ? (
 				<div className="mb-5 grid gap-3">
 					<div className="relative block">
 						<SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 						<Input
 							aria-label="Search artifacts"
 							className="h-10 pl-8"
-							onChange={(event) => setQuery(event.target.value)}
+							onChange={(event) =>
+								setFilters((current) => ({
+									...current,
+									query: event.target.value,
+								}))
+							}
 							placeholder="Search artifacts"
-							value={query}
+							value={filters.query}
 						/>
 					</div>
 
-					{kindFacets.length > 0 ? (
+					{facets.kinds.length > 0 ? (
 						<fieldset className="flex min-w-0 gap-2 overflow-x-auto pb-1">
 							<legend className="sr-only">Filter by kind</legend>
-							{kindFacets.map((facet) => (
+							{facets.kinds.map((facet) => (
 								<FacetChip
-									active={kindFacet === facet.id}
+									active={filters.kindFacet === facet.id}
 									count={facet.count}
 									key={facet.id}
 									label={facet.label}
 									onClick={() =>
-										setKindFacet((current) =>
-											current === facet.id ? null : facet.id,
-										)
+										setFilters((current) => ({
+											...current,
+											kindFacet:
+												current.kindFacet === facet.id ? null : facet.id,
+										}))
 									}
 								/>
 							))}
 						</fieldset>
 					) : null}
 
-					{tagFacets.length > 0 ? (
+					{facets.tags.length > 0 ? (
 						<fieldset className="flex min-w-0 gap-2 overflow-x-auto pb-1">
 							<legend className="sr-only">Filter by tag</legend>
-							{tagFacets.map((facet) => (
+							{facets.tags.map((facet) => (
 								<FacetChip
-									active={tag === facet.tag}
+									active={filters.tag === facet.tag}
 									count={facet.count}
 									key={facet.tag}
 									label={facet.tag}
 									onClick={() =>
-										setTag((current) =>
-											current === facet.tag ? null : facet.tag,
-										)
+										setFilters((current) => ({
+											...current,
+											tag: current.tag === facet.tag ? null : facet.tag,
+										}))
 									}
 								/>
 							))}

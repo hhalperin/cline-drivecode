@@ -12,24 +12,42 @@
 
 import type { DriveArtifactDirectoryEntry } from "@cline/drive";
 import type { MediaArtifactStatus, MediaClass } from "@cline/shared";
+// The taxonomy this page can file lives with the facets that file it — one
+// enumeration, not two that can drift apart.
 import { isShowArtifactKind } from "../components/views/artifact-filters";
 
-const MEDIA_CLASSES: readonly MediaClass[] = [
-	"still",
-	"animation",
-	"video",
-	"document",
-	"structured",
-	"work",
-];
+/**
+ * Membership sets, written as total `Record`s rather than arrays.
+ *
+ * An array typed `readonly MediaClass[]` accepts a *subset*, so adding a member
+ * to the schema would still compile here and every artifact of the new class
+ * would then be rejected by the guard and silently vanish from the page. A
+ * total `Record` makes that a compile error instead.
+ */
+const MEDIA_CLASSES: Record<MediaClass, true> = {
+	still: true,
+	animation: true,
+	video: true,
+	document: true,
+	structured: true,
+	work: true,
+};
 
-const ARTIFACT_STATUSES: readonly MediaArtifactStatus[] = [
-	"planned",
-	"ready",
-	"showing",
-	"shown",
-	"cancelled",
-];
+const ARTIFACT_STATUSES: Record<MediaArtifactStatus, true> = {
+	planned: true,
+	ready: true,
+	showing: true,
+	shown: true,
+	cancelled: true,
+};
+
+function isMediaClass(value: unknown): value is MediaClass {
+	return typeof value === "string" && Object.hasOwn(MEDIA_CLASSES, value);
+}
+
+function isArtifactStatus(value: unknown): value is MediaArtifactStatus {
+	return typeof value === "string" && Object.hasOwn(ARTIFACT_STATUSES, value);
+}
 
 function nonEmptyString(value: unknown): string | null {
 	return typeof value === "string" && value.trim() ? value : null;
@@ -69,12 +87,11 @@ export function artifactDirectoryEntryFromUnknown(
 	if (!showItemId || !roomId || !title || !ownerParticipantId) {
 		return null;
 	}
-	if (!isShowArtifactKind(raw.artifactKind)) {
-		return null;
-	}
-	const mediaClass = MEDIA_CLASSES.find((item) => item === raw.mediaClass);
-	const status = ARTIFACT_STATUSES.find((item) => item === raw.status);
-	if (!mediaClass || !status) {
+	if (
+		!isShowArtifactKind(raw.artifactKind) ||
+		!isMediaClass(raw.mediaClass) ||
+		!isArtifactStatus(raw.status)
+	) {
 		return null;
 	}
 	const produce = produceFromUnknown(raw.produce);
@@ -85,7 +102,7 @@ export function artifactDirectoryEntryFromUnknown(
 		showItemId,
 		roomId,
 		artifactKind: raw.artifactKind,
-		mediaClass,
+		mediaClass: raw.mediaClass,
 		title,
 		ownerParticipantId,
 		produce,
@@ -94,7 +111,7 @@ export function artifactDirectoryEntryFromUnknown(
 					(tag): tag is string => typeof tag === "string" && tag.trim() !== "",
 				)
 			: [],
-		status,
+		status: raw.status,
 		createdAt: typeof raw.createdAt === "string" ? raw.createdAt : "",
 		updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : "",
 	};
