@@ -118,6 +118,16 @@ export type DriveagentHomePatch = {
 	readonly permissions?: DriveagentPermissionsPatch;
 };
 
+/**
+ * Every code but the last describes the *payload*, so its message repeats only
+ * what the caller already sent and is safe to show a browser.
+ *
+ * `invalid_home` is the exception and is kept separate for exactly that
+ * reason: it means the merged or rendered home failed validation, so its
+ * message can quote the file — including the prompt the read path exists to
+ * strip. Callers must not relay it. See `RELAYABLE_ERROR_CODES` in
+ * `apps/cline-hub/src/server/drive-agent-home.ts`.
+ */
 export type DriveagentHomeWriteErrorCode =
 	| "not_editable"
 	| "hidden_field_write"
@@ -125,7 +135,8 @@ export type DriveagentHomeWriteErrorCode =
 	| "slug_mismatch"
 	| "immutable_field"
 	| "plaintext_secret"
-	| "invalid_patch";
+	| "invalid_patch"
+	| "invalid_home";
 
 export class DriveagentHomeWriteError extends Error {
 	readonly code: DriveagentHomeWriteErrorCode;

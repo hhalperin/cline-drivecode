@@ -395,6 +395,51 @@ describe("Driveagent home sanitize/save round trip on real files", () => {
 		expect(await readFile(envPath, "utf8")).toBe(before);
 	});
 
+	/**
+	 * The error channel is the other way a prompt can escape.
+	 *
+	 * A hub failure that quotes the file — a YAML parse error carries a code
+	 * frame of the offending source line — must not be forwarded verbatim, or a
+	 * malformed home leaks through `drive_agent_home_error` exactly what
+	 * `sanitizeHome` removed from `drive_agent_home`.
+	 */
+	it("does not relay a hub error that quotes the file", async () => {
+		const leak =
+			"systemPrompt: |\n  You are the Drive pair partner. Narrate decision points.";
+		for (const code of ["invalid_home", "drive_agent_home_command_failed"]) {
+			const command = vi.fn().mockResolvedValue({
+				ok: false,
+				error: { code, message: `refusing to write: ${leak}` },
+			});
+			const { context, sent } = ctx({
+				uiClient: { command } as unknown as HubContext["uiClient"],
+			});
+
+			await handleDriveAgentHomePutWebviewCommand(context, peer(), {
+				type: "drive_agent_home_put",
+				workspaceRoot: "/tmp/ws",
+				slug: "pair-partner",
+				patch: { agent: { description: "x" } },
+				requestId: "req-leak",
+			});
+
+			const frame = sent[0] as { text: string; code?: string };
+			expect(frame.code).toBe(code);
+			expect(frame.text).not.toContain("Narrate decision points");
+			expect(frame.text).not.toContain("systemPrompt");
+		}
+	});
+
+	it("still relays a refusal that only describes the payload", async () => {
+		const root = await seededRoot();
+		const reply = (await save(root, {
+			agent: { description: "  " },
+		})) as { text: string; code?: string };
+		expect(reply.code).toBe("invalid_patch");
+		// Actionable, and about the caller's own payload rather than the file.
+		expect(reply.text).toContain("agent.description");
+	});
+
 	it("refuses a save to a home marked editable: false", async () => {
 		const root = await mkdtemp(join(tmpdir(), "drive-home-bridge-locked-"));
 		dirs.push(root);

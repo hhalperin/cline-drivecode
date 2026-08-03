@@ -57,16 +57,24 @@ function readTextOrUndefined(path: string): string | undefined {
 }
 
 /**
- * Stage every changed file, then swap them all in.
+ * Stage every changed file, then swap them all in — all or nothing.
  *
  * A home is three files that have to agree, so the risky moment is the gap
  * between the first write and the last. Staging every file first shrinks that
- * gap to a run of renames — the operations least likely to fail once the
- * content is already on the volume — and a failure while staging aborts before
- * anything user-visible has moved. Temp files are cleaned up on both paths, so
- * a failed save does not leave litter inside `.driveagent/`.
+ * gap to a run of renames, the operations least likely to fail once the content
+ * is already on the volume, and a failure while staging aborts before anything
+ * user-visible has moved.
+ *
+ * A rename can still fail partway — on Windows an editor or indexer holding the
+ * target open is enough. That would leave a new `agent.yaml` beside a stale
+ * `permissions.yaml`, each valid alone and wrong together. So the previous text
+ * of every file travels with it, and a failed rename puts the ones that already
+ * landed back the way they were. Temp files are cleaned up on every path, so a
+ * failed save leaves no litter in a directory the user has checked into git.
  */
-function commitFiles(files: readonly { path: string; text: string }[]): void {
+function commitFiles(
+	files: readonly { path: string; text: string; previousText?: string }[],
+): void {
 	const staged: { tempPath: string; path: string }[] = [];
 	const discardStaged = (from: number): void => {
 		for (const entry of staged.slice(from)) {
@@ -101,9 +109,19 @@ function commitFiles(files: readonly { path: string; text: string }[]): void {
 		try {
 			renameSync(staged[index].tempPath, staged[index].path);
 		} catch (error) {
-			// Renames before this one already landed and cannot be taken back,
-			// but the temps behind it are ours to clean up rather than leave
-			// sitting inside a directory the user has checked into git.
+			// Put back the ones that already landed, so the three files stay
+			// mutually consistent, then clear the temps still waiting.
+			for (let done = 0; done < index; done += 1) {
+				const previous = files[done].previousText;
+				if (previous === undefined) {
+					continue;
+				}
+				try {
+					writeFileSync(files[done].path, previous, "utf8");
+				} catch {
+					// best-effort; the throw below still reports the failure
+				}
+			}
 			discardStaged(index);
 			throw error;
 		}
@@ -133,8 +151,12 @@ function assertRendersBackTo(
 			env: YAML.parse(texts.envYaml),
 		});
 	} catch (error) {
+		// `invalid_home`, not `invalid_patch`: a YAML parse failure embeds a
+		// code frame of the offending source line, which here is a line of the
+		// home being written — plausibly the prompt. That message must not be
+		// relayable to a browser, and the code is what marks it.
 		throw new DriveagentHomeWriteError(
-			"invalid_patch",
+			"invalid_home",
 			`refusing to write a home that does not parse back: ${
 				error instanceof Error ? error.message : String(error)
 			}`,
@@ -142,7 +164,7 @@ function assertRendersBackTo(
 	}
 	if (JSON.stringify(reparsed) !== JSON.stringify(expected)) {
 		throw new DriveagentHomeWriteError(
-			"invalid_patch",
+			"invalid_home",
 			"refusing to write: the rendered YAML does not read back as the merged home",
 		);
 	}
@@ -181,8 +203,10 @@ export function writeDriveagentHome(input: {
 	try {
 		validated = parseDriveagentHome(merged);
 	} catch (error) {
+		// Also `invalid_home` — zod's message names the failing field of the
+		// merged home, and the merge is mostly on-disk content.
 		throw new DriveagentHomeWriteError(
-			"invalid_patch",
+			"invalid_home",
 			`merged home is not a valid Driveagent home: ${
 				error instanceof Error ? error.message : String(error)
 			}`,
@@ -208,7 +232,7 @@ export function writeDriveagentHome(input: {
 	// not change are skipped, which is what lets a comment in an untouched
 	// permissions.yaml survive an agent.yaml edit.
 	const changedFiles: string[] = [];
-	const pending: { path: string; text: string }[] = [];
+	const pending: { path: string; text: string; previousText?: string }[] = [];
 	const files: [keyof DriveagentHomeFileTexts, string, string][] = [
 		["agentYaml", paths.agentYaml, DRIVEAGENT_AGENT_YAML],
 		["permissionsYaml", paths.permissionsYaml, DRIVEAGENT_PERMISSIONS_YAML],
@@ -219,7 +243,9 @@ export function writeDriveagentHome(input: {
 		if (previous[key] === text) {
 			continue;
 		}
-		pending.push({ path, text });
+		// The previous text travels with the write so a rename that fails
+		// partway can put the files that already landed back.
+		pending.push({ path, text, previousText: previous[key] });
 		changedFiles.push(fileName);
 	}
 	commitFiles(pending);
