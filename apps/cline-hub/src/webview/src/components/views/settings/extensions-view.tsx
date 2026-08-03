@@ -42,7 +42,8 @@ const sectionDescriptions: Record<CustomizationSection, string> = {
 	Hooks: "Inspect hook configuration and recent execution status.",
 	MCP: "Manage installed MCP servers and add new servers from the marketplace.",
 	Skills: "Manage installed skills and add new skills from the marketplace.",
-	Agents: "Review configured agents discovered from local settings.",
+	Agents:
+		"Driveagent homes with their own profile pages, plus the configured agents discovered from local settings.",
 	Plugins: "Manage installed plugins and add new plugins from the marketplace.",
 	Tools: "Inspect built-in tools and tools contributed by plugins.",
 };
