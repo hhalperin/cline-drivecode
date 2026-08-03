@@ -79,7 +79,7 @@ describe("projectArtifactBody", () => {
 
 	it("keeps the stub for artifact kinds with no client renderer", () => {
 		expect(
-			projectArtifactBody({ kind: "capture.screenshot", uri: STUB_URI }),
+			projectArtifactBody({ kind: "share.structured", uri: STUB_URI }),
 		).toEqual({ kind: "image", uri: STUB_URI });
 	});
 
@@ -231,6 +231,158 @@ describe("projectArtifactBody", () => {
 			endLine: 7,
 			lines: [],
 		});
+	});
+
+	it("projects a before/after animation, entering rows on the after side only", () => {
+		expect(
+			projectArtifactBody({
+				kind: "walkthrough.animation",
+				uri: STUB_URI,
+				produce: {
+					tool: "render_change_animation",
+					args: {
+						beforeLabel: "Before · every beat rebuilds",
+						afterLabel: "After · fingerprint match → skip",
+						beforeCaption: "everything re-animates",
+						afterCaption: "only new items animate",
+						signal: "sig ✓ unchanged",
+						rows: ["m0", "  m1  ", 7, "", "m2"],
+						entering: ["m3"],
+					},
+				},
+			}),
+		).toEqual({
+			kind: "animation",
+			before: {
+				role: "before",
+				label: "Before · every beat rebuilds",
+				caption: "everything re-animates",
+				rows: [
+					{ label: "m0", entering: false },
+					{ label: "m1", entering: false },
+					{ label: "m2", entering: false },
+				],
+			},
+			after: {
+				role: "after",
+				label: "After · fingerprint match → skip",
+				caption: "only new items animate",
+				signal: "sig ✓ unchanged",
+				rows: [
+					{ label: "m0", entering: false },
+					{ label: "m1", entering: false },
+					{ label: "m2", entering: false },
+					{ label: "m3", entering: true },
+				],
+			},
+		});
+	});
+
+	it("defaults the animation labels and omits an absent signal chip", () => {
+		const body = projectArtifactBody({
+			kind: "walkthrough.animation",
+			produce: { tool: "render_change_animation", args: { rows: ["only"] } },
+		});
+		expect(body).toEqual({
+			kind: "animation",
+			before: {
+				role: "before",
+				label: "Before",
+				caption: "",
+				rows: [{ label: "only", entering: false }],
+			},
+			after: {
+				role: "after",
+				label: "After",
+				caption: "",
+				rows: [{ label: "only", entering: false }],
+			},
+		});
+		expect(body.kind === "animation" && "signal" in body.after).toBe(false);
+	});
+
+	it("caps animation rows so the piece cannot outgrow the frame", () => {
+		// The frame clips and the comparison is only legible while both columns
+		// fit. Entering rows are the point of the AFTER panel, so they survive
+		// the cap and the settled rows give way.
+		const body = projectArtifactBody({
+			kind: "walkthrough.animation",
+			produce: {
+				tool: "render_change_animation",
+				args: {
+					rows: Array.from({ length: 40 }, (_, i) => `row ${i}`),
+					entering: Array.from({ length: 9 }, (_, i) => `new ${i}`),
+				},
+			},
+		});
+		expect(body.kind).toBe("animation");
+		if (body.kind !== "animation") {
+			return;
+		}
+		expect(body.before.rows).toHaveLength(5);
+		expect(body.after.rows).toHaveLength(8);
+		expect(body.after.rows.filter((row) => row.entering)).toHaveLength(3);
+	});
+
+	it("falls back when the animation carries no rows at all", () => {
+		expect(
+			projectArtifactBody({
+				kind: "walkthrough.animation",
+				uri: STUB_URI,
+				produce: {
+					tool: "render_change_animation",
+					args: { beforeLabel: "Before", rows: [1, "  "] },
+				},
+			}),
+		).toEqual({ kind: "image", uri: STUB_URI });
+	});
+
+	it("projects a capture card from the recipe url, with the uri as the shot", () => {
+		// The url is metadata the event log carries; the uri is an out-of-band
+		// pointer. Bytes never ride the event either way.
+		expect(
+			projectArtifactBody({
+				kind: "capture.screenshot",
+				uri: STUB_URI,
+				produce: {
+					tool: "drive_browser_snapshot",
+					args: { url: "http://127.0.0.1:8787/drive" },
+				},
+			}),
+		).toEqual({
+			kind: "capture",
+			url: "http://127.0.0.1:8787/drive",
+			shot: STUB_URI,
+		});
+	});
+
+	it("still renders the capture card when no bytes were produced", () => {
+		// drive_browser_snapshot fails closed without the demoCapture capability,
+		// so a capture with metadata and no uri is the ordinary case — not an
+		// error state to hide behind an empty screen.
+		expect(
+			projectArtifactBody({
+				kind: "capture.screenshot",
+				produce: {
+					tool: "drive_browser_snapshot",
+					args: { url: "http://127.0.0.1:8787/drive" },
+				},
+			}),
+		).toEqual({
+			kind: "capture",
+			url: "http://127.0.0.1:8787/drive",
+			shot: null,
+		});
+	});
+
+	it("falls back for a capture with no url to name", () => {
+		expect(
+			projectArtifactBody({
+				kind: "capture.screenshot",
+				uri: STUB_URI,
+				produce: { tool: "drive_browser_snapshot", args: {} },
+			}),
+		).toEqual({ kind: "image", uri: STUB_URI });
 	});
 });
 
