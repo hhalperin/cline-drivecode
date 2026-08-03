@@ -160,7 +160,13 @@ export function DriveMicBar({
 						{captureError}
 					</p>
 				) : null}
-				{micDenied && !muted ? (
+				{/*
+				 * Shown while muted too. Mute is the join default, and the Drive
+				 * settings device pickers can record the denial before the user
+				 * ever unmutes — gating this on `!muted` hid the only escape hatch
+				 * in exactly the state most users are in.
+				 */}
+				{micDenied ? (
 					<button
 						className="mt-1 rounded-md border px-2 py-0.5 text-[11px] text-muted-foreground hover:text-foreground"
 						onClick={() => {

@@ -134,6 +134,12 @@ function createBuiltinSttPort(manifest: DriveProviderManifest): SttPort {
 				let stopped = false;
 				let mediaRecorder: MediaRecorder | null = null;
 				let stream: MediaStream | null = null;
+				/**
+				 * Set the moment the mic is actually ours. `new MediaRecorder` and
+				 * `start()` below can still throw `SecurityError` for reasons that
+				 * are not a refusal, and remembering one would strand a working mic.
+				 */
+				let captured = false;
 				const chunks: BlobPart[] = [];
 				void (async () => {
 					try {
@@ -158,6 +164,7 @@ function createBuiltinSttPort(manifest: DriveProviderManifest): SttPort {
 							return;
 						}
 						stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+						captured = true;
 						noteMicPermissionGranted();
 						if (stopped) {
 							for (const track of stream.getTracks()) {
@@ -207,7 +214,7 @@ function createBuiltinSttPort(manifest: DriveProviderManifest): SttPort {
 						};
 						mediaRecorder.start();
 					} catch (error) {
-						const denied = noteMicPermissionFailure(error);
+						const denied = !captured && noteMicPermissionFailure({ error });
 						handlers.onError({
 							code: "stt_permission",
 							message: denied

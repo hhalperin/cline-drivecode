@@ -105,6 +105,12 @@ export const useAudioDevices = (kind: AudioDeviceKind = "audioinput") => {
 			return;
 		}
 
+		/**
+		 * Set the moment the mic is actually ours. `enumerateDevices` below runs
+		 * after that and can still throw `SecurityError`; recording one as a
+		 * refusal would strand a mic the user just granted.
+		 */
+		let captured = false;
 		try {
 			setLoading(true);
 			setError(null);
@@ -122,6 +128,7 @@ export const useAudioDevices = (kind: AudioDeviceKind = "audioinput") => {
 			const tempStream = await navigator.mediaDevices.getUserMedia({
 				audio: true,
 			});
+			captured = true;
 			noteMicPermissionGranted();
 
 			for (const track of tempStream.getTracks()) {
@@ -132,7 +139,8 @@ export const useAudioDevices = (kind: AudioDeviceKind = "audioinput") => {
 			setDevices(deviceList.filter((device) => device.kind === kind));
 			setHasPermission(true);
 		} catch (caughtError) {
-			const denied = noteMicPermissionFailure(caughtError);
+			const denied =
+				!captured && noteMicPermissionFailure({ error: caughtError });
 			const message = denied
 				? MIC_PERMISSION_DENIED_MESSAGE
 				: caughtError instanceof Error
