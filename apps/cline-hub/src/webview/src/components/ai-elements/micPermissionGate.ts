@@ -86,8 +86,13 @@ export function createMicPermissionGate(
 			publish("denied");
 			return;
 		}
-		// "prompt": the browser will still ask, so nothing is settled yet.
-		publish("unknown");
+		// "prompt": the browser will still ask, which is not evidence the mic
+		// works — a surface that blocks capture by policy reports "prompt"
+		// forever. It therefore never clears a refusal we actually observed;
+		// only a grant, a capture that succeeds, or an explicit retry does.
+		if (state !== "denied") {
+			publish("unknown");
+		}
 	}
 
 	function watch(): Promise<void> {

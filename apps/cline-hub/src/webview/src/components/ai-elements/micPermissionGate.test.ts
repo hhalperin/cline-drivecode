@@ -78,6 +78,23 @@ describe("createMicPermissionGate", () => {
 		expect(await gate.check()).toBe("denied");
 	});
 
+	it("does not let an in-flight query forget a denial recorded while it ran", async () => {
+		let settle: (status: MicPermissionStatusLike) => void = () => {};
+		const gate = createMicPermissionGate(
+			() =>
+				new Promise<MicPermissionStatusLike>((resolve) => {
+					settle = resolve;
+				}),
+		);
+
+		const pending = gate.check();
+		gate.noteFailure(DENIAL);
+		settle(fakeStatus("prompt"));
+
+		expect(await pending).toBe("denied");
+		expect(gate.state()).toBe("denied");
+	});
+
 	it("clears the denial when PermissionStatus flips to granted", async () => {
 		const status = fakeStatus("prompt");
 		const gate = createMicPermissionGate(() => Promise.resolve(status));
