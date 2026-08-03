@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { RepoChangelogSnapshot } from "@cline/drive";
-import type { StatusUpdate } from "@cline/shared";
+import type { StatusTagCount, StatusUpdate } from "@cline/shared";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { connectToHub, type HubConnection } from "../hub/client/connect";
 import { createLocalHubScheduleRuntimeHandlers } from "../hub/daemon/runtime-handlers";
@@ -29,10 +29,23 @@ import { StatusService, setStatusService } from "./index";
  * is indistinguishable from a working one.
  */
 
-const HUB_PORT = 25963;
-const DASHBOARD_PORT = 8987;
+/**
+ * Scratch ports. Overridable because several worktrees of this repo run their
+ * suites at once, and a hub that cannot bind fails the file as EADDRINUSE
+ * rather than as anything to do with tags.
+ */
+const HUB_PORT = Number(process.env.CLINE_TEST_HUB_PORT ?? 25963);
+const DASHBOARD_PORT = Number(process.env.CLINE_TEST_DASHBOARD_PORT ?? 8987);
 /** Max rows any single assertion here needs; the schema caps `limit` at 200. */
 const PAGE_LIMIT = 200;
+/**
+ * What the Status Hub view actually sends (`PAGE_LIMIT` in `status-view.tsx`).
+ *
+ * The facet assertions have to run at this limit, not at 200: the whole defect
+ * only exists where the result set outruns the page, and a facet suite that
+ * quietly asked for every row would pass against page-scoped counting too.
+ */
+const VIEW_PAGE_LIMIT = 50;
 
 let dataDir: string;
 let server: HubWebSocketServer;
@@ -73,6 +86,32 @@ async function query(
 	});
 	expect(Array.isArray(result.updates)).toBe(true);
 	return result.updates as StatusUpdate[];
+}
+
+/**
+ * One page exactly as the Status Hub view asks for it: the view's own limit,
+ * `includeFacets` on, and the raw payload back so the chip counts and the
+ * results counter can be read from the same frame the component reads.
+ */
+async function viewPage(payload: Record<string, unknown> = {}): Promise<{
+	rows: StatusUpdate[];
+	total: number;
+	facets: Map<string, number>;
+}> {
+	const result = await command("status.query", {
+		limit: VIEW_PAGE_LIMIT,
+		includeFacets: true,
+		...payload,
+	});
+	const facets = new Map<string, number>();
+	for (const facet of (result.tagFacets ?? []) as StatusTagCount[]) {
+		facets.set(facet.tag, facet.count);
+	}
+	return {
+		rows: result.updates as StatusUpdate[],
+		total: result.total as number,
+		facets,
+	};
 }
 
 function readSnapshot(): RepoChangelogSnapshot {
@@ -154,6 +193,115 @@ afterAll(async () => {
 	setStatusService(undefined);
 	statusService?.close();
 	rmSync(dataDir, { recursive: true, force: true });
+});
+
+/**
+ * Tags whose chip count the seeded changelog pins exactly, with the number the
+ * chip has to show. `fix` is the one that matters most: 51 hits against a page
+ * that holds 50, so no amount of counting the loaded rows can reach it.
+ */
+const FACET_GATE: ReadonlyArray<readonly [string, number]> = [
+	["fix", 51],
+	["feat", 36],
+	["chore", 15],
+	["cli", 9],
+	["demo", 8],
+];
+
+/**
+ * The chip/click contract, driven at the limit the view really sends.
+ *
+ * Declared before the suite below because that one publishes a row, and these
+ * counts are pinned to the seeded snapshot alone.
+ */
+describe("tag facet counts agree with what clicking the chip returns", () => {
+	it("counts each tag over the whole table rather than the loaded page", async () => {
+		const unfiltered = await viewPage();
+
+		// Guards the rest: if a page could hold every row, page-scoped counting
+		// and set-scoped counting would agree and this suite would prove nothing.
+		expect(unfiltered.rows).toHaveLength(VIEW_PAGE_LIMIT);
+		expect(unfiltered.total).toBe(snapshotEntryCount);
+		expect(unfiltered.total).toBeGreaterThan(VIEW_PAGE_LIMIT);
+
+		for (const [tag, expected] of FACET_GATE) {
+			// The snapshot still says what this gate was written against.
+			expect(snapshotTagCounts.get(tag)).toBe(expected);
+			// ...and the chip shows that, not what fit on the page.
+			expect(unfiltered.facets.get(tag)).toBe(expected);
+		}
+	});
+
+	it("returns exactly the number the chip promised, and says so", async () => {
+		for (const [tag, expected] of FACET_GATE) {
+			const clicked = await viewPage({ tags: [tag] });
+
+			// The "N results" counter rendered beside the chip row.
+			expect(clicked.total).toBe(expected);
+			// The chip itself, now selected and still on screen.
+			expect(clicked.facets.get(tag)).toBe(expected);
+			// The invariant: the two numbers on screen are the same number.
+			expect(clicked.facets.get(tag)).toBe(clicked.total);
+			// And every row the click actually delivered carries the tag.
+			for (const row of clicked.rows) expect(row.tags).toContain(tag);
+		}
+	});
+
+	it("under-reports if the page is counted instead — the bug, as an assertion", async () => {
+		const unfiltered = await viewPage();
+		const pageScoped = unfiltered.rows.filter((row) =>
+			row.tags.includes("fix"),
+		).length;
+
+		// What the chip used to show, and what it must never show again.
+		expect(pageScoped).toBeLessThan(51);
+		expect(unfiltered.facets.get("fix")).toBe(51);
+		expect(unfiltered.facets.get("fix")).not.toBe(pageScoped);
+	});
+
+	it("makes every second chip promise the pair's real count", async () => {
+		const underFix = await viewPage({ tags: ["fix"] });
+		// A selected tag is carried by every matching row, so its chip is the
+		// size of the set — the results counter, again.
+		expect(underFix.facets.get("fix")).toBe(underFix.total);
+
+		const others = [...underFix.facets.keys()].filter((tag) => tag !== "fix");
+		expect(others.length).toBeGreaterThan(0);
+		for (const tag of others) {
+			const both = await viewPage({ tags: ["fix", tag] });
+			expect(both.total).toBe(underFix.facets.get(tag));
+			expect(both.total).toBeGreaterThan(0);
+		}
+	});
+
+	it("holds the same contract on the board", async () => {
+		const board = (await command("status.board", {
+			limit: VIEW_PAGE_LIMIT,
+			includeFacets: true,
+		})) as { total: number; tagFacets: StatusTagCount[] };
+		expect(board.tagFacets.length).toBeGreaterThan(0);
+
+		const [top] = board.tagFacets;
+		if (!top) throw new Error("board returned no facets to check");
+		const clicked = (await command("status.board", {
+			limit: VIEW_PAGE_LIMIT,
+			includeFacets: true,
+			tags: [top.tag],
+		})) as { total: number; tagFacets: StatusTagCount[] };
+
+		expect(clicked.total).toBe(top.count);
+		expect(
+			clicked.tagFacets.find((facet) => facet.tag === top.tag)?.count,
+		).toBe(clicked.total);
+	});
+
+	it("omits the counts entirely unless they were asked for", async () => {
+		// Two aggregates over the filtered set are not free; every other caller
+		// of `status.query` must keep paying nothing for them.
+		const bare = await command("status.query", { limit: VIEW_PAGE_LIMIT });
+		expect(bare.total).toBeUndefined();
+		expect(bare.tagFacets).toBeUndefined();
+	});
 });
 
 describe("status tag filter over a live hub", () => {

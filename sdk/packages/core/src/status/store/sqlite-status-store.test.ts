@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parseStatusQuery } from "@cline/shared";
+import { parseStatusQuery, STATUS_TAG_FACET_LIMIT } from "@cline/shared";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SqliteStatusStore } from "./sqlite-status-store";
 
@@ -457,6 +457,208 @@ describe("SqliteStatusStore", () => {
 		expect(summary.total).toBe(0);
 		expect(summary.byAgent).toEqual([]);
 		expect(summary.lastUpdatedAt).toBeNull();
+	});
+
+	describe("tag facets", () => {
+		/** 12 `fix`, 5 of them also `drive`, plus 3 `docs` and 2 untagged. */
+		function seedTagged() {
+			for (let i = 0; i < 12; i += 1) {
+				publish({
+					subject: `fix/${i}`,
+					tags: i < 5 ? ["fix", "drive"] : ["fix"],
+				});
+			}
+			for (let i = 0; i < 3; i += 1) {
+				publish({ subject: `docs/${i}`, tags: ["docs"] });
+			}
+			publish({ subject: "bare/1" });
+			publish({ subject: "bare/2", tags: [] });
+		}
+
+		it("counts the whole matching set, not the page", () => {
+			seedTagged();
+			// A page of 4 against 17 rows: page-scoped counting cannot reach 12.
+			const page = store.query(
+				parseStatusQuery({ includeFacets: true, limit: 4 }),
+			);
+
+			expect(page.updates).toHaveLength(4);
+			expect(page.total).toBe(17);
+			expect(page.tagFacets).toEqual([
+				{ tag: "fix", count: 12 },
+				{ tag: "drive", count: 5 },
+				{ tag: "docs", count: 3 },
+			]);
+		});
+
+		it("does not move as the cursor pages through the set", () => {
+			seedTagged();
+			const first = store.query(
+				parseStatusQuery({ includeFacets: true, limit: 4 }),
+			);
+			const second = store.query(
+				parseStatusQuery({
+					includeFacets: true,
+					limit: 4,
+					cursor: first.nextCursor ?? undefined,
+				}),
+			);
+
+			// The chips sit above the list; they describe the set, not the
+			// remainder of the log from wherever the cursor stopped.
+			expect(second.total).toBe(first.total);
+			expect(second.tagFacets).toEqual(first.tagFacets);
+		});
+
+		it("counts a tag exactly as many rows as filtering on it returns", () => {
+			seedTagged();
+			const unfiltered = store.query(
+				parseStatusQuery({ includeFacets: true, limit: 4 }),
+			);
+
+			for (const facet of unfiltered.tagFacets ?? []) {
+				const clicked = store.query(
+					parseStatusQuery({
+						tags: [facet.tag],
+						includeFacets: true,
+						limit: 200,
+					}),
+				);
+				expect(clicked.updates).toHaveLength(facet.count);
+				expect(clicked.total).toBe(facet.count);
+			}
+		});
+
+		it("narrows to the pair's count once a tag is selected", () => {
+			seedTagged();
+			const underFix = store.query(
+				parseStatusQuery({ tags: ["fix"], includeFacets: true, limit: 4 }),
+			);
+
+			// Every row in the set carries the selected tag, so its chip is the
+			// set total — the same number the results counter shows.
+			expect(underFix.total).toBe(12);
+			expect(underFix.tagFacets).toEqual([
+				{ tag: "fix", count: 12 },
+				{ tag: "drive", count: 5 },
+			]);
+			// `docs` never co-occurs with `fix`, so it offers no chip at all.
+			expect(underFix.tagFacets?.some((facet) => facet.tag === "docs")).toBe(
+				false,
+			);
+
+			const both = store.query(
+				parseStatusQuery({ tags: ["fix", "drive"], limit: 200 }),
+			);
+			expect(both.updates).toHaveLength(5);
+		});
+
+		it("composes the counts with the other filters", () => {
+			seedTagged();
+			publish({ subject: "fix/blocked", state: "blocked", tags: ["fix"] });
+
+			const blocked = store.query(
+				parseStatusQuery({
+					state: ["blocked"],
+					includeFacets: true,
+					limit: 4,
+				}),
+			);
+			expect(blocked.total).toBe(1);
+			expect(blocked.tagFacets).toEqual([{ tag: "fix", count: 1 }]);
+		});
+
+		it("survives a legacy NULL tags column", () => {
+			// `json_each` over NULL raises rather than yielding nothing, which
+			// would take the count query down with it.
+			publish({ subject: "legacy" });
+			const raw = store as unknown as {
+				db: { exec: (sql: string) => void };
+			};
+			raw.db.exec("UPDATE status_updates SET tags_json = NULL;");
+
+			const page = store.query(
+				parseStatusQuery({ includeFacets: true, limit: 10 }),
+			);
+			expect(page.total).toBe(1);
+			expect(page.tagFacets).toEqual([]);
+		});
+
+		it("counts a row once even if it repeats a tag", () => {
+			publish({ subject: "dup", tags: ["fix", "fix"] });
+
+			const page = store.query(
+				parseStatusQuery({ includeFacets: true, limit: 10 }),
+			);
+			// The chip promises rows, not tag occurrences.
+			expect(page.tagFacets).toEqual([{ tag: "fix", count: 1 }]);
+		});
+
+		it("stays absent unless the query asked for it", () => {
+			seedTagged();
+			const page = store.query(parseStatusQuery({ limit: 4 }));
+			expect(page.total).toBeUndefined();
+			expect(page.tagFacets).toBeUndefined();
+		});
+
+		it("caps how many chips one page can carry", () => {
+			const tags = Array.from(
+				{ length: 60 },
+				(_, i) => `t${String(i).padStart(2, "0")}`,
+			);
+			publish({ subject: "wide", tags });
+
+			const page = store.query(
+				parseStatusQuery({ includeFacets: true, limit: 10 }),
+			);
+			expect(page.tagFacets).toHaveLength(STATUS_TAG_FACET_LIMIT);
+			// `total` still describes the set, so the counter stays honest even
+			// where the chip row had to be truncated.
+			expect(page.total).toBe(1);
+		});
+
+		it("never truncates away the tag the view is filtering on", () => {
+			// Every tag here ties at count 1, so `ORDER BY n DESC, tag ASC` would
+			// drop `zzz` off the end of the cap — and the chip the user just
+			// clicked would render at zero beside "1 result".
+			const tags = Array.from(
+				{ length: 60 },
+				(_, i) => `t${String(i).padStart(2, "0")}`,
+			);
+			publish({ subject: "wide", tags: [...tags, "zzz"] });
+
+			const page = store.query(
+				parseStatusQuery({ tags: ["zzz"], includeFacets: true, limit: 10 }),
+			);
+			expect(page.total).toBe(1);
+			const selected = page.tagFacets?.find((facet) => facet.tag === "zzz");
+			expect(selected).toEqual({ tag: "zzz", count: 1 });
+			expect(selected?.count).toBe(page.total);
+		});
+
+		it("survives a tags column holding text that is not JSON", () => {
+			// The facet aggregate runs on every page now, not only tag-filtered
+			// ones, so a junk value here would take every page load down.
+			publish({ subject: "legacy" });
+			const raw = store as unknown as {
+				db: { exec: (sql: string) => void };
+			};
+			raw.db.exec("UPDATE status_updates SET tags_json = 'not json';");
+
+			const page = store.query(
+				parseStatusQuery({ includeFacets: true, limit: 10 }),
+			);
+			expect(page.total).toBe(1);
+			expect(page.tagFacets).toEqual([]);
+		});
+
+		it("reports an empty set without throwing", () => {
+			const page = store.query(
+				parseStatusQuery({ tags: ["nope"], includeFacets: true, limit: 10 }),
+			);
+			expect(page.total).toBe(0);
+			expect(page.tagFacets).toEqual([]);
+		});
 	});
 });
 

@@ -131,12 +131,12 @@ describe("matchesStatusFilters", () => {
 });
 
 describe("statusTagFacets", () => {
-	it("counts each tag over the rows it was given", () => {
+	it("renders the server's count for each tag", () => {
 		const facets = statusTagFacets(
 			[
-				update({ updateId: "a", tags: ["auth", "p0"] }),
-				update({ updateId: "b", tags: ["auth"] }),
-				update({ updateId: "c", tags: ["docs"] }),
+				{ tag: "auth", count: 2 },
+				{ tag: "docs", count: 1 },
+				{ tag: "p0", count: 1 },
 			],
 			[],
 		);
@@ -147,27 +147,57 @@ describe("statusTagFacets", () => {
 		]);
 	});
 
-	it("offers no chip for a tag no row on screen carries", () => {
-		const facets = statusTagFacets([update({ tags: ["auth"] })], []);
+	it("passes a count larger than the loaded page straight through", () => {
+		// The whole point of sourcing counts from the server: `fix` matches 51
+		// rows in the seeded changelog while a page holds at most 50. Re-deriving
+		// the number from rows on screen is what made the chip disagree with the
+		// click, so the chip must show the server's 51 unaltered.
+		const facets = statusTagFacets([{ tag: "fix", count: 51 }], []);
+		expect(facets).toEqual([{ tag: "fix", count: 51, selected: false }]);
+	});
+
+	it("offers no chip for a tag the server counted nothing for", () => {
+		const facets = statusTagFacets(
+			[
+				{ tag: "auth", count: 3 },
+				{ tag: "docs", count: 0 },
+			],
+			[],
+		);
+		// A chip that cannot change anything is noise, so `docs` is dropped.
 		expect(facets.map((facet) => facet.tag)).toEqual(["auth"]);
 	});
 
-	it("returns nothing when no row is tagged", () => {
-		expect(statusTagFacets([update(), update({ updateId: "b" })], [])).toEqual(
-			[],
-		);
+	it("returns nothing when the server reported no tags", () => {
+		expect(statusTagFacets([], [])).toEqual([]);
+		// ...and nothing when every tag it did report was empty.
+		expect(statusTagFacets([{ tag: "docs", count: 0 }], [])).toEqual([]);
 	});
 
 	it("keeps a selected tag first, and keeps it even at zero", () => {
-		const facets = statusTagFacets(
-			[update({ tags: ["docs"] }), update({ updateId: "b", tags: ["docs"] })],
-			["auth"],
-		);
-		// `auth` matched nothing on this page, but dropping its chip would leave
-		// the filter on with no way to switch it back off.
+		const facets = statusTagFacets([{ tag: "docs", count: 2 }], ["auth"]);
+		// `auth` is absent from the counts, but dropping its chip would leave the
+		// filter on with no way to switch it back off.
 		expect(facets).toEqual([
 			{ tag: "auth", count: 0, selected: true },
 			{ tag: "docs", count: 2, selected: false },
+		]);
+	});
+
+	it("shows a selected tag the count the server sent, not zero", () => {
+		// Under `tags: ["fix"]` every matching row carries `fix`, so its facet is
+		// the size of the whole result set — the same number the results counter
+		// beside it renders. They are one payload; they cannot disagree.
+		const facets = statusTagFacets(
+			[
+				{ tag: "fix", count: 51 },
+				{ tag: "drive", count: 8 },
+			],
+			["fix"],
+		);
+		expect(facets).toEqual([
+			{ tag: "fix", count: 51, selected: true },
+			{ tag: "drive", count: 8, selected: false },
 		]);
 	});
 });

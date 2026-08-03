@@ -8,7 +8,7 @@
  * row is prepended, or the list shows rows that contradict its own filters.
  */
 
-import type { StatusState, StatusUpdate } from "@cline/shared";
+import type { StatusState, StatusTagCount, StatusUpdate } from "@cline/shared";
 
 export interface StatusFilters {
 	stateFilter: StatusState[];
@@ -70,31 +70,32 @@ export interface StatusTagFacet {
 }
 
 /**
- * Tag chips to offer, counted over the rows the query already returned.
+ * Tag chips to offer, from the counts the server computed (`tagFacets`) over
+ * the whole set the current query matches.
  *
- * Counting the page rather than the whole table is deliberate: the rows on
- * screen are what the chip narrows, so a chip promising 40 hits above a page
- * that can only yield 6 would be a lie in the same way an unfiltered board
- * heading is. A tag with no hits is dropped entirely rather than rendered at
- * zero — a chip that cannot change anything is noise.
+ * The counts have to come from the server rather than from the rows on screen,
+ * because a chip's number is a promise about what clicking it returns — and a
+ * click re-queries the whole table, it does not re-filter the page. Counting
+ * the page instead made every chip under-report the moment the result set
+ * outran `limit`: over the seeded 150-row changelog at a page size of 50, the
+ * `fix` chip offered 19 and the click returned 51, and the "N results" counter
+ * rendered beside it disagreed with the chip on screen.
  *
- * Selected tags survive a zero count so the chip you just clicked does not
- * vanish out from under the pointer, leaving the filter on with nothing to
- * turn it off.
+ * A tag with no hits is dropped rather than rendered at zero — a chip that
+ * cannot change anything is noise. Selected tags survive a zero count so the
+ * chip you just clicked does not vanish out from under the pointer, leaving
+ * the filter on with nothing to turn it off.
  */
 export function statusTagFacets(
-	updates: readonly StatusUpdate[],
+	counts: readonly StatusTagCount[],
 	selected: readonly string[],
 ): StatusTagFacet[] {
-	const counts = new Map<string, number>();
-	for (const tag of selected) counts.set(tag, 0);
-	for (const update of updates) {
-		for (const tag of update.tags) {
-			counts.set(tag, (counts.get(tag) ?? 0) + 1);
-		}
-	}
+	const byTag = new Map<string, number>();
+	for (const tag of selected) byTag.set(tag, 0);
+	for (const { tag, count } of counts) byTag.set(tag, count);
+
 	const selectedSet = new Set(selected);
-	return [...counts.entries()]
+	return [...byTag.entries()]
 		.filter(([tag, count]) => count > 0 || selectedSet.has(tag))
 		.map(([tag, count]) => ({ tag, count, selected: selectedSet.has(tag) }))
 		.sort(
