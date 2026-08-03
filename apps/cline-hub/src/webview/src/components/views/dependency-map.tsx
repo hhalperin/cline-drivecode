@@ -376,7 +376,7 @@ export function DependencyMap({
 				 */}
 				<section
 					aria-label="Task dependency graph. Drag to pan, wheel to zoom."
-					className="relative h-[min(60vh,520px)] cursor-grab touch-none overflow-hidden bg-muted/20 active:cursor-grabbing"
+					className="relative h-[min(70vh,640px)] cursor-grab touch-none overflow-hidden bg-muted/20 active:cursor-grabbing"
 					onKeyDown={(event) => {
 						const action = resolveDependencyNavAction(
 							event.nativeEvent,
@@ -485,6 +485,11 @@ export function DependencyMap({
 										markerEnd="url(#dependency-arrow)"
 										strokeDasharray={cyclic ? "4 3" : undefined}
 										strokeWidth={hot ? 2.25 : 1.5}
+										// A fitted deep graph sits near a third of full
+										// size, where a scaled 1.5px stroke thins to
+										// half a pixel and the topology greys out. Edges
+										// hold their screen weight at every zoom.
+										vectorEffect="non-scaling-stroke"
 									/>
 								);
 							})}
