@@ -42,6 +42,23 @@ export const DRIVE_ENV_FORBIDDEN_SECRET_KEYS = [
 	"clientSecret",
 ] as const;
 
+const FORBIDDEN_SECRET_KEYS_LOWER = new Set<string>(
+	DRIVE_ENV_FORBIDDEN_SECRET_KEYS.map((key) => key.toLowerCase()),
+);
+
+/**
+ * Whether `key` names a credential this path refuses to store in plaintext.
+ *
+ * Compared case-insensitively, which is stricter than the shared schema's
+ * exact-match list: a user typing `APIKEY` into an editor means the same thing
+ * as `apiKey`, and the write path is the last place to say no. The exported
+ * list stays byte-identical to the shared one so the cross-package pin holds —
+ * this only ever refuses more, never fewer.
+ */
+export function isForbiddenPlaintextSecretKey(key: string): boolean {
+	return FORBIDDEN_SECRET_KEYS_LOWER.has(key.toLowerCase());
+}
+
 /**
  * `agent.yaml` fields the sanitized read path never sends to a browser.
  *
@@ -260,9 +277,7 @@ function assertEnvPatch(value: unknown): DriveagentEnvPatch {
 		const values = assertRecord(record.values, "env.values");
 		const next: Record<string, string | number | boolean> = {};
 		for (const [key, entry] of Object.entries(values)) {
-			if (
-				(DRIVE_ENV_FORBIDDEN_SECRET_KEYS as readonly string[]).includes(key)
-			) {
+			if (isForbiddenPlaintextSecretKey(key)) {
 				fail(
 					"plaintext_secret",
 					`plaintext secret key '${key}' is forbidden in env.yaml values; use secretRefs`,

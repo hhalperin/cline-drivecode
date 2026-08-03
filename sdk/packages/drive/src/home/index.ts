@@ -18,6 +18,7 @@ export {
 	type DriveagentPermissionPresetIntentPatch,
 	type DriveagentPermissionsPatch,
 	driveagentHomeIsEditable,
+	isForbiddenPlaintextSecretKey,
 	mergeDriveagentHomePatch,
 	serializeDriveagentHome,
 	serializeDriveagentHomeFile,

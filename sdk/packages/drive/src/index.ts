@@ -450,6 +450,7 @@ export {
 	assertDriveagentHomePatch,
 	compileDriveagentHome,
 	driveagentHomeIsEditable,
+	isForbiddenPlaintextSecretKey,
 	DRIVE_ENV_FORBIDDEN_SECRET_KEYS,
 	DRIVEAGENT_AGENT_HIDDEN_FIELDS,
 	DriveagentHomeCompileError,

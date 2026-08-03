@@ -13,7 +13,7 @@
  * byte is written, so a save can never leave a home the loader will refuse.
  */
 
-import { readFileSync, renameSync, writeFileSync } from "node:fs";
+import { readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
 	type DriveagentHomeFileTexts,
@@ -46,11 +46,37 @@ function readTextOrUndefined(path: string): string | undefined {
 	}
 }
 
-/** Write via a sibling temp file so a crash cannot leave a half-written home. */
-function writeFileAtomic(path: string, text: string): void {
-	const tempPath = `${path}.tmp-${process.pid}-${Date.now()}`;
-	writeFileSync(tempPath, text, "utf8");
-	renameSync(tempPath, path);
+/**
+ * Stage every changed file, then swap them all in.
+ *
+ * A home is three files that have to agree, so the risky moment is the gap
+ * between the first write and the last. Staging every file first shrinks that
+ * gap to a run of renames — the operations least likely to fail once the
+ * content is already on the volume — and a failure while staging aborts before
+ * anything user-visible has moved. Temp files are cleaned up on both paths, so
+ * a failed save does not leave litter inside `.driveagent/`.
+ */
+function commitFiles(files: readonly { path: string; text: string }[]): void {
+	const staged: { tempPath: string; path: string }[] = [];
+	try {
+		for (const file of files) {
+			const tempPath = `${file.path}.tmp-${process.pid}-${Date.now()}-${staged.length}`;
+			writeFileSync(tempPath, file.text, "utf8");
+			staged.push({ tempPath, path: file.path });
+		}
+	} catch (error) {
+		for (const entry of staged) {
+			try {
+				rmSync(entry.tempPath, { force: true });
+			} catch {
+				// best-effort
+			}
+		}
+		throw error;
+	}
+	for (const entry of staged) {
+		renameSync(entry.tempPath, entry.path);
+	}
 }
 
 /**
@@ -108,8 +134,11 @@ export function writeDriveagentHome(input: {
 	const next = serializeDriveagentHome(validated, previous);
 
 	// Render all three before writing any, so a serialisation failure leaves
-	// disk exactly as it was rather than half-updated.
+	// disk exactly as it was rather than half-updated. Files whose bytes did
+	// not change are skipped, which is what lets a comment in an untouched
+	// permissions.yaml survive an agent.yaml edit.
 	const changedFiles: string[] = [];
+	const pending: { path: string; text: string }[] = [];
 	const files: [keyof DriveagentHomeFileTexts, string, string][] = [
 		["agentYaml", paths.agentYaml, DRIVEAGENT_AGENT_YAML],
 		["permissionsYaml", paths.permissionsYaml, DRIVEAGENT_PERMISSIONS_YAML],
@@ -120,9 +149,10 @@ export function writeDriveagentHome(input: {
 		if (previous[key] === text) {
 			continue;
 		}
-		writeFileAtomic(path, text);
+		pending.push({ path, text });
 		changedFiles.push(fileName);
 	}
+	commitFiles(pending);
 
 	return {
 		home: validated,

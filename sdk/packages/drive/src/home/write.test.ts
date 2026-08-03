@@ -7,6 +7,7 @@ import {
 	DRIVEAGENT_AGENT_HIDDEN_FIELDS,
 	DriveagentHomeWriteError,
 	driveagentHomeIsEditable,
+	isForbiddenPlaintextSecretKey,
 	mergeDriveagentHomePatch,
 	serializeDriveagentHome,
 } from "./write";
@@ -89,6 +90,33 @@ describe("assertDriveagentHomePatch", () => {
 		).toBe("hidden_field_write");
 	});
 
+	/**
+	 * The patch arrives as parsed JSON from a browser, so `__proto__` and
+	 * `constructor` are keys a caller can actually send. The allow-list rejects
+	 * them as unknown fields; this pins that it stays an *explicit* rejection
+	 * rather than something a future `{...patch}` spread quietly re-opens.
+	 */
+	it("refuses prototype-shaped keys without polluting Object.prototype", () => {
+		expect(
+			writeErrorCode(() =>
+				assertDriveagentHomePatch(
+					JSON.parse('{"agent":{"__proto__":{"systemPrompt":"pwned"}}}'),
+				),
+			),
+		).toBe("unknown_field");
+		expect(
+			writeErrorCode(() =>
+				assertDriveagentHomePatch(JSON.parse('{"__proto__":{"slug":"x"}}')),
+			),
+		).toBe("unknown_field");
+		expect(
+			writeErrorCode(() =>
+				assertDriveagentHomePatch(JSON.parse('{"agent":{"constructor":"x"}}')),
+			),
+		).toBe("unknown_field");
+		expect(({} as { systemPrompt?: string }).systemPrompt).toBeUndefined();
+	});
+
 	it("refuses unknown top-level and section fields", () => {
 		expect(
 			writeErrorCode(() => assertDriveagentHomePatch({ compiled: {} })),
@@ -112,6 +140,31 @@ describe("assertDriveagentHomePatch", () => {
 			).toBe("plaintext_secret");
 		},
 	);
+
+	/**
+	 * Case matters to a `Set` and not to a person. `APIKEY` typed into an
+	 * editor is the same credential as `apiKey`, and this is the last boundary
+	 * that can say so before it lands in a file.
+	 */
+	it.each(["APIKEY", "apikey", "ApiKey", "TOKEN", "CLIENTSECRET"])(
+		"refuses '%s' as a case variant of a forbidden key",
+		(key) => {
+			expect(
+				writeErrorCode(() =>
+					assertDriveagentHomePatch({ env: { values: { [key]: "s" } } }),
+				),
+			).toBe("plaintext_secret");
+		},
+	);
+
+	it("still allows keys that merely contain a forbidden word", () => {
+		expect(isForbiddenPlaintextSecretKey("MY_TOKEN_PATH")).toBe(false);
+		expect(isForbiddenPlaintextSecretKey("token")).toBe(true);
+		const patch = assertDriveagentHomePatch({
+			env: { values: { MY_TOKEN_PATH: "/etc/x" } },
+		});
+		expect(patch.env?.values).toEqual({ MY_TOKEN_PATH: "/etc/x" });
+	});
 
 	it("accepts secretRefs alongside ordinary env values", () => {
 		const patch = assertDriveagentHomePatch({
