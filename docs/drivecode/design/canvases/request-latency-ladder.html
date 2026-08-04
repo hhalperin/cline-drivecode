@@ -419,18 +419,33 @@
     resetBtn.disabled = applied === 0;
   }
 
+  // A single in-flight animation timer. Every control that changes `applied`
+  // out of band cancels it first — otherwise Reset leaves a pending step that
+  // fires 420ms later and restarts the ladder from zero, and a second
+  // "Apply all" runs a parallel chain that advances two rungs per tick.
+  var timer = null;
+
+  function stopAnimation() {
+    if (timer !== null) { clearTimeout(timer); timer = null; }
+  }
+
   nextBtn.addEventListener("click", function () {
+    stopAnimation();
     if (applied < LADDER.length) { applied++; render(); }
   });
   allBtn.addEventListener("click", function () {
-    function stepOnce() {
-      if (applied >= LADDER.length) return;
+    stopAnimation();
+    (function stepOnce() {
+      if (applied >= LADDER.length) { timer = null; return; }
       applied++; render();
-      setTimeout(stepOnce, 420);
-    }
-    stepOnce();
+      timer = setTimeout(stepOnce, 420);
+    })();
   });
-  resetBtn.addEventListener("click", function () { applied = 0; render(); });
+  resetBtn.addEventListener("click", function () {
+    stopAnimation();
+    applied = 0;
+    render();
+  });
 
   render();
 })();
