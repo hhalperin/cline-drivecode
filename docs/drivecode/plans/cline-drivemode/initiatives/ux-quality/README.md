@@ -13,6 +13,71 @@ Drive is Discord-style pair-programming call rooms in Slack-like chrome. Vision 
 
 `drive-web` already chose the only sane prototype path. Ship the **real webview** on a conformant browser host ([ADR-0024](../../adr/ADR-0024-drive-web-runtime.md)), not a third layout that drifts from the product. Hosted preview is `cline.drivemode.ai` ([hosted-preview](../hosted-preview/README.md)), tiers 1–3 only. Tier 4 (hosted hub) stays out.
 
+Default-posture shipping work is sequenced in [delivery/defaults-delivery.md](../../delivery/defaults-delivery.md) (tranches A–F). Operator gaps (meter, participant state, dead air, trust ladder) are in [research/21-operator-experience.md](../../research/21-operator-experience.md). This initiative is the **UX quality bar and surface map** that consumes those plans — it does not duplicate their task tables.
+
+## What “award-winning” means here
+
+Not more destinations. One composition that feels inevitable:
+
+| Bar | Pass condition |
+|---|---|
+| **Intuitive** | First join needs no docs: muted mic teaches control; Spotlight answers “what is it doing”; raise-hand is obvious |
+| **Beautiful** | Brand tokens + stage-as-monitor metaphor; chrome never wins the vertical budget fight |
+| **Fast** | Stage ≥ 320 px at design floor; first paint on phone skips Mermaid; within-turn waiting has continuous activity |
+| **Delight** | Actionable earcons only; interrupt/finish warmth; leave without loss; return moments |
+| **Defaults → power** | Safe useful defaults for everyone; 34-facet catalog progressive-discloses for power users (06) |
+| **Honest** | No silent fallbacks, no stub settings, no fabricated rooms (ADR-0024 §5) |
+
+Trust ladder from operator research — each rung needs the one below:
+
+```mermaid
+flowchart LR
+  See["1 See\npresence + Spotlight"] --> Understand["2 Understand\ncost, context, task line"]
+  Understand --> Predict["3 Predict\nnext action + gates"]
+  Predict --> Control["4 Control\nstop one worker, redirect"]
+  Control --> Delegate["5 Delegate\npacks + spawn governance"]
+```
+
+MVP over-delivered **See** and reached for **Delegate**. Award UX closes **Understand → Control** on the call surface without stealing stage height (drawer/overlay, not a new chrome row).
+
+## Surface map (core vs adjacent)
+
+```mermaid
+flowchart TD
+  subgraph shell [Shell]
+    Nav[Nav rail / phone strip]
+    Home[Home]
+    Pip[PiP companion]
+  end
+  subgraph core [Core loop — polish target]
+    Lobby[Drive lobby]
+    Call[Drive call]
+    Spot[Spotlight / stage]
+    Strip[Call strip]
+    Feed[Composer + address]
+    Roster[Roster + packs]
+    Voice[Mic / CC / TTS]
+  end
+  subgraph adjacent [Adjacent — keep coherent, do not expand]
+    Status[Status Hub]
+    Rooms[Rooms / History]
+    Tasks[Tasks / Artifacts]
+    Custom[Agents / facets / settings]
+  end
+  Nav --> Home
+  Nav --> Lobby
+  Lobby --> Call
+  Call --> Spot
+  Call --> Strip
+  Call --> Feed
+  Call --> Roster
+  Call --> Voice
+  Pip --> Call
+  Call -.-> Status
+  Call -.-> Rooms
+  Call -.-> Custom
+```
+
 ## Scope
 
 **In**
@@ -201,7 +266,19 @@ Grouped by the dimensions the task named. Cite evidence; prefer fixing root over
 
 ## Recommended build order
 
-Eight small phases. Each is independently shippable. Infrastructure and honesty before delight. No calendar estimates.
+Nine small phases (0–8). Each is independently shippable. Honesty and layout before delight; operator instrumentation rides on phases 3–4 without a new surface system. No calendar estimates.
+
+```mermaid
+flowchart LR
+  P0[0 Honesty] --> P1[1 Layout]
+  P1 --> P2[2 Responsive]
+  P2 --> P3[3 Defaults]
+  P3 --> P4[4 Dead air + control]
+  P4 --> P5[5 A11y + brand]
+  P5 --> P6[6 Facet disclosure]
+  P6 --> P7[7 Hosted funnel]
+  P7 -.-> P8[8 PWA optional]
+```
 
 ### Phase 0 · Subtract lying UX
 
@@ -227,21 +304,21 @@ Eight small phases. Each is independently shippable. Infrastructure and honesty 
 
 **Gate.** Manual/control-ui script at 360×640 and 1280×640. All call-strip actions reachable without hover. No horizontal scroll on core loop. Mic permission path documented for hosted `_headers` (`microphone=(self)` only).
 
-### Phase 3 · Defaults that teach
+### Phase 3 · Defaults that teach (+ operator See→Understand)
 
-**Goal.** Out-of-box posture matches 22-default-posture without a settings scavenger hunt.
+**Goal.** Out-of-box posture matches 22-default-posture; rung 2 of the trust ladder appears on the call without a settings scavenger hunt.
 
-**Changes.** Mic muted (already). TTS off **with** first-call enable prompt. Earcon split. Spend/context visibility placement per research (strip row, not new chrome row). Captions sticky preference.
+**Changes.** Mic muted (already). TTS off **with** first-call enable prompt. Earcon split. Spend + context % in the **existing call-strip row** (defaults-delivery C1–C3; never a new chrome row that shrinks the stage). Captions sticky preference. Participant **task line** on roster (cheapest felt-control win from 21-operator-experience).
 
-**Gate.** Fresh profile walkthrough. One join teaches mute ownership and how to enable voice. No durable privacy regression. Unit tests on settings model defaults.
+**Gate.** Fresh profile walkthrough. One join teaches mute ownership and how to enable voice. Room answers spend + context without opening Status. Stage height at 1280×640 still ≥ 320 px after the meter lands. No durable privacy regression. Unit tests on settings model defaults.
 
-### Phase 4 · Core-loop delight and dead air
+### Phase 4 · Core-loop delight, dead air, and Control
 
-**Goal.** Interrupt, stall, and waiting feel senior-engineer warm, not chat-bot silent.
+**Goal.** Interrupt, stall, and waiting feel senior-engineer warm; rung 4 starts (stop/redirect one worker) without a new product area.
 
-**Changes.** Wire stall classifier into continuous activity + approval earcon. Raise-hand finishing chrome + hard-cancel. Prefer existing `StuckRecoveryFork` / `agencyChrome` over new panels. Optionally land cheapest demo wow (`walkthrough.animation`) if director ops already exist.
+**Changes.** Wire stall classifier into continuous activity + approval earcon. Raise-hand finishing chrome + hard-cancel. Prefer existing `StuckRecoveryFork` / `agencyChrome` over new panels. Turn the workers count badge into an accountable list with stop (21-operator-experience #3) — drawer/overlay, not stage chrome. Optionally land cheapest demo wow (`walkthrough.animation`) if director ops already exist and owner picks Open decision 5.
 
-**Gate.** Live or fixture multi-tool turn. Raise hand mid-turn shows finishing state; stall shows activity; no new surface unless an existing one was deleted.
+**Gate.** Live or fixture multi-tool turn. Raise hand mid-turn shows finishing state; stall shows activity; one worker can be stopped without ending the call. No new top-level nav destination.
 
 ### Phase 5 · Accessibility and brand floor
 
@@ -303,11 +380,12 @@ Split this README into `overview.md` + `phase-N-*.md` only when implementation s
 ## Open decisions (owner)
 
 1. **Accept 22-default-posture bets as shipping defaults?** Especially no spend cap, fork depth 1, task-complete earcon off. Research lists these as least-sure.
-2. **Narrow-width call IA.** Bottom sheet / tabs vs collapsible columns. Needs 2–3 throwaway prototypes (**exhaust-the-design-space**) before phase 2 commits.
-3. **Hosted preview honesty level.** Quiet persistent preview marker (recommended) vs stronger "not a live agent" chrome.
-4. **PWA.** Stay YAGNI until after phase 7, or force phase 8 into the committed roadmap?
-5. **Wow-slice priority.** Insert `walkthrough.animation` into phase 4, or keep delight strictly stall/interrupt until core loop gates are green?
-6. **Upstream vs fork packaging** for public funnel copy (review strategy theme). Affects CTA tone on `cline.drivemode.ai`, not layout code.
+2. **Narrow-width call IA.** Bottom sheet / tabs vs collapsible columns. Needs 2–3 throwaway prototypes before phase 2 commits.
+3. **Operator panel placement.** In-call drawer/overlay vs beside-call (21-operator-experience open question). Recommendation: drawer that does not compete with stage height.
+4. **Hosted preview honesty level.** Quiet persistent preview marker (recommended) vs stronger "not a live agent" chrome.
+5. **PWA.** Stay YAGNI until after phase 7, or force phase 8 into the committed roadmap?
+6. **Wow-slice priority.** Insert `walkthrough.animation` into phase 4, or keep delight strictly stall/interrupt until core loop gates are green?
+7. **Upstream vs fork packaging** for public funnel copy (review strategy theme). Affects CTA tone on `cline.drivemode.ai`, not layout code.
 
 ## Applicable skills / sibling initiatives
 
@@ -318,10 +396,11 @@ Split this README into `overview.md` + `phase-N-*.md` only when implementation s
 | [drive-audio](../drive-audio/) | Voice, earcons, captions. Phase 3–4 depend on it. |
 | [session-satisfaction-moments](../session-satisfaction-moments/) | Leave/end/return/stuck mostly landed. Residuals only. |
 | [status-dependency-graph](../status-dependency-graph/) | Status lens UX locked. Do not re-litigate. |
+| [defaults-delivery](../../delivery/defaults-delivery.md) | Concrete A–F work items for posture; phases 0/3 consume it. |
 | Facet / platform config (06, DRV-PLATFORM-CONFIG) | Customization spine for phase 6. |
 
 ## Hand back
 
-Phases 0→7 are the recommended sequence. Mobile means responsive webview, not native. Award quality is the core call loop under an honest layout contract, taught by safe defaults, with a11y and brand as floors. Everything else is either already shipped or YAGNI.
+Phases 0→7 are the recommended sequence (8 optional). Mobile means responsive webview, not native. Award quality is the core call loop under an honest layout contract, taught by safe defaults, with operator Understand→Control on the strip/drawer, and a11y/brand as floors. Everything else is either already shipped or YAGNI.
 
 Owner accepts open decisions, then implementation begins from phase 0 on a stacked PR train.
