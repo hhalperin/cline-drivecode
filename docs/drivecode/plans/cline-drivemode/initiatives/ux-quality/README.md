@@ -302,7 +302,7 @@ flowchart LR
 
 **Goal.** Usable join → watch → steer → leave at 360×640 portrait through ultrawide.
 
-**Status.** First slice in flight: call-strip touch targets (≥44 px at ≤720 px), safe-area bottom inset, `prefers-color-scheme` when no VS Code theme signal. Narrow IA (bottom sheet vs columns) still an open owner decision — do not invent a second chrome tree until that lands.
+**Status.** First slice landed (touch targets, safe-area, `prefers-color-scheme`). **Narrow IA locked: collapsible rail** — wireframe [call-narrow-ia.html](../../../../design/wireframes/call-narrow-ia.html). Next: implement Roster|Feed collapsible beside Spotlight at ≤720px (reuse feed-collapse).
 
 **Changes.** Touch targets, safe areas, no-hover paths, `prefers-color-scheme`. Redesign narrow IA as if phone were day-one (bottom sheet for roster/settings vs cramped rail), without a second codebase.
 
@@ -384,7 +384,7 @@ Split this README into `overview.md` + `phase-N-*.md` only when implementation s
 ## Open decisions (owner)
 
 1. **Accept 22-default-posture bets as shipping defaults?** Especially no spend cap, fork depth 1, task-complete earcon off. Research lists these as least-sure.
-2. **Narrow-width call IA.** Bottom sheet / tabs vs collapsible columns. Needs 2–3 throwaway prototypes before phase 2 commits.
+2. **Narrow-width call IA.** **Locked: collapsible columns/rail** (not bottom sheet as default). Wireframe: [call-narrow-ia.html](../../../../design/wireframes/call-narrow-ia.html). Sheet remains OK for deep settings / one-shot approvals.
 3. **Operator panel placement.** In-call drawer/overlay vs beside-call (21-operator-experience open question). Recommendation: drawer that does not compete with stage height.
 4. **Hosted preview honesty level.** Quiet persistent preview marker (recommended) vs stronger "not a live agent" chrome.
 5. **PWA.** Stay YAGNI until after phase 7, or force phase 8 into the committed roadmap?
