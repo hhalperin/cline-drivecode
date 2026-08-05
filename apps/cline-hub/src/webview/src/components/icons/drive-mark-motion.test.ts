@@ -16,12 +16,13 @@ describe("DriveMarkMotion", () => {
 	it("renders layered wheel + head with data-motion", () => {
 		const tree = DriveMarkMotion({
 			motion: "loading",
-			title: "Loading conversation",
 		}) as ReactElement<{
 			"data-motion": string;
+			"aria-hidden"?: boolean;
 			children: ReactElement[];
 		}>;
 		expect(tree.props["data-motion"]).toBe("loading");
+		expect(tree.props["aria-hidden"]).toBe(true);
 		const kids = tree.props.children;
 		const groups = (Array.isArray(kids) ? kids : [kids]).filter(
 			(c): c is ReactElement<{ className?: string }> =>

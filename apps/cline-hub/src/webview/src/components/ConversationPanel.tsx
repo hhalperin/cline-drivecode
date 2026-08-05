@@ -286,7 +286,6 @@ export function ConversationPanel({
 						<DriveMarkMotion
 							className="size-10 text-foreground"
 							motion="loading"
-							title="Loading conversation"
 						/>
 						Loading chat history…
 					</div>

@@ -1924,7 +1924,6 @@ export default function Chat({
 								<DriveMarkMotion
 									className="size-3.5"
 									motion="loading"
-									title="Loading history"
 								/>
 								Loading history
 							</span>

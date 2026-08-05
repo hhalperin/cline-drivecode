@@ -3,7 +3,7 @@
 **Status:** plan (opened 2026-08-05)  
 **Audience shift:** from “developer installs a local hub” → “anyone with a phone joins a call with an agent and *watches work happen*”  
 **Ambition:** TikTok-grade motion, pacing, and zero-friction first open — applied to **drive coding**, not a clone of a For You feed  
-**Related:** [drive-web](../drive-web/), [hosted-preview](../hosted-preview/), [00-vision](../../foundation/00-vision.md), [ADR-0016](../../adr/ADR-0016-distribution-and-positioning.md), [ADR-0021](../../adr/ADR-0021-drive-credential-onboarding.md); ux-quality (stacked PR — merge when that initiative lands)
+**Related:** [drive-web](../drive-web/), [hosted-preview](../hosted-preview/), [00-vision](../../foundation/00-vision.md), [ADR-0016](../../adr/ADR-0016-distribution-and-positioning.md), [ADR-0021](../../adr/ADR-0021-drive-credential-onboarding.md), [ux-quality](../ux-quality/)
 
 ## Why this exists
 
@@ -192,7 +192,7 @@ CTA forever and we stop promising “just open the app and build.”
 
 | Track | Job |
 |---|---|
-| ux-quality (stacked) | Raise award bar on **existing** hub surfaces (honesty, layout, a11y) |
+| [ux-quality](../ux-quality/) | Raise award bar on **existing** hub surfaces (honesty, layout, a11y) |
 | [drive-web](../drive-web/) | Same webview on a conformant browser host |
 | [hosted-preview](../hosted-preview/) | Publish tiers 1–3 at `cline.drivemode.ai` |
 | **mobile-consumer** | **New composition + audience** — phone-first consumer shell, PWA, hosted ADR fork |
