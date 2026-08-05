@@ -145,7 +145,8 @@ const all = results.flat().filter(Boolean)
 const survived = (f) => Boolean(f.verdict) && f.verdict.refuted === false
 const confirmed = all.filter(survived)
 const refutedCount = all.length - confirmed.length
-const refutationRate = `${Math.round((refutedCount / Math.max(1, all.length)) * 100)}%`
+const refutationRate =
+  all.length === 0 ? null : `${Math.round((refutedCount / all.length) * 100)}%`
 
 log(`${all.length} verified, ${confirmed.length} confirmed, ${refutedCount} refuted`)
 
