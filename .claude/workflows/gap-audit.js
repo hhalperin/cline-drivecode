@@ -152,6 +152,12 @@ if (confirmed.length === 0) {
     since,
     confirmed: [],
     refutedCount,
+    refuted: all.map((f) => ({
+      lens: f.lens,
+      subject: f.subject,
+      at: `${f.file}${f.line ? ':' + f.line : ''}`,
+      why: f.verdict?.why,
+    })),
     note: 'No gaps survived verification. Either the surface is clean or the lenses need widening — check the refutation reasons before concluding the former.',
   }
 }
