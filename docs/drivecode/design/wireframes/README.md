@@ -13,6 +13,7 @@ Design exploration for Drive's pair-partner UX inside Cline. Mocks are throwaway
 | [DRIVE-TAB.md](DRIVE-TAB.md) | Decision record and domain shape |
 | [drive-tab-discord-slack.html](drive-tab-discord-slack.html) | Throwaway prototype (keys 1/2 for Discord-leaning vs Slack-leaning chrome; accent switcher for the two Cline violet treatments) |
 | [status-dependency-graph.html](status-dependency-graph.html) | Throwaway Status Hub Dependency map UX — pan/zoom graph, artifact edges, Plans rail ([DRV-DEP-MAP](../../plans/cline-drivemode/features/DRV-DEP-MAP.md)) |
+| [mobile-drive-app.html](mobile-drive-app.html) | Consumer phone first-open — press play → vertical call → PWA install ([mobile-consumer](../../plans/cline-drivemode/initiatives/mobile-consumer/)) |
 | [CLINE-BRAND-TOKENS.md](../brand/CLINE-BRAND-TOKENS.md) | Brand tokens measured off cline.bot — palette, surfaces, type, radius, and what not to copy |
 
 Recommendation locked there. Ship Discord-style call rows and roster inside Slack-like single-workspace chrome. Domain:
