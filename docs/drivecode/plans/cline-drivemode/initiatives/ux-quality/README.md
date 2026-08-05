@@ -302,7 +302,7 @@ flowchart LR
 
 **Goal.** Usable join → watch → steer → leave at 360×640 portrait through ultrawide.
 
-**Status.** First slice landed (touch targets, safe-area, `prefers-color-scheme`). **Narrow IA locked: collapsible rail** — wireframe [call-narrow-ia.html](../../../../design/wireframes/call-narrow-ia.html). Next: implement Roster|Feed collapsible beside Spotlight at ≤720px (reuse feed-collapse).
+**Status.** Collapsible rail **locked** ([call-narrow-ia.html](../../../../design/wireframes/call-narrow-ia.html)). Shipped: call-strip 44px + safe-area + `prefers-color-scheme`; phone defaults feed **collapsed**; open rail `min(230px, 72%)`; Spotlight toggle 44px + “roster and chat” label. Residual: Roster|Feed tabs inside the rail (stacked today), control-ui measure at 360×640.
 
 **Changes.** Touch targets, safe areas, no-hover paths, `prefers-color-scheme`. Redesign narrow IA as if phone were day-one (bottom sheet for roster/settings vs cramped rail), without a second codebase.
 
