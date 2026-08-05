@@ -46,7 +46,7 @@ like an ADLC control plane a human can start and trust.
 - Privacy-strict. No new transcript/audio persistence without a visible debug flag.
 - Pure policy and classifiers stay in `@cline/drive`. Hub validates at the boundary.
 - No timeframes in this plan.
-- Prefer deletion and wiring over new packages ([ponytail](../../../../../.cursor/rules/ponytail.mdc) / Laziness Protocol).
+- Prefer deletion and wiring over new packages ([ponytail](../../../../../../.cursor/rules/ponytail.mdc) / Laziness Protocol).
 
 ## Alternatives
 
