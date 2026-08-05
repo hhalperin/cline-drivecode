@@ -284,6 +284,8 @@ flowchart LR
 
 **Goal.** Remove silent fallbacks and dishonest chrome so later polish is trustworthy.
 
+**Status.** Core hang + bank degradation notice landed on main (#140, #143). Residual closed on the phase-0 implementation branch: `/agents` directory no longer substitutes an empty list for a hub timeout.
+
 **Changes.** Audit 3 s correlator fallbacks named in ADR-0024; fail visibly when hub/capabilities missing. Hide settings that no-op on web preview (22-default-posture Door B). Kill or relabel fabricated lists if any remain.
 
 **Gate.** On a no-hub open of `/drive` (non-demo), user sees an honest blocked state within one viewport, never an infinite "Checking…" or a fake populated room. `bun -F @cline/cline-hub test` green for touched modules.
@@ -299,6 +301,8 @@ flowchart LR
 ### Phase 2 · Responsive call shell (inherits drive-web §3)
 
 **Goal.** Usable join → watch → steer → leave at 360×640 portrait through ultrawide.
+
+**Status.** First slice in flight: call-strip touch targets (≥44 px at ≤720 px), safe-area bottom inset, `prefers-color-scheme` when no VS Code theme signal. Narrow IA (bottom sheet vs columns) still an open owner decision — do not invent a second chrome tree until that lands.
 
 **Changes.** Touch targets, safe areas, no-hover paths, `prefers-color-scheme`. Redesign narrow IA as if phone were day-one (bottom sheet for roster/settings vs cramped rail), without a second codebase.
 
