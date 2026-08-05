@@ -3,7 +3,7 @@
 **Status:** plan (opened 2026-08-05)  
 **Audience shift:** from “developer installs a local hub” → “anyone with a phone joins a call with an agent and *watches work happen*”  
 **Ambition:** TikTok-grade motion, pacing, and zero-friction first open — applied to **drive coding**, not a clone of a For You feed  
-**Related:** [drive-web](../drive-web/), [hosted-preview](../hosted-preview/), [00-vision](../../foundation/00-vision.md), [ADR-0016](../../adr/ADR-0016-distribution-and-positioning.md), [ADR-0021](../../adr/ADR-0021-drive-credential-onboarding.md), [ux-quality](../ux-quality/) (when merged)
+**Related:** [drive-web](../drive-web/), [hosted-preview](../hosted-preview/), [00-vision](../../foundation/00-vision.md), [ADR-0016](../../adr/ADR-0016-distribution-and-positioning.md), [ADR-0021](../../adr/ADR-0021-drive-credential-onboarding.md); ux-quality (stacked PR — merge when that initiative lands)
 
 ## Why this exists
 
@@ -77,10 +77,9 @@ Settings / MCP / Analytics.
 └─────────────────────┘
 ```
 
-Collapsible rail (roster/feed) stays available for power moves — locked in
-[call-narrow-ia.html](../../../../design/wireframes/call-narrow-ia.html) when
-that lands — but **default closed** on phone. Consumer mode never surfaces hub
-Door-B settings that no-op.
+Collapsible rail (roster/feed) stays available for power moves — default
+**closed** on phone (narrow call IA from the ux-quality stack). Consumer mode
+never surfaces hub Door-B settings that no-op.
 
 Wireframe: [mobile-drive-app.html](../../../../design/wireframes/mobile-drive-app.html) (first-open beats).  
 **Full surface map:** [mobile-drive-surfaces.html](../../../../design/wireframes/mobile-drive-surfaces.html) — every consumer + advanced page, portrait & landscape, three phone sizes.  
@@ -193,7 +192,7 @@ CTA forever and we stop promising “just open the app and build.”
 
 | Track | Job |
 |---|---|
-| [ux-quality](../ux-quality/) | Raise award bar on **existing** hub surfaces (honesty, layout, a11y) |
+| ux-quality (stacked) | Raise award bar on **existing** hub surfaces (honesty, layout, a11y) |
 | [drive-web](../drive-web/) | Same webview on a conformant browser host |
 | [hosted-preview](../hosted-preview/) | Publish tiers 1–3 at `cline.drivemode.ai` |
 | **mobile-consumer** | **New composition + audience** — phone-first consumer shell, PWA, hosted ADR fork |

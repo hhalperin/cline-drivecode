@@ -8,8 +8,6 @@
  * source.png; wheel geometric rim + three spokes).
  */
 
-import { cn } from "@/lib/utils";
-
 export type DriveMarkMotionKind = "idle" | "loading" | "peek" | "drive";
 
 export function DriveMarkMotion({
@@ -25,7 +23,7 @@ export function DriveMarkMotion({
 	return (
 		<svg
 			aria-hidden={title ? undefined : true}
-			className={cn("drive-mark-motion", className)}
+			className={className ? `drive-mark-motion ${className}` : "drive-mark-motion"}
 			data-motion={motion}
 			fill="currentColor"
 			role={title ? "img" : undefined}
