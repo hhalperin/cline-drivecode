@@ -16,7 +16,7 @@ task+receipt as the ship atom) without a second runtime.
 |---|---|
 | [overview.md](overview.md) | Context, alternatives, phase order, verification |
 | [phase-1-framing.md](phase-1-framing.md) | ADR-0028 + nest pointers |
-| [phase-2-credential-onboarding.md](phase-2-credential-onboarding.md) | Dismissible hub credential path (B3) |
+| [phase-2-credential-onboarding.md](phase-2-credential-onboarding.md) | Dismissible hub credential path (B3) — **landed** |
 | [phase-3-tts-first-call.md](phase-3-tts-first-call.md) | First-call TTS enable (B2) |
 | [phase-4-facet-hub-persist.md](phase-4-facet-hub-persist.md) | Voice facets via `drive_config_put` |
 | [phase-5-status-drive-bridge.md](phase-5-status-drive-bridge.md) | `critical` / `failed` → stall offer |

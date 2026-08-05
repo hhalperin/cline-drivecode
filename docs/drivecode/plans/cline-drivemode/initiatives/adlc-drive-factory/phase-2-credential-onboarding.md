@@ -3,6 +3,9 @@
 Back to [overview](overview.md). Implements defaults-delivery **B3** under
 [ADR-0021](../../adr/ADR-0021-drive-credential-onboarding.md).
 
+**Status:** landed on branch (`CredentialOnboardingBanner` on Drive home;
+dismiss via safe-storage; CTAs → Settings Providers / `?demoShareScreen=1`).
+
 ## Goal
 
 A fresh clone can reach either a credentialed call or the dismissible demo route
