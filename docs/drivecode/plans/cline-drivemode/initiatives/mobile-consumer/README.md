@@ -82,7 +82,23 @@ Collapsible rail (roster/feed) stays available for power moves — locked in
 that lands — but **default closed** on phone. Consumer mode never surfaces hub
 Door-B settings that no-op.
 
-Wireframe: [mobile-drive-app.html](../../../../design/wireframes/mobile-drive-app.html).
+Wireframe: [mobile-drive-app.html](../../../../design/wireframes/mobile-drive-app.html) (first-open beats).  
+**Full surface map:** [mobile-drive-surfaces.html](../../../../design/wireframes/mobile-drive-surfaces.html) — every consumer + advanced page, portrait & landscape, three phone sizes.
+
+## Surface inventory (mobile app)
+
+Primary chrome is call-first. Hub power destinations are not deleted — they sit
+under **Advanced** so the less-technical home stays one composition.
+
+| Tier | Surfaces |
+|---|---|
+| **Core loop** | Press play, Home/lobby, Live call, Call+rail, Captions, Raise hand, Stuck recovery, Approval gate, Leave/handoff, Session history, PWA install |
+| **Browse** | Rooms, Tasks, Artifacts, Agents, Agent profile, Status (board / changelog / dep-map simplified) |
+| **Settings** | Settings home, Voice & devices, Providers/sign-in, Advanced hub (Analytics, Models, MCP, Plugins, Skills, Rules, Hooks, Tools, Channels, Schedules, Account) |
+
+**Layouts.** Portrait = vertical Spotlight + bottom strip. Landscape = Spotlight
+column + controls column (hold-to-talk / rail / strip). Compact 360×640,
+standard 390×844, large 430×932 — switch live in the surfaces wireframe.
 
 ## What we build (phased)
 
