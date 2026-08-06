@@ -3,7 +3,8 @@
 **Status.** Product / UX architecture plan (user-value first).  
 **Companion.** [GAPS.md](GAPS.md) = inventory coverage. **This file** = what to build because people will use it.  
 **Parent.** [README.md](README.md).  
-**Audience.** Less-technical builders + anyone checking Drive away from a desk.
+**Audience.** Less-technical builders + anyone checking Drive away from a desk.  
+**Phone-only power users:** [POWER-USERS.md](POWER-USERS.md) (cockpit density: spend, stop-one, Live stack).
 
 ## Expert frame
 
@@ -169,7 +170,7 @@ Maps to MC phases without calendar estimates:
 | [GAPS.md](GAPS.md) | What the inventory/demo/product are missing |
 | **This file** | What to prioritize because users will want/use/appreciate it |
 
-If GAPS lists a surface and this file puts it in Tier 4, **do not fill the gap on phone** — keep it Advanced or desk Hub.
+If GAPS lists a surface and FEATURES puts it in Tier 4, **do not fill the gap on phone** — keep it Advanced or desk Hub. Phone-only pilots who need denser control use [POWER-USERS.md](POWER-USERS.md) (power sheet), not Advanced dump.
 
 ## Open questions (user research, not styling)
 
