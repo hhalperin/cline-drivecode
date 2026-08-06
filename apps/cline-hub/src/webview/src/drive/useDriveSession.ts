@@ -307,6 +307,8 @@ export type UseDriveSessionResult = {
 	toggleWorkersPanel: () => void;
 	openForkAudit: (auditHandle: string) => void;
 	setForkRetain: (workerSessionId: string, retain: boolean) => void;
+	/** Cancel one invisible worker (PU3) via drive.fork.cancel. */
+	cancelFork: (workerSessionId: string) => void;
 	stripHandlers: {
 		onClearOverride: () => void;
 		onDeafenToggle: () => void;
@@ -1429,6 +1431,24 @@ export function useDriveSession(
 		[],
 	);
 
+	const cancelFork = useCallback((workerSessionId: string) => {
+		postToHost({
+			type: "driveCommand",
+			command: "drive.fork.cancel",
+			payload: {
+				roomId: "default",
+				workerSessionId,
+				summary: "Stopped from power cockpit",
+				retainForAudit: false,
+			},
+		});
+		postToHost({
+			type: "driveCommand",
+			command: "drive.fork.list",
+			payload: { roomId: "default" },
+		});
+	}, []);
+
 	const stripHandlers = useMemo(
 		() => ({
 			onClearOverride: () => {
@@ -1603,6 +1623,7 @@ export function useDriveSession(
 		toggleWorkersPanel,
 		openForkAudit,
 		setForkRetain,
+		cancelFork,
 	};
 }
 

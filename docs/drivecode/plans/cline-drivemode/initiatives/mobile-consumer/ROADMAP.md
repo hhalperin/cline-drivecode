@@ -20,6 +20,8 @@ flowchart LR
   PU4 --> PU5[PU5 gate+]
   PU5 --> PU6[PU6 address]
   PU6 --> PU7[PU7 predict]
+  PU7 --> PU8[PU8 files]
+  PU8 --> PU9[PU9 model]
 ```
 
 ## Feature list (build order)
@@ -29,27 +31,37 @@ flowchart LR
 | **PU0** | Power chrome pref + power sheet shell | Wireframe sheet | `drive-power-chrome.ts`, `DrivePowerSheet`, strip open | Pref persists; sheet lists roster without stealing Spotlight |
 | **PU1** | Live stack on Drive home | Wireframe Home | `DriveLiveStack` + `DriveView` + `roomsSource` | ≤3 live rooms; Open joins; empty = hide |
 | **PU2** | Task-line roster | Wireframe roster rows | `rosterTaskLine` + `Roster` | Working agent shows `nowTitle`; no title = status only |
-| **PU3** | Stop / redirect one worker | Sheet row actions | Wire to fork retain/stop ops + roster sheet | One thumb stop; Leave ≠ End |
-| **PU4** | Session spend pill | Strip pill | Call strip + session usage fold | Shows $ / tokens when known; hidden when unknown (honest) |
-| **PU5** | Gate blast radius | Approval sheet+ | `GateFeedCard` / pending panel | Diff peek + files touched + Allow once |
-| **PU6** | Address before send (visible) | Composer chips | Persistent address chip + long-press Hold | Current `addressSet` always visible in call |
-| **PU7** | Predict / compaction warn | NOW line | `NowNext` + compaction banner | “About to…” before act; warn before rewrite |
-| **PU8** | Files touched sheet | Power sheet tab | Stage/card projection | List → diff peek |
-| **PU9** | Model lite switch | Roster overflow | Shortlist picker | Not full catalog |
-| **PU10** | Strict push classes | — | Hosted/runtime dependent | blocked / spend cap / done only |
-| **PU11** | Live Activity / widget | Native | MC6 only | YAGNI until PWA habit proven |
+| **PU3** | Stop / redirect one worker | Sheet row actions | `drive.fork.cancel` + power sheet Stop | One thumb stop; Leave ≠ End |
+| **PU4** | Session spend pill | Strip pill | `callSpend` fold on `turn_done` | Shows $ / tokens when known; hidden when unknown (honest) |
+| **PU5** | Gate blast radius | Approval sheet+ | `gatePaths` + `GateFeedCard` Once | Path chips when parseable; Approve → Once label |
+| **PU6** | Address before send (visible) | Composer chips | `addressSet` on UI + `DriveAddressChip` | Current address always visible in call |
+| **PU7** | Predict / compaction warn | NOW line | `NowNext` “about to” + power Now/About to | nextTitle labeled; compaction warn **deferred** (no hub event) |
+| **PU8** | Files touched sheet | Power sheet tab | `stageCards` edit category | List edit cards; empty when none |
+| **PU9** | Model lite switch | Roster overflow | Power Model tab shortlist | `provider:model` from last-used + current |
+| **PU10** | Strict push classes | — | Hosted/runtime dependent | **Blocked** until hosted path (MC5) |
+| **PU11** | Live Activity / widget | Native | MC6 only | **YAGNI** until PWA habit proven |
 
-## This PR ships
+## Shipped in hub
 
 | ID | What |
 |---|---|
-| Docs | This roadmap; POWER-USERS link |
-| Design | `mobile-drive-power.html` — Home Live stack, call + power sheet, gate+ |
-| **PU0** | Pref + `DrivePowerSheet` + strip control |
-| **PU1** | `DriveLiveStack` on Drive lobby |
-| **PU2** | Roster task line from bank `nowTitle` |
+| **PU0–PU2** | Pref, Live stack, roster task lines |
+| **PU3** | `drive.fork.cancel` webview + Stop on matching / orphan workers |
+| **PU4** | Call spend accumulator + strip pill + sheet (honest empty) |
+| **PU5** | Blast-radius path chips; primary gate action labeled **Once** |
+| **PU6** | `addressSet` mirrored from room snapshot; persistent To chip |
+| **PU7** | “About to” label on next task (compaction warn deferred) |
+| **PU8** | Files tab from Spotlight edit cards |
+| **PU9** | Model shortlist tab in power sheet |
 
-PU3+ stay sequenced here; implement in follow-up PRs (stacked).
+## Deferred / YAGNI
+
+| ID | Why |
+|---|---|
+| **PU7 compaction banner** | No hub webview compaction event yet (settings-only today) |
+| **PU3 redirect** | No dedicated redirect op — address chip + stop cover the job |
+| **PU10** | Needs hosted runtime + push channel (MC5) |
+| **PU11** | Native / Live Activity after PWA proof (MC6) |
 
 ## Non-goals (roadmap)
 
@@ -60,4 +72,4 @@ PU3+ stay sequenced here; implement in follow-up PRs (stacked).
 
 ## Hand back
 
-Next stacked PR after this lands: **PU3 stop-one** + **PU4 spend** (needs honest usage plumbing into call session).
+Power cockpit PU0–PU9 are in the hub webview. Next product work: wire **hosted push** (PU10) only after MC5 ADR; keep deepening gate path extraction if tool inputs gain structured file lists.

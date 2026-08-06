@@ -416,6 +416,7 @@ export function DriveCallStrip({
 	workersOpen = false,
 	turnInFlight = false,
 	powerOpen = false,
+	spendLabel,
 	onMuteToggle,
 	onDeafenToggle,
 	onHandToggle,
@@ -444,6 +445,8 @@ export function DriveCallStrip({
 	turnInFlight?: boolean;
 	/** Power cockpit sheet open (PU0). */
 	powerOpen?: boolean;
+	/** Honest spend pill when measured (PU4); omit when unknown. */
+	spendLabel?: string;
 	onMuteToggle: () => void;
 	/** Self output mute — stops this browser speaking agent audio. */
 	onDeafenToggle?: () => void;
@@ -709,6 +712,15 @@ export function DriveCallStrip({
 					{drive.partnerName}
 				</b>
 			</span>
+			{spendLabel ? (
+				<span
+					aria-label={`Session spend ${spendLabel}`}
+					className="shrink-0 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground"
+					data-slot="call-spend-pill"
+				>
+					{spendLabel}
+				</span>
+			) : null}
 		</div>
 	);
 }

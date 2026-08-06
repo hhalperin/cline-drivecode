@@ -21,6 +21,11 @@ import {
 	DrivePowerSheet,
 	useDrivePowerChromePref,
 } from "./DrivePowerSheet";
+import {
+	type CallSpendSnapshot,
+	formatCallSpend,
+	hasCallSpend,
+} from "./callSpend";
 import { PlanImproveGate } from "./PlanImproveGate";
 import { PlanReentryRow } from "./PlanReentryRow";
 import { requestPlanImproveResolve } from "./planImproveResolve";
@@ -431,10 +436,18 @@ export function DriveCallStripDock({
 	session,
 	disabled,
 	turnInFlight = false,
+	spend = null,
+	modelShortlist = [],
+	currentModel,
+	onSelectModel,
 }: {
 	session: UseDriveSessionResult;
 	disabled: boolean;
 	turnInFlight?: boolean;
+	spend?: CallSpendSnapshot | null;
+	modelShortlist?: readonly string[];
+	currentModel?: string;
+	onSelectModel?: (providerModel: string) => void;
 }) {
 	const {
 		captionsOpen,
@@ -444,9 +457,11 @@ export function DriveCallStripDock({
 		chatForks,
 		workersPanelOpen,
 		leaveDrive,
+		cancelFork,
 	} = session;
 	const [powerOpen, setPowerOpen] = useState(false);
 	const { powerChrome, setPowerChrome } = useDrivePowerChromePref();
+	const spendLabel = hasCallSpend(spend) && spend ? formatCallSpend(spend) : undefined;
 	return (
 		<>
 			<DriveCallStrip
@@ -457,17 +472,24 @@ export function DriveCallStripDock({
 				onTogglePower={() => setPowerOpen((open) => !open)}
 				outputVolume={driveVoice.hardware.outputVolume}
 				powerOpen={powerOpen}
+				spendLabel={spendLabel}
 				turnInFlight={turnInFlight}
 				workerCount={chatForks.length}
 				workersOpen={workersPanelOpen}
 				{...stripHandlers}
 			/>
 			<DrivePowerSheet
+				chatForks={chatForks}
+				currentModel={currentModel}
 				drive={drive}
+				modelShortlist={modelShortlist}
+				onCancelFork={cancelFork}
 				onOpenChange={setPowerOpen}
 				onPowerChromeChange={setPowerChrome}
+				onSelectModel={onSelectModel}
 				open={powerOpen}
 				powerChrome={powerChrome}
+				spend={spend}
 			/>
 		</>
 	);
