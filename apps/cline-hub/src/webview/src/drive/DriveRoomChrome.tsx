@@ -14,6 +14,13 @@ import {
 import type { RosterPack } from "@cline/shared";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import { NowNext } from "../components/NowNext";
 import { downloadTextFile } from "../status/downloadTextFile";
 import { DriveCallStrip } from "./DriveCallChrome";
@@ -160,13 +167,11 @@ export function DriveRoomChrome({
 	) => void;
 }) {
 	const {
-		captionsOpen,
 		drive,
 		setDrive,
 		driveVoice,
 		setDriveVoice,
 		driveJoinNote,
-		transcriptLines,
 		joinDrive,
 		workspaceRoot,
 	} = session;
@@ -249,9 +254,6 @@ export function DriveRoomChrome({
 
 	return (
 		<>
-			{drive.active && captionsOpen ? (
-				<DriveTranscriptPanel lines={transcriptLines} />
-			) : null}
 			{!drive.active && drive.pendingPlanningImprove ? (
 				<PlanImproveGate
 					className="mx-4 mt-2"
@@ -465,6 +467,7 @@ export function DriveCallStripDock({
 		workersPanelOpen,
 		leaveDrive,
 		cancelFork,
+		transcriptLines,
 	} = session;
 	const [powerOpen, setPowerOpen] = useState(false);
 	const { powerChrome, setPowerChrome } = useDrivePowerChromePref();
@@ -487,6 +490,25 @@ export function DriveCallStripDock({
 				workersOpen={workersPanelOpen}
 				{...stripHandlers}
 			/>
+			{/* ADR-0029 D4: captions are a sheet — never steal Spotlight flex height. */}
+			<Dialog
+				onOpenChange={(open) => {
+					if (open !== captionsOpen) {
+						stripHandlers.onToggleCaptions();
+					}
+				}}
+				open={drive.active && captionsOpen}
+			>
+				<DialogContent className="max-w-lg gap-0 overflow-hidden p-0 sm:max-w-lg">
+					<DialogHeader className="sr-only">
+						<DialogTitle>Live captions</DialogTitle>
+						<DialogDescription>
+							Ephemeral call transcript. Not retained after leave.
+						</DialogDescription>
+					</DialogHeader>
+					<DriveTranscriptPanel lines={transcriptLines} />
+				</DialogContent>
+			</Dialog>
 			<DrivePowerSheet
 				chatForks={chatForks}
 				currentModel={currentModel}

@@ -725,8 +725,8 @@ export function Spotlight({
 				</div>
 			) : null}
 			{children ? (
-				// Ephemeral overlays only (recovery / gates / recruit / audit).
-				// Plan editor is a strip sheet (ADR-0029 D4) — not a stage sibling.
+				// Ephemeral overlays only (recovery / gates / recruit).
+				// Plan, audit, captions are strip sheets (ADR-0029 D4).
 				<div className="max-h-52 shrink-0 space-y-3 overflow-y-auto">
 					{children}
 				</div>

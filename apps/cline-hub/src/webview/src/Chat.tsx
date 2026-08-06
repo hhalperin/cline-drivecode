@@ -2176,18 +2176,6 @@ export default function Chat({
 									ranked={recruitStall.ranked}
 								/>
 							) : null}
-							<ChatForkAuditPanel
-								auditMessages={auditMessages}
-								className="mt-3"
-								focusedAuditHandle={focusedAuditHandle}
-								forks={chatForks}
-								onClose={toggleWorkersPanel}
-								onOpenAudit={openForkAudit}
-								onRetain={setForkRetain}
-								open={workersPanelOpen}
-								showBacklog={showBacklog}
-								summaryOnly={auditSummaryOnly}
-							/>
 						</Spotlight>
 					) : null}
 					<div
@@ -2344,6 +2332,37 @@ export default function Chat({
 					spend={callSpend}
 					turnInFlight={sending}
 				/>
+				{/* ADR-0029 D4: audit is a sheet — not a Spotlight sibling. */}
+				<Dialog
+					onOpenChange={(open) => {
+						if (open !== workersPanelOpen) {
+							toggleWorkersPanel();
+						}
+					}}
+					open={stageLayout && workersPanelOpen}
+				>
+					<DialogContent className="max-h-[min(36rem,85dvh)] max-w-md gap-0 overflow-y-auto p-0 sm:max-w-md">
+						<DialogHeader className="sr-only">
+							<DialogTitle>Worker audit</DialogTitle>
+							<DialogDescription>
+								Invisible workers and promote audit for this call.
+							</DialogDescription>
+						</DialogHeader>
+						<div className="p-4">
+							<ChatForkAuditPanel
+								auditMessages={auditMessages}
+								focusedAuditHandle={focusedAuditHandle}
+								forks={chatForks}
+								onClose={toggleWorkersPanel}
+								onOpenAudit={openForkAudit}
+								onRetain={setForkRetain}
+								open
+								showBacklog={showBacklog}
+								summaryOnly={auditSummaryOnly}
+							/>
+						</div>
+					</DialogContent>
+				</Dialog>
 				{/* ADR-0029 D4: plan/bank edits are a sheet, not Spotlight children. */}
 				<Dialog
 					onOpenChange={setPlanSheetOpen}

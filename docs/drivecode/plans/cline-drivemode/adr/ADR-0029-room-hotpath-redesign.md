@@ -84,8 +84,8 @@ Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cl
 | D1 fold checkpoint | **partial / this PR** — trim → checkpoint; hydrate prefers checkpoint; hydrate ignores process-global `appliedEventIds` skips |
 | D2 delta publish | **partial / this PR** — `room.event` omits snapshot; clients fold locally; gap refresh via `call_get_room` |
 | D3 one stage projector | **partial / this PR** — daemon projects after `tool.finished`; Hub Chat bridge removed; teammates skipped |
-| D4 layout contract | **partial / this PR** — `?app=1` drops hub nav; PlanEditor off Spotlight into strip sheet; captions/audit residual height still measured separately |
-| D5 cloud signaling | blocked on owner ADR-0016 path H |
+| D4 layout contract | **partial / this PR** — `?app=1` drops hub nav; Plan / worker audit / captions are strip sheets (not Spotlight flex siblings); gate/recruit overlays stay ephemeral on stage |
+| D5 cloud signaling | **blocked** on owner ADR-0016 path H (self-hosted beta today) |
 
 ## Links
 
