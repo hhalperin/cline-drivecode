@@ -8,9 +8,9 @@ import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { DriveOpenCallRequest } from "../../drive/driveLaunch";
-import type { DriveRoomsSource } from "../../rooms/drive-rooms-source";
-import { roomCardModel } from "../../rooms/roomCardModel";
+import type { DriveOpenCallRequest } from "./driveLaunch";
+import type { DriveRoomsSource } from "../rooms/drive-rooms-source";
+import { roomCardModel } from "../rooms/roomCardModel";
 
 const LIVE_STACK_CAP = 3;
 
@@ -21,7 +21,7 @@ export function DriveLiveStack({
 }: {
 	roomsSource: DriveRoomsSource;
 	workspaceRoot?: string;
-	onOpenCall: (request?: DriveOpenCallRequest) => void;
+	onOpenCall: (request: DriveOpenCallRequest) => void;
 }) {
 	const [live, setLive] = useState<DriveRoomDirectoryEntry[]>([]);
 	const [error, setError] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function DriveLiveStack({
 			const entries = await roomsSource.listRooms(workspaceRoot);
 			setLive(
 				entries
-					.filter((entry) => entry.status === "live")
+					.filter((entry: DriveRoomDirectoryEntry) => entry.status === "live")
 					.slice(0, LIVE_STACK_CAP),
 			);
 			setError(null);

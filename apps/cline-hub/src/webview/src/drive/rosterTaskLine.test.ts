@@ -1,40 +1,26 @@
 import { describe, expect, it } from "vitest";
 import { rosterParticipantTaskLine } from "./rosterTaskLine";
 import {
+	DEFAULT_DRIVE_UI,
 	DRIVE_PARTICIPANT_HUMAN,
 	DRIVE_PARTICIPANT_PARTNER,
+	EMPTY_BANK_SNAPSHOT,
 	type DriveUiState,
 } from "./types";
 
 function driveWithNow(nowTitle: string | null): DriveUiState {
 	return {
+		...DEFAULT_DRIVE_UI,
 		active: true,
 		roomId: "default",
 		partnerName: "Coder",
-		subMode: "act",
-		muted: true,
-		deafened: false,
-		partnerMuted: false,
-		partnerDeafened: false,
-		handRaised: false,
-		stageLayout: true,
-		spotlightParticipantId: DRIVE_PARTICIPANT_PARTNER,
-		stageSharer: "partner",
-		stagePin: null,
-		focusedParticipantId: null,
-		speakingParticipantId: null,
-		participants: [],
-		addressSet: { mode: "everyone" },
-		postureOverride: null,
+		subMode: "agent",
 		bankSnapshot: {
+			...EMPTY_BANK_SNAPSHOT,
 			nowTaskId: nowTitle ? "t1" : null,
 			nowTitle,
-			nextTaskId: null,
-			nextTitle: null,
-			posture: null,
-			updatedAt: null,
 		},
-	} as DriveUiState;
+	};
 }
 
 describe("rosterParticipantTaskLine", () => {
