@@ -28,8 +28,8 @@ spinners — some tied to network events, some to page chrome.
      spin.
 3. **`loading` geometry:** rim/spokes may spin; head stays upright. Do not
    full-spin a single-path combined mark (flat bottom reads as tumbling).
-4. **Product code** keeps `currentColor` icons; regenerate
-   `assets/drive/source.png` + derived files when the official raster lands.
+4. **Product code** keeps `currentColor` icons; static and motion paths are
+   generated from the official `assets/drive/source.png`.
 
 ## Consequences
 
@@ -41,9 +41,7 @@ spinners — some tied to network events, some to page chrome.
 
 **Negative**
 
-- Layered SVG must be re-cut from the new art (eyes stay cutouts until masks
-  exist).
-- Until `source.png` is replaced, shipped paths may lag the official pair.
+- Eyes stay cutouts until mask layers exist.
 
 ## Alternatives rejected
 
@@ -56,5 +54,5 @@ spinners — some tied to network events, some to page chrome.
 
 ## Follow-up
 
-See checklist in [DRIVE-MARK.md](../../../design/brand/DRIVE-MARK.md)
-(asset handoff → regenerate → re-layer motion).
+See the verification checklist in
+[DRIVE-MARK.md](../../../design/brand/DRIVE-MARK.md).

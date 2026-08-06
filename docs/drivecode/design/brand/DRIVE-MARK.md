@@ -1,8 +1,6 @@
 # Drive mark — official logo + motion strategy
 
-**Status.** Accepted for brand direction; product SVG layers still regenerate from
-`assets/drive/source.png` once the light/dark pair below is checked in as the
-new source of truth.
+**Status.** Accepted and implemented from `assets/drive/source.png`.
 **Locked by.** [DEC-drive-mark-official.md](../../plans/cline-drivemode/decisions/DEC-drive-mark-official.md)
 **Ship today.** [`DriveMarkIcon`](../../../../apps/cline-hub/src/webview/src/components/icons/drive-mark.tsx)
 (static nav) · [`DriveMarkMotion`](../../../../apps/cline-hub/src/webview/src/components/icons/drive-mark-motion.tsx)
@@ -18,8 +16,8 @@ this mark in nav, headers, empty states, and wait affordances.
 
 | Mode | Presentation | Rule |
 |---|---|---|
-| **Light** | Solid dark mark on light / transparent | Ink ≈ `#151516` / `#1F2024` (or `currentColor` on light chrome) |
-| **Dark** | Solid light mark on dark / transparent | Ink ≈ `#FAFAF8` / `#FFFFFF` (or `currentColor` on dark chrome) |
+| **Light** | Solid dark mark on light / transparent | `#000000` (or `currentColor` on light chrome) |
+| **Dark** | Solid light mark on dark / transparent | `#FFFFFF` (or `currentColor` on dark chrome) |
 
 Do **not** invent a third “brand purple” fill for the mark. Violet stays for
 selection, CTAs, and live accents — the mark itself is monochrome silhouette
@@ -40,10 +38,9 @@ That geometry gates animation choices:
 | Head is the hub | Wheel/rim can turn while the head stays upright — the readable Drive metaphor. |
 | Tiny sizes (≤24px) | Prefer whole-mark opacity or a short rock; layered spin is for ≥32px wait states. |
 
-Until the new art replaces `assets/drive/source.png`, product code may still
-show the previous circular three-spoke trace. Treat that as **interim**; do not
-design new motion around the geometric placeholder rim in
-`cline-drive-mark-layers.svg` beyond what already ships.
+`generate-assets.py` separates the source contour tree into the exact
+`.dm-wheel` and `.dm-head` layers. `generate-icon.py` emits the same compact
+paths for the static and motion React components.
 
 ## Two decision axes for wait motion
 
@@ -150,18 +147,17 @@ eye lids.
 3. **Theme:** `fill="currentColor"` — light/dark come from chrome, not duplicate
    SVG files in the webview bundle. Raster/SVG files under `assets/drive/` stay
    for docs, favicon, and `/cline-drive-logo.svg`.
-4. **Regenerate** from the new official raster via
-   `assets/drive/generate-assets.py` + `generate-icon.py`, then re-cut
-   `cline-drive-mark-layers.svg` (rim vs head). Replace geometric placeholder.
+4. **Regenerate** via `assets/drive/generate-assets.py` +
+   `generate-icon.py`; the scripts cut rim/head layers from the contour tree.
 5. **No new animation library.**
 
 ## Asset handoff checklist
 
-- [ ] Drop official light+dark (or single black-on-transparent master) as
+- [x] Drop official light+dark (or single black-on-transparent master) as
       `assets/drive/source.png`
-- [ ] Regenerate SVGs / ICOs / 512s; copy dark-on-transparent →
+- [x] Regenerate SVGs / ICOs / 512s; copy dark-on-transparent →
       `apps/cline-hub/src/webview/public/cline-drive-logo.svg`
-- [ ] Rebuild `DriveMarkIcon` path + layered `DriveMarkMotion` groups
-- [ ] Update docs logos under `docs/drivecode/assets/logos/`
-- [ ] Re-capture `drive-mark-motion` wireframe screenshot
-- [ ] Confirm 16px and 24px legibility in light and dark hub themes
+- [x] Rebuild `DriveMarkIcon` path + layered `DriveMarkMotion` groups
+- [x] Update docs logos under `docs/drivecode/assets/logos/`
+- [x] Re-capture `drive-mark-motion` wireframe screenshot
+- [x] Confirm 16px and 24px legibility in light and dark hub themes
