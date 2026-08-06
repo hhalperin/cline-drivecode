@@ -94,6 +94,7 @@ import {
 	type DriveShellMode,
 	drivePath,
 	legacyChatOrSessionsRedirect,
+	parseDriveAppShell,
 	parseDriveSessionId,
 	parseDriveShellMode,
 } from "./lib/drive-shell";
@@ -447,12 +448,15 @@ function sessionFilterDetails(session: WebviewSessionSummary): string[] {
 }
 
 function Shell({
+	appShell = false,
 	children,
 	onExpandCall,
 	onNavigate,
 	version,
 	view,
 }: {
+	/** `?app=1` — consumer chrome without hub nav (MC1 / ADR-0029 D4). */
+	appShell?: boolean;
 	children: ReactNode;
 	/** PiP Expand — focus the room the user is already in (DRV-PIP). */
 	onExpandCall: (roomId: string) => void;
@@ -472,6 +476,23 @@ function Shell({
 		setRailCollapsed(next);
 		setStoredNavRailCollapsed(next);
 	};
+
+	if (appShell) {
+		// ponytail: full consumer home (Join/Continue only) is MC1 product work;
+		// this slice only drops hub nav so Spotlight keeps the viewport.
+		return (
+			<div className="flex h-dvh min-h-0 flex-col bg-background text-foreground">
+				<main className="min-h-0 flex-1 overflow-hidden bg-background [&>.h-screen]:h-full [&>.h-dvh]:h-full">
+					{children}
+				</main>
+				<PipPartner
+					onCallRoute={view === "drive"}
+					onExpand={onExpandCall}
+					presence={callPresence}
+				/>
+			</div>
+		);
+	}
 
 	const navItems = [
 		{ view: "home", label: "Home", icon: HomeIcon },
@@ -1891,8 +1912,11 @@ function App() {
 		view,
 	]);
 
+	const appShell = parseDriveAppShell(locationSearch);
+
 	return (
 		<Shell
+			appShell={appShell}
 			onExpandCall={expandDriveCall}
 			onNavigate={navigate}
 			version={hubState.coreVersion}

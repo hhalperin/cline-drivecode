@@ -18,7 +18,7 @@
 | 1 | Fold checkpoint on JSONL trim; hydrate from checkpoint + tail | Cold restart after trim keeps seated humans | **wip / this track** |
 | 2 | Delta `room.event` publish; full snapshot on join/gap/coalesce | Tool-storm WS payload shrinks; clients still catch up | **done** (this branch) — `publishRoomEvent` is event+seq; webview folds without snapshot; seq gap → `refreshDriveRoom` |
 | 3 | In-process agent→stage projector (drop critical-path `call_record_work` RTT) | Daemon `session-event-projector` calls `handleDriveRoomCommand(call_record_work)` after `tool.finished`; remove Hub Chat `recordDriveWorkFromTool` hop atomically | **done** (this branch) — teammates skipped; public `call_record_work` kept |
-| 4 | Layout contract: Spotlight + strip + sheets only | Visible stage ≥320px at 1280×640 (measure clipped rects, not CSS min-height); `?app=1` drops hub nav | todo — research: PlanEditor/captions/settings still in-flow siblings; keep strip docked below; do not drop `min-h-[22rem]` until parent contract lands |
+| 4 | Layout contract: Spotlight + strip + sheets only | Visible stage ≥320px at 1280×640 (measure clipped rects, not CSS min-height); `?app=1` drops hub nav | **done** (this branch) — `parseDriveAppShell`; Shell omits nav on `?app=1`; PlanEditor → strip sheet; strip stays docked; keep `min-h-[22rem]` |
 | 5 | Cloud signaling profile (same wire, hosted writer) | Phone real turns without local daemon — owner ADR-0016 | blocked |
 
 ## Evidence

@@ -3,11 +3,13 @@ export type DriveShellMode = "lobby" | "call" | "history";
 export const DRIVE_PATH = "/drive";
 export const DRIVE_SHELL_MODE_QUERY = "mode";
 export const DRIVE_SESSION_QUERY = "id";
+/** Consumer composition — omit hub nav rail (MC1 / ADR-0029 D4). */
+export const DRIVE_APP_QUERY = "app";
 
 export type DrivePathOptions = {
 	mode?: DriveShellMode;
 	sessionId?: string;
-	/** Extra search params to keep (demo flags, etc.). */
+	/** Extra search params to keep (demo flags, `app=1`, etc.). */
 	preserveSearch?: string | URLSearchParams;
 };
 
@@ -37,6 +39,13 @@ export function parseDriveSessionId(
 ): string | undefined {
 	const id = toSearchParams(search).get(DRIVE_SESSION_QUERY)?.trim();
 	return id || undefined;
+}
+
+/** `?app=1` — phone/PWA shell without hub nav (mobile-consumer MC1). */
+export function parseDriveAppShell(
+	search?: string | URLSearchParams,
+): boolean {
+	return toSearchParams(search).get(DRIVE_APP_QUERY) === "1";
 }
 
 /**

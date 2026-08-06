@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	drivePath,
 	legacyChatOrSessionsRedirect,
+	parseDriveAppShell,
 	parseDriveSessionId,
 	parseDriveShellMode,
 } from "./drive-shell";
@@ -28,6 +29,18 @@ describe("drivePath", () => {
 		expect(
 			drivePath({ mode: "history", preserveSearch: "?demoSessions=1&id=x" }),
 		).toBe("/drive?demoSessions=1&mode=history");
+		expect(drivePath({ sessionId: "s1", preserveSearch: "app=1" })).toBe(
+			"/drive?app=1&id=s1",
+		);
+	});
+});
+
+describe("parseDriveAppShell", () => {
+	it("is true only for app=1", () => {
+		expect(parseDriveAppShell("")).toBe(false);
+		expect(parseDriveAppShell("?app=0")).toBe(false);
+		expect(parseDriveAppShell("?app=1")).toBe(true);
+		expect(parseDriveAppShell("?demoPlans=1&app=1")).toBe(true);
 	});
 });
 

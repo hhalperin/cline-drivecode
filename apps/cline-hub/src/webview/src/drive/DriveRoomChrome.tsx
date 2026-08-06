@@ -442,6 +442,8 @@ export function DriveCallStripDock({
 	modelShortlist = [],
 	currentModel,
 	onSelectModel,
+	planOpen = false,
+	onTogglePlan,
 }: {
 	session: UseDriveSessionResult;
 	disabled: boolean;
@@ -450,6 +452,9 @@ export function DriveCallStripDock({
 	modelShortlist?: readonly string[];
 	currentModel?: string;
 	onSelectModel?: (providerModel: string) => void;
+	/** Plan sheet open — owned by Chat so PlanEditor stays off Spotlight. */
+	planOpen?: boolean;
+	onTogglePlan?: () => void;
 }) {
 	const {
 		captionsOpen,
@@ -471,8 +476,10 @@ export function DriveCallStripDock({
 				disabled={disabled}
 				drive={drive}
 				onLeaveDrive={leaveDrive}
+				onTogglePlan={onTogglePlan}
 				onTogglePower={() => setPowerOpen((open) => !open)}
 				outputVolume={driveVoice.hardware.outputVolume}
+				planOpen={planOpen}
 				powerOpen={powerOpen}
 				spendLabel={spendLabel}
 				turnInFlight={turnInFlight}
