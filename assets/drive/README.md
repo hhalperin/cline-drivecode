@@ -5,6 +5,11 @@ the **Drive feature**, not the application — the Cline Hub keeps Cline's own
 wordmark and favicon, because `apps/cline-hub` is upstream Cline and Drive is a
 feature inside it.
 
+**Official direction:** light mode = dark silhouette; dark mode = light
+silhouette. Motion rules (event- vs location-oriented waits):
+[`docs/drivecode/design/brand/DRIVE-MARK.md`](../../docs/drivecode/design/brand/DRIVE-MARK.md).
+Replace `source.png` with that pair’s master raster, then regenerate.
+
 ## Files
 
 | File | Use |

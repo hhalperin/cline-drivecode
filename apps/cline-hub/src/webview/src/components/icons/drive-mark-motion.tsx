@@ -4,8 +4,10 @@
  * Static nav still uses `DriveMarkIcon` (single path, tiny). Use this when you
  * need loading spin (wheel turns, head stays) or blind-spot peek (head tips).
  *
+ * When to use which motion (event vs location): docs/drivecode/design/brand/DRIVE-MARK.md
+ *
  * Geometry: `assets/drive/cline-drive-mark-layers.svg` (head traced from
- * source.png; wheel geometric rim + three spokes).
+ * source.png; wheel geometric rim + three spokes until official source lands).
  */
 
 export type DriveMarkMotionKind = "idle" | "loading" | "peek" | "drive";

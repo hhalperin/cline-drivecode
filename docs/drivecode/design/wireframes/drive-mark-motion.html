@@ -229,11 +229,14 @@
     </div>
 
     <p class="notes">
+      Official light/dark mark + <strong>event vs location</strong> wait rules:
+      <code>docs/drivecode/design/brand/DRIVE-MARK.md</code>.
       Product component: <code>DriveMarkMotion</code> in
       <code>apps/cline-hub/.../icons/drive-mark-motion.tsx</code>
       — props <code>motion="idle" | "loading" | "peek" | "drive"</code>.
       Static nav keeps <code>DriveMarkIcon</code> (single path, tiny).
       Respects <code>prefers-reduced-motion</code>.
+      Hydrate waits are <em>event</em>-oriented; shell/tab settles are <em>location</em>-oriented.
     </p>
   </div>
 
