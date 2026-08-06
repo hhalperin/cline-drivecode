@@ -1395,7 +1395,10 @@ export default function Chat({
 					setSending(false);
 					setPendingApprovals([]);
 					activeAssistantIdRef.current = undefined;
-					setCallSpend((prev) => foldUsageIntoSpend(prev, message.usage));
+					// PU4 session spend is call-scoped — ignore off-call / post-leave turns.
+					if (driveRef.current.active) {
+						setCallSpend((prev) => foldUsageIntoSpend(prev, message.usage));
+					}
 					setMessages((current) =>
 						finalizeAssistantTurn(
 							current,
@@ -1538,7 +1541,7 @@ export default function Chat({
 	const applyAddressSet = useCallback((addressSet: AddressSet) => {
 		postToHost({
 			type: "call_set_address",
-			roomId: DRIVE_DEFAULT_ROOM_ID,
+			roomId: driveRef.current.roomId?.trim() || DRIVE_DEFAULT_ROOM_ID,
 			addressSet,
 		});
 	}, []);

@@ -3,6 +3,7 @@ import {
 	DRIVE_POWER_CHROME_STORAGE_KEY,
 	parseDrivePowerChrome,
 	readDrivePowerChrome,
+	subscribeDrivePowerChrome,
 	writeDrivePowerChrome,
 } from "./drive-power-chrome";
 
@@ -56,5 +57,18 @@ describe("read/writeDrivePowerChrome", () => {
 		expect(readDrivePowerChrome()).toBe(true);
 		writeDrivePowerChrome(false);
 		expect(readDrivePowerChrome()).toBe(false);
+	});
+
+	it("notifies subscribers on write", () => {
+		stubLocalStorage();
+		const seen: boolean[] = [];
+		const stop = subscribeDrivePowerChrome((enabled) => {
+			seen.push(enabled);
+		});
+		writeDrivePowerChrome(true);
+		writeDrivePowerChrome(false);
+		stop();
+		writeDrivePowerChrome(true);
+		expect(seen).toEqual([true, false]);
 	});
 });

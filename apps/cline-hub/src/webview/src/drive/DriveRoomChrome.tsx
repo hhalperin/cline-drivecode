@@ -102,6 +102,7 @@ export function DriveRoster({
 	recruitFixtures?: readonly RecruitCandidate[];
 }) {
 	const { drive, setDrive } = session;
+	const { powerChrome } = useDrivePowerChromePref();
 	if (!drive.active) {
 		return null;
 	}
@@ -112,6 +113,7 @@ export function DriveRoster({
 			onAddRosterPack={onAddRosterPack}
 			onDriveChange={setDrive}
 			onSeatRecruit={onSeatRecruit}
+			powerChrome={powerChrome}
 			recruitFixtures={recruitFixtures}
 			onTranscriptFocus={(participantId) => {
 				setDrive((current) => applyTranscriptFocus(current, participantId));

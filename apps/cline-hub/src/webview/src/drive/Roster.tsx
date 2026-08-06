@@ -35,6 +35,7 @@ export function Roster({
 	onSeatRecruit,
 	onAddRosterPack,
 	recruitFixtures,
+	powerChrome = false,
 }: {
 	drive: DriveUiState;
 	workspaceRoot?: string;
@@ -52,6 +53,8 @@ export function Roster({
 	 * which are the entries whose seat can carry an honest `ref`.
 	 */
 	recruitFixtures?: readonly RecruitCandidate[];
+	/** PU0/PU2 — denser task lines when power chrome is on. */
+	powerChrome?: boolean;
 }) {
 	const participants = resolveRosterParticipants(drive);
 	const inkTheme = useDriveInkTheme();
@@ -94,7 +97,9 @@ export function Roster({
 					const handRaised = isRosterParticipantHandRaised(drive, participant);
 					const focused = drive.focusedParticipantId === participant.id;
 					const speaking = participant.status === "speaking";
-					const taskLine = rosterParticipantTaskLine(drive, participant);
+					const taskLine = powerChrome
+						? rosterParticipantTaskLine(drive, participant)
+						: null;
 					const inkColor = resolveParticipantNameInk({
 						drive,
 						participant,

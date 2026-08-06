@@ -4,7 +4,7 @@
  */
 
 import type { DriveRoomDirectoryEntry } from "@cline/drive";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -25,10 +25,18 @@ export function DriveLiveStack({
 }) {
 	const [live, setLive] = useState<DriveRoomDirectoryEntry[]>([]);
 	const [error, setError] = useState<string | null>(null);
+	// Same race as RoomsView: a slow listRooms for the previous workspaceRoot
+	// must not paint over the current one. Only the newest request may write.
+	const requestSeqRef = useRef(0);
 
 	const refresh = useCallback(async () => {
+		const seq = ++requestSeqRef.current;
+		const requestedRoot = workspaceRoot;
 		try {
-			const entries = await roomsSource.listRooms(workspaceRoot);
+			const entries = await roomsSource.listRooms(requestedRoot);
+			if (seq !== requestSeqRef.current) {
+				return;
+			}
 			setLive(
 				entries
 					.filter((entry: DriveRoomDirectoryEntry) => entry.status === "live")
@@ -36,6 +44,9 @@ export function DriveLiveStack({
 			);
 			setError(null);
 		} catch (cause) {
+			if (seq !== requestSeqRef.current) {
+				return;
+			}
 			setError(cause instanceof Error ? cause.message : "Could not list rooms");
 			setLive([]);
 		}

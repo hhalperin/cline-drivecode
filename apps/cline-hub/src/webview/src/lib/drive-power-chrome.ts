@@ -29,6 +29,21 @@ export function readDrivePowerChrome(): boolean {
 	return parseDrivePowerChrome(readStoredValue(DRIVE_POWER_CHROME_STORAGE_KEY));
 }
 
+/** Module listeners so sheet + roster mounts stay in sync after a toggle. */
+const powerChromeListeners = new Set<(enabled: boolean) => void>();
+
+export function subscribeDrivePowerChrome(
+	listener: (enabled: boolean) => void,
+): () => void {
+	powerChromeListeners.add(listener);
+	return () => {
+		powerChromeListeners.delete(listener);
+	};
+}
+
 export function writeDrivePowerChrome(enabled: boolean): void {
 	writeStoredValue(DRIVE_POWER_CHROME_STORAGE_KEY, enabled ? "1" : "0");
+	for (const listener of powerChromeListeners) {
+		listener(enabled);
+	}
 }

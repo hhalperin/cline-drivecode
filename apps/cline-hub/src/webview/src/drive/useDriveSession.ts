@@ -1432,21 +1432,26 @@ export function useDriveSession(
 	);
 
 	const cancelFork = useCallback((workerSessionId: string) => {
+		const roomId = driveRef.current.roomId?.trim() || DRIVE_DEFAULT_ROOM_ID;
 		postToHost({
 			type: "driveCommand",
 			command: "drive.fork.cancel",
 			payload: {
-				roomId: "default",
+				roomId,
 				workerSessionId,
 				summary: "Stopped from power cockpit",
 				retainForAudit: false,
 			},
 		});
-		postToHost({
-			type: "driveCommand",
-			command: "drive.fork.list",
-			payload: { roomId: "default" },
-		});
+		// Cancel → promote returns `room`; drive_room_changed refreshes chatForks.
+		// Do not fire fork.list in parallel — it can land before promote finishes.
+		setChatForks((current) =>
+			current.map((fork) =>
+				fork.workerSessionId === workerSessionId
+					? { ...fork, lifecycle: "dropped", visibleToHuman: false }
+					: fork,
+			),
+		);
 	}, []);
 
 	const stripHandlers = useMemo(

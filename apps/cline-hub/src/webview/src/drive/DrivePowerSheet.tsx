@@ -3,7 +3,7 @@
  */
 
 import type { ChatForkRecord, StageCard } from "@cline/shared";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
 	readDrivePowerChrome,
+	subscribeDrivePowerChrome,
 	writeDrivePowerChrome,
 } from "../lib/drive-power-chrome";
 import { AgentAvatar } from "./AgentAvatar";
@@ -346,11 +347,9 @@ export function useDrivePowerChromePref(): {
 	setPowerChrome: (enabled: boolean) => void;
 } {
 	const [powerChrome, setPowerChromeState] = useState(readDrivePowerChrome);
+	useEffect(() => subscribeDrivePowerChrome(setPowerChromeState), []);
 	return {
 		powerChrome,
-		setPowerChrome: (enabled: boolean) => {
-			writeDrivePowerChrome(enabled);
-			setPowerChromeState(enabled);
-		},
+		setPowerChrome: writeDrivePowerChrome,
 	};
 }
