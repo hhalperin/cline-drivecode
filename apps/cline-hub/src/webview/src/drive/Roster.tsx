@@ -22,6 +22,7 @@ import {
 	participantStatusLabel,
 	resolveRosterParticipants,
 } from "./rosterHelpers";
+import { rosterParticipantTaskLine } from "./rosterTaskLine";
 import type { DriveUiState } from "./types";
 
 export function Roster({
@@ -93,6 +94,7 @@ export function Roster({
 					const handRaised = isRosterParticipantHandRaised(drive, participant);
 					const focused = drive.focusedParticipantId === participant.id;
 					const speaking = participant.status === "speaking";
+					const taskLine = rosterParticipantTaskLine(drive, participant);
 					const inkColor = resolveParticipantNameInk({
 						drive,
 						participant,
@@ -101,9 +103,9 @@ export function Roster({
 
 					return (
 						<button
-							aria-label={`${participant.displayName}, ${participant.kind}${muted ? ", muted" : ""}`}
+							aria-label={`${participant.displayName}, ${participant.kind}${muted ? ", muted" : ""}${taskLine ? `, ${taskLine}` : ""}`}
 							className={cn(
-								"inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
+								"inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors",
 								"border-amber-500/30 bg-background/80 hover:bg-amber-500/10",
 								focused && "ring-1 ring-amber-500/60",
 								speaking &&
@@ -119,11 +121,18 @@ export function Roster({
 								participant={participant}
 								size="sm"
 							/>
-							<span
-								className="max-w-[8rem] truncate font-medium"
-								style={inkColor ? { color: inkColor } : undefined}
-							>
-								{participant.displayName}
+							<span className="min-w-0 text-left">
+								<span
+									className="block max-w-[8rem] truncate font-medium"
+									style={inkColor ? { color: inkColor } : undefined}
+								>
+									{participant.displayName}
+								</span>
+								{taskLine ? (
+									<span className="block max-w-[10rem] truncate text-[10px] text-muted-foreground normal-case tracking-normal">
+										{taskLine}
+									</span>
+								) : null}
 							</span>
 							<span className="text-[10px] text-muted-foreground capitalize">
 								{participantStatusLabel(participant.status)}

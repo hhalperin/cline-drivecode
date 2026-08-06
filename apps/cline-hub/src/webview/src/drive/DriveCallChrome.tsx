@@ -10,6 +10,7 @@ import {
 	Loader2Icon,
 	MicIcon,
 	MicOffIcon,
+	PanelBottomIcon,
 	PhoneIcon,
 	PinIcon,
 	RotateCcwIcon,
@@ -414,6 +415,7 @@ export function DriveCallStrip({
 	workerCount = 0,
 	workersOpen = false,
 	turnInFlight = false,
+	powerOpen = false,
 	onMuteToggle,
 	onDeafenToggle,
 	onHandToggle,
@@ -428,6 +430,7 @@ export function DriveCallStrip({
 	onTogglePartnerMute,
 	onTogglePartnerDeafen,
 	onToggleWorkers,
+	onTogglePower,
 }: {
 	/** CC panel open — the strip button is its only control. */
 	captionsOpen: boolean;
@@ -439,6 +442,8 @@ export function DriveCallStrip({
 	workersOpen?: boolean;
 	/** True while an agent turn is running — raise-hand → finishing chrome. */
 	turnInFlight?: boolean;
+	/** Power cockpit sheet open (PU0). */
+	powerOpen?: boolean;
 	onMuteToggle: () => void;
 	/** Self output mute — stops this browser speaking agent audio. */
 	onDeafenToggle?: () => void;
@@ -457,6 +462,7 @@ export function DriveCallStrip({
 	onTogglePartnerMute?: () => void;
 	onTogglePartnerDeafen?: () => void;
 	onToggleWorkers?: () => void;
+	onTogglePower?: () => void;
 }) {
 	if (!drive.active) {
 		return null;
@@ -653,6 +659,17 @@ export function DriveCallStrip({
 							</span>
 						) : null}
 					</span>
+				</StripButton>
+			) : null}
+			{onTogglePower ? (
+				<StripButton
+					disabled={disabled}
+					label={powerOpen ? "Close power cockpit" : "Open power cockpit"}
+					onClick={() => onTogglePower()}
+					pressed={powerOpen}
+					tone={powerOpen ? "live" : "neutral"}
+				>
+					<PanelBottomIcon />
 				</StripButton>
 			) : null}
 			{/* Sliders, not a gear: the composer's gear opens the provider/model

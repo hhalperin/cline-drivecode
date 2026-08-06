@@ -17,6 +17,10 @@ import { Button } from "@/components/ui/button";
 import { NowNext } from "../components/NowNext";
 import { downloadTextFile } from "../status/downloadTextFile";
 import { DriveCallStrip } from "./DriveCallChrome";
+import {
+	DrivePowerSheet,
+	useDrivePowerChromePref,
+} from "./DrivePowerSheet";
 import { PlanImproveGate } from "./PlanImproveGate";
 import { PlanReentryRow } from "./PlanReentryRow";
 import { requestPlanImproveResolve } from "./planImproveResolve";
@@ -441,18 +445,31 @@ export function DriveCallStripDock({
 		workersPanelOpen,
 		leaveDrive,
 	} = session;
+	const [powerOpen, setPowerOpen] = useState(false);
+	const { powerChrome, setPowerChrome } = useDrivePowerChromePref();
 	return (
-		<DriveCallStrip
-			captionsOpen={captionsOpen}
-			disabled={disabled}
-			drive={drive}
-			onLeaveDrive={leaveDrive}
-			outputVolume={driveVoice.hardware.outputVolume}
-			turnInFlight={turnInFlight}
-			workerCount={chatForks.length}
-			workersOpen={workersPanelOpen}
-			{...stripHandlers}
-		/>
+		<>
+			<DriveCallStrip
+				captionsOpen={captionsOpen}
+				disabled={disabled}
+				drive={drive}
+				onLeaveDrive={leaveDrive}
+				onTogglePower={() => setPowerOpen((open) => !open)}
+				outputVolume={driveVoice.hardware.outputVolume}
+				powerOpen={powerOpen}
+				turnInFlight={turnInFlight}
+				workerCount={chatForks.length}
+				workersOpen={workersPanelOpen}
+				{...stripHandlers}
+			/>
+			<DrivePowerSheet
+				drive={drive}
+				onOpenChange={setPowerOpen}
+				onPowerChromeChange={setPowerChrome}
+				open={powerOpen}
+				powerChrome={powerChrome}
+			/>
+		</>
 	);
 }
 
