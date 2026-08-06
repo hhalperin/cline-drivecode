@@ -21,6 +21,7 @@ function makeCtx(): HubTransportContext & { published: unknown[] } {
 		pendingApprovals: new Map(),
 		pendingCapabilityRequests: new Map(),
 		suppressNextTerminalEventBySession: new Map(),
+		pendingDriveToolInputs: new Map(),
 		sessionHost: {} as HubTransportContext["sessionHost"],
 		publish(event) {
 			published.push(event);
