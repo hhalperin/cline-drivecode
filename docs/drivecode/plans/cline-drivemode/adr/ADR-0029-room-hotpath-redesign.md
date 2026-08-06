@@ -81,7 +81,7 @@ Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cl
 
 | Slice | Status |
 |---|---|
-| D1 fold checkpoint | **partial / this PR** — trim → checkpoint; hydrate prefers checkpoint |
+| D1 fold checkpoint | **partial / this PR** — trim → checkpoint; hydrate prefers checkpoint; hydrate ignores process-global `appliedEventIds` skips |
 | D2 delta publish | todo |
 | D3 one stage projector | todo |
 | D4 layout contract | todo (docs + composition) |

@@ -112,6 +112,12 @@ describe("RoomEventLog + DriveRoomStore", () => {
 			expect(snap?.participants).toHaveLength(1);
 			expect(snap?.participants[0]?.id).toBe("h1");
 			expect(snap?.muteByParticipantId.h1).toBe(true);
+
+			// Same process: drop live map but keep appliedEventIds; rehydrate must not blank.
+			restored.rooms.delete("r1");
+			const again = restored.hydrateFromLogSync("r1");
+			expect(again?.participants).toHaveLength(1);
+			expect(again?.participants[0]?.id).toBe("h1");
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}

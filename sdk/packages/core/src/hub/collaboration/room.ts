@@ -258,9 +258,9 @@ export class DriveRoomStore {
 
 		let lastEnd: RoomCommitResult | undefined;
 		for (const record of records) {
-			if (this.appliedEventIds.has(record.event.id)) {
-				continue;
-			}
+			// ponytail: do not skip via process-global appliedEventIds — that set
+			// outlives trimmed log prefixes and can blank a same-process rehydrate.
+			// reduceRoom already dedups on snapshot.appliedEventIds.
 			snapshot = reduceRoom(snapshot, record.event);
 			this.rooms.set(roomId, snapshot);
 			this.appliedEventIds.add(record.event.id);
