@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+	appShellHomeRedirect,
 	drivePath,
 	legacyChatOrSessionsRedirect,
 	parseDriveAppShell,
@@ -41,6 +42,28 @@ describe("parseDriveAppShell", () => {
 		expect(parseDriveAppShell("?app=0")).toBe(false);
 		expect(parseDriveAppShell("?app=1")).toBe(true);
 		expect(parseDriveAppShell("?demoPlans=1&app=1")).toBe(true);
+	});
+});
+
+describe("appShellHomeRedirect", () => {
+	it("is inert without app=1", () => {
+		expect(appShellHomeRedirect("/")).toBeNull();
+		expect(appShellHomeRedirect("/", "?demoPlans=1")).toBeNull();
+	});
+
+	it("leaves /drive alone and maps home/settings onto lobby", () => {
+		expect(appShellHomeRedirect("/drive", "?app=1")).toBeNull();
+		expect(appShellHomeRedirect("/drive", "?app=1&id=s1")).toBeNull();
+		expect(appShellHomeRedirect("/", "?app=1")).toBe("/drive?app=1");
+		expect(appShellHomeRedirect("/status", "?app=1&demoPlans=1")).toBe(
+			"/drive?app=1&demoPlans=1",
+		);
+	});
+
+	it("still maps legacy /chat onto call", () => {
+		expect(appShellHomeRedirect("/chat", "?app=1&id=s1")).toBe(
+			"/drive?app=1&id=s1",
+		);
 	});
 });
 

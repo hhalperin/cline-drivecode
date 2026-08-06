@@ -49,6 +49,28 @@ export function parseDriveAppShell(
 }
 
 /**
+ * Consumer composition: anything that is not already a Drive URL becomes the
+ * Join/Continue lobby. Call/history query on `/drive` is left alone.
+ * Returns null when no redirect is needed (or `app` is not set).
+ */
+export function appShellHomeRedirect(
+	pathname: string,
+	search?: string | URLSearchParams,
+): string | null {
+	if (!parseDriveAppShell(search)) {
+		return null;
+	}
+	if (pathname === DRIVE_PATH) {
+		return null;
+	}
+	const legacy = legacyChatOrSessionsRedirect(pathname, search);
+	if (legacy) {
+		return legacy;
+	}
+	return drivePath({ mode: "lobby", preserveSearch: search });
+}
+
+/**
  * Resolve Drive shell mode from the current location.
  * Session id implies call; `mode=history` implies history; otherwise lobby
  * unless `forceCall` (e.g. an in-flight drive launch) is set.
