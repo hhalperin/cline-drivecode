@@ -226,5 +226,9 @@ with a credential-free watch path before App Store / Play Store.
 Next concrete build after this plan: **MC1** on top of drive-web + collapsible
 rail — `?app=1` composition root with vertical Spotlight. Apply
 [MOBILE-BRAND-STYLING.md](../../../../design/brand/MOBILE-BRAND-STYLING.md)
+<<<<<<< HEAD
 before restyling app/surfaces wireframes (green Live, light default). Gap
 priority and capability packs: [GAPS.md](GAPS.md).
+=======
+before restyling app/surfaces wireframes (green Live, light default).
+>>>>>>> origin/main
