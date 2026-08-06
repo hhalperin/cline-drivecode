@@ -772,6 +772,23 @@
     font-size: 13px;
   }
   .loading-row svg { width: 18px; height: 18px; color: var(--ink); }
+  /* Dark stage plane (call + hydrate): light theme --ink-* is near-black — force light ink */
+  .view[data-view="call"] .who,
+  .view[data-view="thinking"] .who {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .view[data-view="call"] .who em,
+  .view[data-view="thinking"] .who em {
+    color: #fff;
+  }
+  .view[data-view="call"] .loading-row,
+  .view[data-view="thinking"] .loading-row {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  .view[data-view="call"] .loading-row svg,
+  .view[data-view="thinking"] .loading-row svg {
+    color: #fff;
+  }
   .dm-wheel, .dm-head { transform-box: fill-box; transform-origin: center; }
   .is-loading .dm-wheel { animation: dm-spin 1.15s linear infinite; }
   .is-peek .dm-head { animation: dm-peek 2.4s ease-in-out infinite; }
