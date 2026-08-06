@@ -27,7 +27,10 @@ export function DriveMarkMotion({
 	return (
 		<svg
 			aria-hidden={title ? undefined : true}
-			className={className ? `drive-mark-motion ${className}` : "drive-mark-motion"}
+			aria-label={title}
+			className={
+				className ? `drive-mark-motion ${className}` : "drive-mark-motion"
+			}
 			data-motion={motion}
 			fill="currentColor"
 			role={title ? "img" : undefined}

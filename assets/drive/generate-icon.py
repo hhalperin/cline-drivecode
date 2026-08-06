@@ -91,9 +91,12 @@ tsx = f'''/**
  * resample: the full asset path is ~25KB, which is wasted detail below 32px.
  */
 
-export const DRIVE_MARK_WHEEL_PATH = "{wheel_path}";
-export const DRIVE_MARK_HEAD_PATH = "{head_path}";
-const DRIVE_MARK_PATH = "{path_data}";
+export const DRIVE_MARK_WHEEL_PATH =
+\t"{wheel_path}";
+export const DRIVE_MARK_HEAD_PATH =
+\t"{head_path}";
+const DRIVE_MARK_PATH =
+\t"{path_data}";
 
 export function DriveMarkIcon({{ className }}: {{ className?: string }}) {{
 \treturn (
