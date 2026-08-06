@@ -2,6 +2,7 @@
 
 **Status.** Gap analysis against the presenter demo + surface inventory (2026-08-06).  
 **Parent.** [README.md](README.md) (MC0–MC6).  
+**User-value priority:** [FEATURES.md](FEATURES.md) (what to build because people will use it).  
 **Visual SoT.** [mobile-drive-ios.html](../../../../design/wireframes/mobile-drive-ios.html) · [mobile-drive-ios-demo.html](../../../../design/wireframes/mobile-drive-ios-demo.html).  
 **Full IA.** [mobile-drive-surfaces.html](../../../../design/wireframes/mobile-drive-surfaces.html).  
 **Brand locks.** [MOBILE-BRAND-STYLING.md](../../../../design/brand/MOBILE-BRAND-STYLING.md).
@@ -216,9 +217,10 @@ Carried from [README](README.md); mapped to gaps:
 
 ## Hand back
 
-**Shipped look ≠ shipped product.** Next durable work:
+**Shipped look ≠ shipped product.** Prefer [FEATURES.md](FEATURES.md) Tier 1–2 over filling every inventory ✗.
 
 1. Retheme app/surfaces (brand checklist).  
-2. MC1 `?app=1` on drive-web (prereq ux-quality 0–2).  
-3. Optionally add 2–3 capability beats to the iOS demo (raise hand, captions, leave) without dropping Preview honesty.  
-4. Draft MC5 ADR in parallel — do not wait on it for MC1–MC4.
+2. MC1 `?app=1` — **Glance pack** (Live home + full-bleed Spotlight + honest Preview + leave copy).  
+3. Decide + Speak packs; then Habit (PWA).  
+4. Optionally add capability beats to the iOS demo (raise hand, captions, leave) without dropping Preview honesty.  
+5. Draft MC5 ADR in parallel — do not wait on it for MC1–MC4.
