@@ -7,7 +7,7 @@ The **multi-device-backlog** skill owns the edit discipline.
 
 | ID | Feature | hub | pwa | ios | tui | Notes |
 |---|---|---|---|---|---|---|
-| F01 | Live glance home | wip | todo | wip | lite | ios: `HomeView` fixture |
+| F01 | Live glance home | wip | todo | wip | lite | hub: `?app=1` Join/Continue; ios: `HomeView` fixture |
 | F02 | Full-bleed Spotlight | wip | todo | wip | lite | ios: `CallView` fixture |
 | F03 | Approval gate | wip | todo | wip | wip | ios: `ApprovalSheet` |
 | F04 | Hold-to-talk | wip | todo | todo | n/a | ios chrome only; STT later |
@@ -24,4 +24,4 @@ The **multi-device-backlog** skill owns the edit discipline.
 | F15 | Voice mini-settings | wip | todo | wip | todo | ios: Settings toggles |
 | D01 | Live Activity | n/a | n/a | yagni | n/a | after Tier 1 |
 
-Last maintained: 2026-08-06 (ios SwiftUI scaffold).
+Last maintained: 2026-08-07 (portfolio-now bootstrap; hub Join/Continue).
