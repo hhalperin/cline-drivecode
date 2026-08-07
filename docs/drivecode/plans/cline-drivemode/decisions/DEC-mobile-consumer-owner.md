@@ -1,18 +1,19 @@
 # DEC · Mobile consumer owner defaults (2026-08-07)
 
 **Status.** Accepted  
-**Date.** 2026-08-07  
+**Date.** 2026-08-07 (amended same day — hosted economics)  
 **Deciders.** Harrison (owner)  
 **Aligns with.** [ADR-0016](../adr/ADR-0016-distribution-and-positioning.md) (path H
-amendment), [mobile-consumer](../initiatives/mobile-consumer/),
+amendment), [ADR-0021](../adr/ADR-0021-drive-credential-onboarding.md),
+[mobile-consumer](../initiatives/mobile-consumer/),
 [portfolio-now](../initiatives/portfolio-now/), [ADR-0029](../adr/ADR-0029-room-hotpath-redesign.md) D5
 
 ## Context
 
 [mobile-consumer](../initiatives/mobile-consumer/) listed five open owner
-questions that blocked teaching chips, PWA naming, install sequencing, and
-whether hosted phone turns were in scope. Harrison answered four on 2026-08-07
-(freemium economics left open).
+questions that blocked teaching chips, PWA naming, install sequencing, hosted
+phone turns, and hosted-turn economics. Harrison answered path H / voice /
+brand / MC3 first; freemium vs BYOK closed as **Cline default** the same day.
 
 ## Decision
 
@@ -30,9 +31,19 @@ whether hosted phone turns were in scope. Harrison answered four on 2026-08-07
    Manifest `name` / `short_name` and splash copy use this when MC3 lands.
 4. **MC3 (PWA) on the Now roadmap** — **Yes.** Install habit is not optional
    phase-8 polish; keep `NOW-PWA` in the Now sequencer.
+5. **Hosted-turn economics** — **Cline default (freemium).** Hosted real turns
+   use **Sign in with Cline** / account credits as the primary path; **BYOK is
+   secondary** (same posture as [ADR-0021](../adr/ADR-0021-drive-credential-onboarding.md)
+   §2). Do not ship BYOK-only as the consumer first-run for path H. Do **not**
+   invent Drive-owned plan/pricing chrome — credit balance and upgrade stay on
+   Cline account surfaces; Drive keeps readiness + spend honesty when a session
+   has credentials.
 
-**Still open:** freemium vs BYOK economics for hosted turns (mobile-consumer
-owner Q4) — do not invent pricing UX until answered.
+## Sequencing (not economics)
+
+Next build remains **`NOW-HOLD-TALK` + `NOW-STRIP-44`** (finish MC1 call verbs).
+`NOW-HOTPATH-D5` is **unblocked** by path H but stays **after** those unless a
+hosted real-turn demo forces it earlier.
 
 ## Consequences
 
@@ -42,12 +53,15 @@ owner Q4) — do not invent pricing UX until answered.
   beta already is a mass-market runtime.
 - Privacy-safe voice default matches DRV-MIC / spotlight S4.
 - One install brand string for MC3.
+- Hosted turns share Cline’s existing account / freemium story; BYOK stays for
+  power users without a second vault.
 
 **Negative**
 
 - Hosted path creates ops/credential work (ADR-0021) before “just open the app
   and build” is honest.
-- Freemium still undefined — avoid spend UI that implies a plan.
+- Freemium depends on Cline account product; Drive must not fake plan UI when
+  balance or entitlement is missing — Preview / readiness honesty instead.
 
 ## References
 

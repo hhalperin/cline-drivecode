@@ -156,8 +156,10 @@ Canonical: [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner
 | 2 | **Default muted**; strip = enable-mic toggle | NOW-HOLD-TALK teaching assumes muted start |
 | 3 | **Cline Drive** | NOW-PWA manifest `name` / `short_name` |
 | 4 | **Yes** — force MC3 | NOW-PWA stays in Now |
+| 5 | **Cline default (freemium)**; BYOK secondary | Hosted turns = Sign in with Cline; no Drive plan chrome |
 
-**Still open:** freemium vs BYOK for hosted turns.
+Owner gates closed. Next build: **NOW-HOLD-TALK** + **NOW-STRIP-44**. D5
+unblocked, sequenced after those unless a hosted demo pulls it forward.
 
 ## Explicit YAGNI (still)
 

@@ -23,7 +23,9 @@ consumers who will not run a local daemon. It does **not** reopen multi-human
 rooms, does **not** make MCP the room bus, and does **not** replace Route B
 self-host. Signaling topology is [ADR-0029](ADR-0029-room-hotpath-redesign.md)
 D5; credentials remain [ADR-0021](ADR-0021-drive-credential-onboarding.md).
-Freemium vs BYOK economics for hosted turns is **still open**.
+Hosted-turn economics: **Cline default (freemium)** — Sign in with Cline /
+account credits primary, BYOK secondary
+([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md) §5).
 
 **What this defers rather than closes.** Route C (upstream the protocol, keep
 the hub as the product) remains the recommendation in the analysis below and is

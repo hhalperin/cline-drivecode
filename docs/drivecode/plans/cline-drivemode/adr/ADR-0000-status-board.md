@@ -46,7 +46,7 @@
 | [ADR-0013](ADR-0013-state-partition.md) | Three-lane state partition | **Accepted** | partial | Log + live + facets; two live maps wording soft |
 | [ADR-0014](ADR-0014-chat-fork-lifecycle.md) | Chat-fork lifecycle | **Accepted** | shipped | Hub `drive.fork.*` + PromotePacket |
 | [ADR-0015](ADR-0015-task-session-observability.md) | Local task-session observability | **Accepted** | partial | Slices + privacy UI + host compile enqueue; materialize into `.driveagent/` still host |
-| [ADR-0016](ADR-0016-distribution-and-positioning.md) | Drive mode distribution & positioning | **Accepted** | decision | Route B fork; self-hosted beta; **path H hosted consumer accepted 2026-08-07** ([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)) |
+| [ADR-0016](ADR-0016-distribution-and-positioning.md) | Drive mode distribution & positioning | **Accepted** | decision | Route B fork; self-hosted beta; **path H** + hosted economics **Cline freemium default** (2026-08-07; [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)) |
 | [ADR-0017](ADR-0017-narration-bound-presentation-cues.md) | Narration-bound presentation cues | **Proposed — deferred** | deferred | Demo canvas only; behind S9 |
 | [ADR-0018](ADR-0018-agent-runtime-contract.md) | Agent runtime contract (DriveTask v1) | **Accepted** | partial | `run.ts` + interop + Agent Control hub tools + completion guard; see ADR-0019 |
 | [ADR-0019](ADR-0019-driveplan-kanban-interop-wire.md) | DrivePlan–Kanban Interop wire | **Accepted** | partial | `execute` / `collectReceipt` + `KanbanInteropHost`; Kanban/hub host adapters still thin |

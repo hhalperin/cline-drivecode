@@ -177,7 +177,8 @@ state; reduced-motion still readable.
 
 **Changes.** Path H accepted ([DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md)
 / ADR-0016 amendment). Implement hosted writer (ADR-0029 D5) + ADR-0021
-credential readiness. Freemium vs BYOK economics still open — no fake plan UI.
+credential readiness. Economics: **Cline default (freemium)**; BYOK secondary —
+no Drive-owned plan chrome.
 
 **Gate.** Phone completes a real turn against hosted single-writer; Preview
 honesty when credentials missing.
@@ -225,8 +226,7 @@ Closed 2026-08-07 — [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-con
 2. **Voice** — default muted; strip Mute/Unmute = enable-microphone toggle.
 3. **Home-screen name** — **Cline Drive**.
 4. **MC3 on Now roadmap** — yes.
-
-**Still open:** freemium vs BYOK for hosted turns.
+5. **Hosted economics** — **Cline default (freemium)**; BYOK secondary.
 
 ## Hand back
 
