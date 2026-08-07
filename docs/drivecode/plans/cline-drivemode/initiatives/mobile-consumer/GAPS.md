@@ -209,11 +209,11 @@ Carried from [README](README.md); mapped to gaps:
 
 | # | Decision | Unblocks |
 |---|---|---|
-| 1 | Amend ADR-0016 for hosted consumer? | Pack Hosted truth; real turns vs forever-demo |
-| 2 | Voice default muted vs hold hot? | Call verbs teaching chip |
-| 3 | Icon name “Drive” vs “Cline Drive”? | MC3 splash + manifest |
-| 4 | Freemium if hosted? | MC5 economics UX (cost drawer) |
-| 5 | Force MC3 onto roadmap now? | Install pack sequencing (recommend **yes**) |
+| 1 | Amend ADR-0016 for hosted consumer? | **Yes** (2026-08-07) — D5 + ADR-0021 |
+| 2 | Voice default muted vs hold hot? | **Muted** + enable-mic toggle |
+| 3 | Icon name “Drive” vs “Cline Drive”? | **Cline Drive** |
+| 4 | Freemium if hosted? | **Still open** — MC5 economics UX |
+| 5 | Force MC3 onto roadmap now? | **Yes** — NOW-PWA in portfolio-now |
 
 ## Hand back
 

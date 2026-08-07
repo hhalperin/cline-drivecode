@@ -53,9 +53,9 @@ In-process: tool/session end → `recordWork` in the hub host on the same turn a
 
 Call surface = Spotlight + one strip + sheets. Plan editor, task bank, audit, meters → sheets/drawers. Same composition root for hub wide and mobile `?app=1`.
 
-### D5 · Signaling topology (slice 5 — owner gate)
+### D5 · Signaling topology (slice 5)
 
-Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cloud` (hosted single-writer room service) with the **same Drive wire**. Phone uses cloud. Does not amend ADR-0016 until owner accepts path H. MCP stays off the room wire.
+Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cloud` (hosted single-writer room service) with the **same Drive wire**. Phone / PWA use cloud under path H ([ADR-0016](ADR-0016-distribution-and-positioning.md) amended 2026-08-07; [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)). MCP stays off the room wire.
 
 ## Consequences
 
@@ -85,7 +85,7 @@ Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cl
 | D2 delta publish | **partial / this PR** — `room.event` omits snapshot; clients fold locally; gap refresh via `call_get_room` |
 | D3 one stage projector | **partial / this PR** — daemon projects after `tool.finished`; Hub Chat bridge removed; teammates skipped |
 | D4 layout contract | **partial / this PR** — `?app=1` drops hub nav; Plan / worker audit / captions are strip sheets (not Spotlight flex siblings); gate/recruit overlays stay ephemeral on stage |
-| D5 cloud signaling | **blocked** on owner ADR-0016 path H (self-hosted beta today) |
+| D5 cloud signaling | **todo** — path H accepted; design/implement hosted writer profile (same wire) |
 
 ## Links
 

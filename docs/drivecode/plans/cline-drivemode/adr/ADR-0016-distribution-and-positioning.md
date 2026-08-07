@@ -2,18 +2,28 @@
 
 ## Status
 
-**Accepted 2026-08-02 — Route B (standalone fork product), for now.**
+**Accepted 2026-08-02 — Route B (standalone fork product), for now.**  
+**Amended 2026-08-07 — path H (hosted consumer runtime) accepted** — see below
+and [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md).
 
 Harrison's call: keep Drive mode in the `hhalperin/cline-drivecode` fork and
 merge nothing upstream to `cline/cline` for now.
 
 **Beta shape (decided 2026-08-02):** public, **self-hosted** — anyone can clone
-the fork and run it. Not a hosted service: the hub remains a locally-spawned
-single-writer daemon and multi-human rooms stay an explicit non-goal (see
+the fork and run it. The hub remains a locally-spawned single-writer daemon for
+that path. Multi-human rooms stay an explicit non-goal (see
 [spotlight-screen-share](../initiatives/spotlight-screen-share/overview.md)
 non-goals). This obliges the packaging work in the MVP plan — a tagged release
 artifact, install docs proven by a clean clone on a second machine, a preflight
 check, and a support path.
+
+**Path H amendment (2026-08-07):** a **hosted single-writer room service** that
+speaks the **same Drive wire** is an accepted product path for phone / PWA
+consumers who will not run a local daemon. It does **not** reopen multi-human
+rooms, does **not** make MCP the room bus, and does **not** replace Route B
+self-host. Signaling topology is [ADR-0029](ADR-0029-room-hotpath-redesign.md)
+D5; credentials remain [ADR-0021](ADR-0021-drive-credential-onboarding.md).
+Freemium vs BYOK economics for hosted turns is **still open**.
 
 **What this defers rather than closes.** Route C (upstream the protocol, keep
 the hub as the product) remains the recommendation in the analysis below and is
@@ -26,7 +36,11 @@ knowingly for the beta window.
 
 - Date: 2026-08-01
 - Deciders: Harrison (owner); drafted by Drivecode planning
-- Related: ADR-0005, ADR-0007, ADR-0011, ADR-0013, DEC-package-location, DEC-open-product-forks, [spotlight-screen-share](../initiatives/spotlight-screen-share/overview.md), [drive-audio](../initiatives/drive-audio/overview.md)
+- Related: ADR-0005, ADR-0007, ADR-0011, ADR-0013, ADR-0021, ADR-0029,
+  DEC-package-location, DEC-open-product-forks, DEC-mobile-consumer-owner,
+  [spotlight-screen-share](../initiatives/spotlight-screen-share/overview.md),
+  [drive-audio](../initiatives/drive-audio/overview.md),
+  [mobile-consumer](../initiatives/mobile-consumer/)
 
 ## Context
 

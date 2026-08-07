@@ -199,14 +199,14 @@ const nowPortfolioTasks: TeamTask[] = [
 	task(
 		"NOW-HOSTED-ADR",
 		"Owner ADR-0016 path H decision",
-		"blocked",
+		"completed",
 		[],
-		"Now · owner gate",
+		"Now · DEC-mobile-consumer-owner",
 	),
 	task(
 		"NOW-HOTPATH-D5",
 		"Cloud signaling hosted writer",
-		"blocked",
+		"pending",
 		["NOW-HOSTED-ADR"],
 		"Now · hotpath D5",
 	),

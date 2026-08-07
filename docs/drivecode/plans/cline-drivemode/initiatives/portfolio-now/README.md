@@ -31,8 +31,9 @@ bun run --cwd apps/cline-hub dev
 
 Slices **1–4** of [drive-hotpath](../drive-hotpath/) / [ADR-0029](../../adr/ADR-0029-room-hotpath-redesign.md):
 fold checkpoint, delta publish, in-process stage projector, layout sheets +
-`?app=1` Join/Continue lobby. **Slice 5** (cloud signaling) is **blocked** on
-owner ADR-0016 path H — do not schedule it as Now work.
+`?app=1` Join/Continue lobby. **Slice 5** (cloud signaling) is **unblocked** —
+path H accepted ([DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md));
+keep it behind MC1 call verbs unless a real-turn demo forces it.
 
 ## Dependency map (Now)
 
@@ -60,8 +61,9 @@ flowchart LR
     B01[NOW-IOS-SMOKE]
     B02[NOW-IOS-GLANCE]
   end
-  subgraph blocked [Owner gate]
+  subgraph cloud [Path H]
     H5[NOW-HOSTED-ADR]
+    D5[NOW-HOTPATH-D5]
   end
   HP14 --> APP1
   APP1 --> HTT
@@ -75,14 +77,16 @@ flowchart LR
   STT --> PWA
   APP1 --> PREV
   B01 --> B02
-  H5 -.->|unblocks real phone turns| STT
+  H5 --> D5
+  D5 -.->|same wire| STT
 ```
 
 Caption:
 
-- Solid edges = build order on self-hosted beta.
-- Dashed `NOW-HOSTED-ADR` = owner decision, not an engineering queue item.
+- Solid edges = preferred build order (MC1 verbs before hosted ops).
+- Path H owner gate is **closed** (accepted); D5 is engineering.
 - iOS glance (B02) can proceed in parallel with MC1 finish; it does not block PWA.
+- PWA display name: **Cline Drive**. Mic default: **muted** (enable via strip).
 
 ## Now plan (DrivePlan shape)
 
@@ -103,8 +107,8 @@ Status vocabulary matches multi-device: `done` · `wip` · `todo` · `blocked` �
 | NOW-IOS-GLANCE | iOS fixtures read hub room snapshot (glance) | todo | NOW-IOS-SMOKE | B02 |
 | NOW-PWA | Web manifest + standalone + mic policy | todo | NOW-LANDSCAPE, NOW-STT-SAFARI | MC3 / B03 remainder |
 | NOW-FIRST-OPEN | Credential-free first-open → fixture room | todo | NOW-HOLD-TALK, NOW-PREVIEW | MC2 |
-| NOW-HOSTED-ADR | Owner accept/reject ADR-0016 path H | **blocked** | — | Unlocks hotpath D5 + real remote turns |
-| NOW-HOTPATH-D5 | Cloud signaling (same wire, hosted writer) | **blocked** | NOW-HOSTED-ADR | Do not start without owner |
+| NOW-HOSTED-ADR | Owner accept ADR-0016 path H | **done** | — | [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md) |
+| NOW-HOTPATH-D5 | Cloud signaling (same wire, hosted writer) | todo | NOW-HOSTED-ADR | Prefer after NOW-HOLD-TALK / NOW-STRIP-44 |
 
 ## Broader portfolio (not Now — still open)
 
@@ -142,14 +146,18 @@ Many Phase 1–4 `DRV-*` cards in the demo fixture are still `pending` /
 `in_progress` relative to the original graph. Prefer **Now** for consumer
 delivery; use historic DRV ids only when a Now task explicitly cites one.
 
-## Owner decisions (unblockers)
+## Owner decisions (closed 2026-08-07)
 
-| # | Decision | Unblocks |
+Canonical: [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md).
+
+| # | Answer | Effect |
 |---|---|---|
-| 1 | ADR-0016 path H (hosted consumer)? | NOW-HOSTED-ADR, NOW-HOTPATH-D5, real phone agents |
-| 2 | Voice default muted vs hold hot? | NOW-HOLD-TALK teaching chip |
-| 3 | Icon name “Drive” vs “Cline Drive”? | NOW-PWA splash |
-| 4 | Force MC3 onto roadmap now? | Recommend **yes** — NOW-PWA stays in Now |
+| 1 | **Yes** — path H | NOW-HOSTED-ADR done; NOW-HOTPATH-D5 todo |
+| 2 | **Default muted**; strip = enable-mic toggle | NOW-HOLD-TALK teaching assumes muted start |
+| 3 | **Cline Drive** | NOW-PWA manifest `name` / `short_name` |
+| 4 | **Yes** — force MC3 | NOW-PWA stays in Now |
+
+**Still open:** freemium vs BYOK for hosted turns.
 
 ## Explicit YAGNI (still)
 
@@ -163,5 +171,5 @@ delivery; use historic DRV ids only when a Now task explicitly cites one.
 
 1. Work **NOW-HOLD-TALK** + **NOW-STRIP-44** next (MC1 finish).  
 2. Keep Status Hub open on `?demoPlans=1` while implementing — the map is the board.  
-3. Do not pull NOW-HOTPATH-D5 without owner row 1.  
+3. Schedule **NOW-HOTPATH-D5** after call verbs unless a hosted demo forces it earlier.  
 4. After a Now task ships: flip status here, in [multi-device MATRIX](../multi-device/MATRIX.md), and in the demo fixture (same id).
