@@ -7,7 +7,7 @@ Work queue for parity. Prefer small vertical slices that move a MATRIX cell
 
 | ID | Work | Devices | Status | Notes |
 |---|---|---|---|---|
-| B01 | SwiftUI demo shell Open→Home→Call→Approval→Settings | ios | **wip** | [`apps/drive-ios`](../../../../../../apps/drive-ios/) |
+| B01 | SwiftUI demo shell Open→Home→Call→Approval→Settings | ios | **done** | [`apps/drive-ios`](../../../../../../apps/drive-ios/) · [DEMO.md](../../../../../../apps/drive-ios/DEMO.md) |
 | B02 | Wire ios fixtures to hub room snapshot (read-only glance) | ios, hub | todo | After B01 on-device smoke |
 | B03 | PWA / `?app=1` composition matching ios IA | pwa, hub | **wip** | hub Join/Continue done; Now sequencer: [portfolio-now](../portfolio-now/); PWA = MC3 |
 | B04 | Hold-to-talk + STT on ios + Safari | ios, pwa | todo | Permissions-Policy on hosted |

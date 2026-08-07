@@ -38,7 +38,7 @@ struct OpenView: View {
 						.strokeBorder(DriveTheme.violet.opacity(0.16), lineWidth: 8)
 				)
 
-			Text("Drive")
+			Text("Cline Drive")
 				.font(.system(size: 13, weight: .heavy))
 				.tracking(2.2)
 				.textCase(.uppercase)

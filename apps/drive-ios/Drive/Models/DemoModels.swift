@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 enum AppRoute: Hashable {
@@ -5,6 +6,31 @@ enum AppRoute: Hashable {
 	case home
 	case call
 	case settings
+}
+
+/// Raise-hand interrupt phases — mirrors hub `agencyChrome` (NOW-RAISE-HAND).
+enum InterruptPhase: Hashable {
+	case idle
+	case finishing
+	case paused
+
+	var title: String? {
+		switch self {
+		case .idle: return nil
+		case .finishing: return "Finishing current step"
+		case .paused: return "Paused — waiting on you"
+		}
+	}
+
+	var hint: String? {
+		switch self {
+		case .idle: return nil
+		case .finishing:
+			return "Hand raised — finishing current step. Hard cancel stays one tap away."
+		case .paused:
+			return "Hand raised — paused on you. Lower hand to resume."
+		}
+	}
 }
 
 struct LiveCallSummary: Identifiable, Hashable {
@@ -36,6 +62,110 @@ struct DiffLine: Identifiable, Hashable {
 	let id: String
 	let kind: Kind
 	let text: String
+}
+
+/// In-memory demo director for the full consumer loop (fixtures only).
+@MainActor
+final class DemoSession: ObservableObject {
+	@Published var route: AppRoute = .open
+	@Published var isPreview = true
+	@Published var showApproval = false
+	@Published var handRaised = false
+	@Published var turnInFlight = true
+	@Published var captionsVisible = true
+	@Published var holding = false
+	@Published var leaveNote: String?
+
+	/// Keep in sync with hub `PREVIEW_CHIP_LABEL`.
+	static let previewChipLabel = "Preview · demo call"
+	static let leaveKeepRunning = "Room keeps running · rejoin anytime"
+
+	var interruptPhase: InterruptPhase {
+		guard handRaised else { return .idle }
+		return turnInFlight ? .finishing : .paused
+	}
+
+	func watchLive() {
+		isPreview = true
+		resetCallChrome()
+		route = .call
+	}
+
+	func continueHome() {
+		route = .home
+	}
+
+	func joinCall() {
+		resetCallChrome()
+		route = .call
+	}
+
+	func openSettings() {
+		route = .settings
+	}
+
+	func backHome() {
+		route = .home
+	}
+
+	func toggleHold() {
+		holding.toggle()
+		if holding {
+			// Demo: holding implies a spoken steer will land — keep turn warm.
+			turnInFlight = true
+		}
+	}
+
+	func toggleHand() {
+		handRaised.toggle()
+		if handRaised {
+			turnInFlight = true
+			// After a beat the demo “finishes” the tool step → paused.
+			Task { @MainActor in
+				try? await Task.sleep(nanoseconds: 1_400_000_000)
+				guard handRaised else { return }
+				turnInFlight = false
+			}
+		} else {
+			turnInFlight = true
+		}
+	}
+
+	func toggleCaptions() {
+		captionsVisible.toggle()
+	}
+
+	func requestApproval() {
+		showApproval = true
+	}
+
+	func leaveCall() {
+		leaveNote = Self.leaveKeepRunning
+		resetCallChrome()
+		route = .home
+	}
+
+	func denyApproval() {
+		showApproval = false
+	}
+
+	func allowApproval() {
+		showApproval = false
+		turnInFlight = false
+	}
+
+	func consumeLeaveNote() -> String? {
+		defer { leaveNote = nil }
+		return leaveNote
+	}
+
+	private func resetCallChrome() {
+		handRaised = false
+		turnInFlight = true
+		holding = false
+		captionsVisible = true
+		showApproval = false
+	}
 }
 
 enum DemoData {

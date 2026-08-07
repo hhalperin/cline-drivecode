@@ -7,14 +7,14 @@ The **multi-device-backlog** skill owns the edit discipline.
 
 | ID | Feature | hub | pwa | ios | tui | Notes |
 |---|---|---|---|---|---|---|
-| F01 | Live glance home | wip | todo | wip | lite | hub: `?app=1` Join/Continue; ios: `HomeView` fixture |
-| F02 | Full-bleed Spotlight | wip | todo | wip | lite | ios: `CallView` fixture |
-| F03 | Approval gate | wip | todo | wip | wip | ios: `ApprovalSheet` |
-| F04 | Hold-to-talk | done | wip | todo | n/a | hub `?app=1` hold; PWA inherits; Safari Permissions-Policy on hub |
-| F05 | Captions muted | wip | todo | wip | n/a | ios: caption strip fixture |
-| F06 | Raise hand | done | wip | todo | wip | hub interrupt banner on app strip |
-| F07 | Leave without loss | done | wip | todo | wip | visible Leave + keep-running lobby note |
-| F08 | Preview honesty | done | wip | wip | todo | shared `Preview · demo call` chip |
+| F01 | Live glance home | wip | todo | done | lite | hub: `?app=1` Join/Continue; ios: `HomeView` fixture |
+| F02 | Full-bleed Spotlight | wip | todo | done | lite | ios: `CallView` fixture |
+| F03 | Approval gate | wip | todo | done | wip | ios: `ApprovalSheet` |
+| F04 | Hold-to-talk | done | wip | wip | n/a | hub `?app=1` hold; ios toggle fixture (STT later) |
+| F05 | Captions muted | wip | todo | done | n/a | ios: CC toggle on Call |
+| F06 | Raise hand | done | wip | done | wip | hub + ios interrupt banner |
+| F07 | Leave without loss | done | wip | done | wip | hub + ios keep-running note |
+| F08 | Preview honesty | done | wip | done | todo | shared `Preview · demo call` chip |
 | F09 | Install habit | n/a | wip | wip | n/a | hub manifest **Cline Drive**; install UX polish left |
 | F10 | Invite deep link | todo | todo | todo | wip | |
 | F11 | Blocked-on-you | todo | todo | todo | todo | |
@@ -24,4 +24,4 @@ The **multi-device-backlog** skill owns the edit discipline.
 | F15 | Voice mini-settings | wip | todo | wip | todo | ios: Settings toggles |
 | D01 | Live Activity | n/a | n/a | yagni | n/a | after Tier 1 |
 
-Last maintained: 2026-08-07 (MC1 polish + Preview/PWA/first-open on hub `?app=1`).
+Last maintained: 2026-08-07 (iOS full fixture demo loop + hub MC1–MC3).

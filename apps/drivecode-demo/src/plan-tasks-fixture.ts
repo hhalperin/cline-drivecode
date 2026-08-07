@@ -171,7 +171,7 @@ const nowPortfolioTasks: TeamTask[] = [
 	task(
 		"NOW-IOS-SMOKE",
 		"SwiftUI demo shell smoke",
-		"in_progress",
+		"completed",
 		[],
 		"Now · B01",
 	),

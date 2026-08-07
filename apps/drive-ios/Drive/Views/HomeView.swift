@@ -1,12 +1,41 @@
 import SwiftUI
 
 struct HomeView: View {
+	var leaveNote: String?
 	var onJoin: () -> Void
 	var onSettings: () -> Void
+	var onDismissLeaveNote: () -> Void
 	@State private var tab = 0
 
 	var body: some View {
 		VStack(spacing: 0) {
+			if let leaveNote {
+				HStack(alignment: .top, spacing: 10) {
+					VStack(alignment: .leading, spacing: 2) {
+						Text(leaveNote)
+							.font(.system(size: 13, weight: .semibold))
+							.foregroundStyle(Color(red: 6 / 255, green: 95 / 255, blue: 70 / 255))
+						Text("Your room is still live — Join when you’re ready.")
+							.font(.system(size: 11))
+							.foregroundStyle(.secondary)
+					}
+					Spacer(minLength: 0)
+					Button("OK", action: onDismissLeaveNote)
+						.font(.system(size: 12, weight: .bold))
+						.foregroundStyle(DriveTheme.violetDeep)
+				}
+				.padding(12)
+				.background(Color(red: 209 / 255, green: 250 / 255, blue: 229 / 255))
+				.overlay(
+					RoundedRectangle(cornerRadius: 12, style: .continuous)
+						.strokeBorder(Color(red: 52 / 255, green: 211 / 255, blue: 153 / 255).opacity(0.45), lineWidth: 0.8)
+				)
+				.clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+				.padding(.horizontal, 16)
+				.padding(.top, 8)
+				.accessibilityAddTraits(.isStaticText)
+			}
+
 			ScrollView {
 				if tab == 1 {
 					browseContent
@@ -41,7 +70,7 @@ struct HomeView: View {
 	@ViewBuilder
 	private var homeContent: some View {
 		VStack(alignment: .leading, spacing: 0) {
-			Text("Drive")
+			Text("Cline Drive")
 				.font(.system(size: 32, weight: .heavy))
 				.tracking(-1.2)
 				.padding(.horizontal, 20)
@@ -304,5 +333,10 @@ struct HomeView: View {
 }
 
 #Preview {
-	HomeView(onJoin: {}, onSettings: {})
+	HomeView(
+		leaveNote: DemoSession.leaveKeepRunning,
+		onJoin: {},
+		onSettings: {},
+		onDismissLeaveNote: {}
+	)
 }

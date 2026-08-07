@@ -103,7 +103,7 @@ Status vocabulary matches multi-device: `done` · `wip` · `todo` · `blocked` �
 | NOW-LEAVE-COPY | Leave-without-loss copy (not End) | **done** | NOW-APP-SHELL | Visible Leave + lobby keep-running note |
 | NOW-STT-SAFARI | Hold-to-talk + STT on Safari / iOS | **done** | NOW-HOLD-TALK | Hub `Permissions-Policy: microphone=(self)`; Safari copy |
 | NOW-PREVIEW | Preview honesty chip contract all devices | **done** | NOW-APP-SHELL | `PREVIEW_CHIP_LABEL` on app lobby + demo Spotlight |
-| NOW-IOS-SMOKE | SwiftUI Open→Home→Call→Approval→Settings smoke | wip | — | B01 `apps/drive-ios` |
+| NOW-IOS-SMOKE | SwiftUI Open→Home→Call→Approval→Settings smoke | **done** | — | B01 full `DemoSession` loop; [DEMO.md](../../../../../../apps/drive-ios/DEMO.md) |
 | NOW-IOS-GLANCE | iOS fixtures read hub room snapshot (glance) | todo | NOW-IOS-SMOKE | B02 |
 | NOW-PWA | Web manifest + standalone + mic policy | **done** | NOW-LANDSCAPE, NOW-STT-SAFARI | `manifest.webmanifest` name **Cline Drive**; `?app=1` start |
 | NOW-FIRST-OPEN | Credential-free first-open → fixture room | **done** | NOW-HOLD-TALK, NOW-PREVIEW | Unconfigured Join → demo fixture + Preview chip |
