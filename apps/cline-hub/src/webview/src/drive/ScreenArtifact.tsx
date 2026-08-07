@@ -13,7 +13,7 @@
  */
 
 import type { MermaidConfig } from "mermaid";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	type ControlsConfig,
 	type MermaidErrorComponentProps,
@@ -38,6 +38,7 @@ import {
 	projectArtifactBody,
 	type WalkthroughLine,
 } from "./artifactBody";
+import { mermaidFontSizeForViewport } from "./diagramPresentation";
 
 /**
  * The screen is fixed-dark in both themes, so its diagrams are too. Own
@@ -46,13 +47,28 @@ import {
  */
 const SCREEN_STREAMDOWN_PLUGINS = createHubStreamdownPlugins();
 
-const SCREEN_MERMAID_CONFIG = {
-	theme: "dark",
-	// Mermaid measures label boxes from the font; keeping it explicit stops
-	// the diagram reflowing when the app's font stack differs.
-	fontFamily: "monospace",
-	fontSize: 13,
-} satisfies MermaidConfig;
+function screenMermaidConfig(widthPx: number): MermaidConfig {
+	return {
+		theme: "dark",
+		// Mermaid measures label boxes from the font; keeping it explicit stops
+		// the diagram reflowing when the app's font stack differs. Phone gets a
+		// smaller size so labels fit a ~390px stage (diagramPresentation).
+		fontFamily: "monospace",
+		fontSize: mermaidFontSizeForViewport(widthPx),
+	};
+}
+
+function useViewportWidth(): number {
+	const [width, setWidth] = useState(() =>
+		typeof window === "undefined" ? 1024 : window.innerWidth,
+	);
+	useEffect(() => {
+		const onResize = () => setWidth(window.innerWidth);
+		window.addEventListener("resize", onResize);
+		return () => window.removeEventListener("resize", onResize);
+	}, []);
+	return width;
+}
 
 /** A presented diagram is not a download surface — the room is watching it. */
 const SCREEN_MERMAID_CONTROLS = {
@@ -156,12 +172,6 @@ function ScreenMermaidError({ chart, error }: MermaidErrorComponentProps) {
 	);
 }
 
-/** Stable prop identity — a new object per render churns the block context. */
-const SCREEN_MERMAID_OPTIONS = {
-	config: SCREEN_MERMAID_CONFIG,
-	errorComponent: ScreenMermaidError,
-};
-
 function MermaidArtifact({ source, title }: { source: string; title: string }) {
 	// Streamdown renders diagrams from a fenced block, dispatched inside its
 	// own `code` component — so this goes to Streamdown directly rather than
@@ -170,6 +180,14 @@ function MermaidArtifact({ source, title }: { source: string; title: string }) {
 	const markdown = useMemo(
 		() => `\`\`\`mermaid\n${source.trim()}\n\`\`\``,
 		[source],
+	);
+	const widthPx = useViewportWidth();
+	const mermaid = useMemo(
+		() => ({
+			config: screenMermaidConfig(widthPx),
+			errorComponent: ScreenMermaidError,
+		}),
+		[widthPx],
 	);
 	return (
 		// `self-stretch` overrides screen-body's grid `place-items-center` (which
@@ -186,12 +204,11 @@ function MermaidArtifact({ source, title }: { source: string; title: string }) {
 			<div className="flex min-h-0 flex-1 overflow-hidden p-3">
 				<Streamdown
 					className={MERMAID_BLOCK_CLASS}
-					// Remount per source: without this the diagram node keeps the
-					// last SVG it rendered, so a show whose source fails to parse
-					// would keep presenting the *previous* show's diagram.
-					key={source}
+					// Remount per source + viewport font step: without this the
+					// diagram node keeps the last SVG it rendered.
+					key={`${source}:${mermaidFontSizeForViewport(widthPx)}`}
 					controls={SCREEN_MERMAID_CONTROLS}
-					mermaid={SCREEN_MERMAID_OPTIONS}
+					mermaid={mermaid}
 					plugins={SCREEN_STREAMDOWN_PLUGINS}
 				>
 					{markdown}
@@ -570,8 +587,10 @@ function AnimationArtifact({
 			    state: no flash, chip already reverted, entering rows already
 			    landed. The payload is the motion, so that is the whole artifact
 			    missing. */}
+			{/* Phone / narrow Spotlight: stack before→after (container @sm).
+			    Desk / ultrawide: side-by-side contrast stays the default. */}
 			<div
-				className="screen-anim grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-hidden p-3"
+				className="screen-anim grid min-h-0 flex-1 grid-cols-1 gap-3 overflow-auto p-3 @sm:grid-cols-2 @sm:overflow-hidden"
 				key={animationReplayKey(before, after)}
 			>
 				<AnimationPanelColumn panel={before} />
@@ -664,6 +683,8 @@ function CaptureArtifact({
 /**
  * Kind-dispatched artifact body. Anything without a client renderer keeps the
  * hub's materialized stub, so a new ShowArtifactKind still lands on screen.
+ * Browse / Status tap-to-render gates live outside (DriveBrowseLite) —
+ * Spotlight always mounts this after a present.
  */
 export function ScreenArtifact({ artifact }: { artifact: ArtifactBodySource }) {
 	const body = useMemo(() => projectArtifactBody(artifact), [artifact]);

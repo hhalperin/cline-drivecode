@@ -61,6 +61,10 @@ flowchart LR
     B01[NOW-IOS-SMOKE]
     B02[NOW-IOS-GLANCE]
   end
+  subgraph browse [Browse lite]
+    BL[NOW-BROWSE-LITE]
+    DM[NOW-DIAGRAM-MOBILE]
+  end
   subgraph cloud [Path H]
     H5[NOW-HOSTED-ADR]
     D5[NOW-HOTPATH-D5]
@@ -76,6 +80,8 @@ flowchart LR
   LAND --> PWA
   STT --> PWA
   APP1 --> PREV
+  APP1 --> BL
+  BL --> DM
   B01 --> B02
   H5 --> D5
   D5 -.->|same wire| STT
@@ -85,7 +91,7 @@ Caption:
 
 - Solid edges = preferred build order (MC1 verbs before hosted ops).
 - Path H owner gate is **closed** (accepted); D5 is engineering.
-- iOS glance (B02) can proceed in parallel with MC1 finish; it does not block PWA.
+- Browse lite + mobile diagram contract landed; glance (B02) wires live sources.
 - PWA display name: **Cline Drive**. Mic default: **muted** (enable via strip).
 
 ## Now plan (DrivePlan shape)
@@ -109,6 +115,8 @@ Status vocabulary matches multi-device: `done` · `wip` · `todo` · `blocked` �
 | NOW-FIRST-OPEN | Credential-free first-open → fixture room | **done** | NOW-HOLD-TALK, NOW-PREVIEW | Unconfigured Join → demo fixture + Preview chip |
 | NOW-HOSTED-ADR | Owner accept ADR-0016 path H | **done** | — | [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md) |
 | NOW-HOTPATH-D5 | Cloud signaling (same wire, hosted writer) | todo | NOW-HOSTED-ADR | Prefer after NOW-HOLD-TALK / NOW-STRIP-44 |
+| NOW-BROWSE-LITE | Browse lite: rooms / tasks / artifacts / status | **done** | NOW-APP-SHELL | hub `?browse=` + ios `BrowseViews`; not full Status Hub |
+| NOW-DIAGRAM-MOBILE | Viewport-aware diagrams (tap / stack / ultrawide) | **done** | NOW-BROWSE-LITE | `diagramPresentation` + ScreenArtifact; phone tap-to-render off Spotlight |
 
 ## Broader portfolio (not Now — still open)
 
@@ -158,8 +166,8 @@ Canonical: [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner
 | 4 | **Yes** — force MC3 | NOW-PWA stays in Now |
 | 5 | **Cline default (freemium)**; BYOK secondary | Hosted turns = Sign in with Cline; no Drive plan chrome |
 
-Owner gates closed. MC1 polish + MC2/MC3 chrome landed. Next: iOS glance /
-**NOW-HOTPATH-D5** when a hosted real-turn demo needs it.
+Owner gates closed. Browse lite + mobile diagram contract landed. Next: iOS
+glance (NOW-IOS-GLANCE) / **NOW-HOTPATH-D5** when a hosted real-turn demo needs it.
 
 ## Explicit YAGNI (still)
 

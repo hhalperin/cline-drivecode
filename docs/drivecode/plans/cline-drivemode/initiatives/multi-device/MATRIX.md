@@ -22,6 +22,8 @@ The **multi-device-backlog** skill owns the edit discipline.
 | F13 | Recent / return | wip | todo | wip | todo | |
 | F14 | Leave handoff line | wip | todo | todo | todo | light keep-running line with F07 |
 | F15 | Voice mini-settings | wip | todo | wip | todo | ios: Settings toggles |
+| F16 | Browse lite | wip | wip | done | lite | hub `?app=1&browse=`; ios BrowseViews; not full Status Hub |
+| F17 | Viewport diagrams | wip | wip | done | n/a | `diagramPresentation` ≤720 tap/stack; ultrawide side-by-side |
 | D01 | Live Activity | n/a | n/a | yagni | n/a | after Tier 1 |
 
-Last maintained: 2026-08-07 (iOS full fixture demo loop + hub MC1–MC3).
+Last maintained: 2026-08-07 (Browse lite + mobile diagram contract).

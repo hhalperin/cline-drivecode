@@ -52,7 +52,7 @@ flowchart TD
 ```
 
 - Demo covers IA beats, not live mic / CC / interrupt / recovery.
-- Browse in demo is a teaser list — not rooms / tasks / artifacts / agents / status.
+- Browse lite landed (rooms / tasks / artifacts / status fixtures); agents stay Advanced; live hub adapters still open (B02).
 - PWA beat is a still; no manifest, install prompt, or standalone shell yet.
 - Real agent turns stay blocked on ADR-0016 (path **H**) unless self-host.
 
@@ -71,9 +71,9 @@ flowchart TD
 | Leave / handoff | ✗ | surfaces | Leave-without-loss exists | MC1 + MC2 |
 | Session history | ✗ (Recent teaser) | surfaces | Rooms / history exist | MC1 browse lite |
 | PWA install | ✓ still | surfaces + app | **Missing** | MC3 |
-| Rooms / Tasks / Artifacts | Browse teaser | surfaces | Exists (hub) | MC1 hide depth |
+| Rooms / Tasks / Artifacts | ✓ lite | surfaces | hub `?browse=` lite | Live sources (B02) |
 | Agents / Agent profile | ✗ | surfaces | Exists | Advanced only |
-| Status (board / changelog / deps) | ✗ | surfaces | Exists; Mermaid heavy on phone | Lazy / tap |
+| Status (board / changelog / deps) | ✓ lite | surfaces | lite + tap Mermaid | Full hub desk-only |
 | Settings home | ✓ look | iOS | Exists | Consumer subset |
 | Voice & devices | ✗ | surfaces | Exists | MC2 teaching |
 | Providers / sign-in | Open SSO look | surfaces | ADR-0021 | Honesty chip |
@@ -115,8 +115,8 @@ Grouped by job. Priority = consumer path first; Advanced stays collapsed.
 
 | Gap | Why it hurts | Fill |
 |---|---|---|
-| Demo Browse ≠ five browse surfaces | Reviewers think Browse is done | Either deepen demo beats **or** label Browse as teaser until MC1 |
-| Status Mermaid on first paint | Phone jank | Tap-to-render below breakpoint (22-default-posture) |
+| Browse lite fixtures ≠ live adapters | Glance only until B02 | Wire hub room/task sources |
+| Status Mermaid on first paint | Phone jank | **partial** — `diagramPresentation` tap-to-render ≤720; Spotlight still auto |
 | Artifacts / agents deep | Consumer overload | Keep under Browse; default Home stays call-first |
 
 ### E · Install & distribute

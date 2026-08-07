@@ -17,7 +17,7 @@ open apps/drive-ios/Drive.xcodeproj
 2. **Call** — Spotlight + activity · **Hold to talk** toggles Listening · ✋ raise-hand banner (finishing → paused) · CC toggles captions · **…** / Review opens approval
 3. **Approval** — Deny stays on call · Allow dismisses sheet
 4. **Leave** — returns Home with *Room keeps running · rejoin anytime*
-5. **Home** — Live hero Join · Browse rooms · **You** → Settings
+5. **Home** — Live hero Join · **Browse** → Tasks / Status / Artifacts / Rooms · tap-to-render diagram on Artifacts/Status · **You** → Settings
 6. **Settings** — Appearance / Voice / Trust toggles · back to Home
 7. Open path alternate: *Continue with Apple* → Home without jumping straight to call
 

@@ -207,4 +207,41 @@ enum DemoData {
 	static let caption = "Maya — Gate JWT refresh before we merge."
 	static let activityTitle = "Maya is speaking"
 	static let activityDetail = "Drafting requireAuth · waiting for you"
+
+	static let browseRooms: [RecentItem] = [
+		.init(id: "auth", title: "Auth middleware", subtitle: "Live · Maya + Coder", badge: "Join"),
+		.init(id: "rel", title: "Release train", subtitle: "Quiet · 2 agents idle", badge: nil),
+		.init(id: "docs", title: "Docs polish", subtitle: "Quiet · 1 agent", badge: nil),
+	]
+
+	static let browseTasks: [RecentItem] = [
+		.init(id: "jwt", title: "Gate JWT refresh", subtitle: "NOW · Needs approval", badge: nil),
+		.init(id: "test", title: "Run auth tests", subtitle: "NEXT · In call", badge: nil),
+		.init(id: "docs-t", title: "Docs pass", subtitle: "Queued", badge: nil),
+	]
+
+	static let browseArtifacts: [RecentItem] = [
+		.init(id: "d1", title: "diagram · auth flow", subtitle: "Mermaid · tap to render on phone", badge: nil),
+		.init(id: "d2", title: "diff · auth.ts", subtitle: "Open in Spotlight", badge: nil),
+		.init(id: "d3", title: "handoff · session", subtitle: "Leave note", badge: nil),
+	]
+
+	static let browseStatus: [RecentItem] = [
+		.init(id: "board", title: "Board", subtitle: "2 blocked · 1 running", badge: nil),
+		.init(id: "log", title: "Changelog", subtitle: "Today’s shipped notes", badge: nil),
+		.init(id: "deps", title: "Dependency map", subtitle: "Simplified on phone · tap Mermaid", badge: nil),
+	]
+
+	/// Vertical stack for phone — desk would use LR / side-by-side.
+	static let browseDiagramSteps = [
+		"Join call",
+		"Spotlight",
+		"Hold to talk",
+		"Approval",
+		"Leave · room keeps running",
+	]
+}
+
+extension RecentItem {
+	var joinable: Bool { badge == "Join" }
 }

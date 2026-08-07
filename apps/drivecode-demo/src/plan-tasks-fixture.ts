@@ -210,6 +210,20 @@ const nowPortfolioTasks: TeamTask[] = [
 		["NOW-HOSTED-ADR"],
 		"Now · hotpath D5",
 	),
+	task(
+		"NOW-BROWSE-LITE",
+		"Browse lite rooms/tasks/artifacts/status",
+		"completed",
+		["NOW-APP-SHELL"],
+		"Now · F16",
+	),
+	task(
+		"NOW-DIAGRAM-MOBILE",
+		"Viewport-aware diagrams tap/stack",
+		"completed",
+		["NOW-BROWSE-LITE"],
+		"Now · F17",
+	),
 ];
 
 /**
