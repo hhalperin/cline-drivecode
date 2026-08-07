@@ -234,9 +234,9 @@ Mobile consumer is a **shell and distribution** problem first, then a hosted-
 runtime ADR. Reuse the Drive call loop; hide the hub. Prove delight on phone
 with a credential-free watch path before App Store / Play Store.
 
-**MC1 partial:** `?app=1` drops hub nav, Join/Continue lobby (`DriveView`
-`composition=app`), plan/audit/captions as call sheets, hold-to-talk primary +
-44px reach strip. Still open: brand polish, landscape gate, leave copy. Next:
-MC1 polish / MC2 first-open / MC3 PWA. Apply
+**MC1–MC3 on hub:** `?app=1` Join/Continue, hold-to-talk, 44px Leave strip,
+landscape two-column, raise-hand banner, Preview chip, credential-free
+Join→demo fixture, PWA manifest **Cline Drive**. Still open: brand polish,
+iOS glance, hosted D5. Apply
 [MOBILE-BRAND-STYLING.md](../../../../design/brand/MOBILE-BRAND-STYLING.md)
 before restyling demos. Gaps: [GAPS.md](GAPS.md).

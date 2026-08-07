@@ -30,7 +30,14 @@ import {
 import { NowNext } from "../components/NowNext";
 import { downloadTextFile } from "../status/downloadTextFile";
 import { DriveCallStrip } from "./DriveCallChrome";
-import { muteRestoreAfterHold } from "./driveAppCallChrome";
+import {
+	INTERRUPT_HARD_CANCEL_HINT,
+	muteRestoreAfterHold,
+} from "./driveAppCallChrome";
+import {
+	interruptBannerCopy,
+	resolveInterruptPhase,
+} from "./agencyChrome";
 import {
 	DrivePowerSheet,
 	useDrivePowerChromePref,
@@ -456,6 +463,7 @@ export function DriveCallStripDock({
 	onSelectModel,
 	planOpen = false,
 	onTogglePlan,
+	onLeaveDrive,
 }: {
 	session: UseDriveSessionResult;
 	disabled: boolean;
@@ -469,6 +477,8 @@ export function DriveCallStripDock({
 	/** Plan sheet open — owned by Chat so PlanEditor stays off Spotlight. */
 	planOpen?: boolean;
 	onTogglePlan?: () => void;
+	/** Wrap leave (e.g. return to lobby + keep-running note). */
+	onLeaveDrive?: () => void;
 }) {
 	const {
 		captionsOpen,
@@ -485,14 +495,39 @@ export function DriveCallStripDock({
 	const { powerChrome, setPowerChrome } = useDrivePowerChromePref();
 	const spendLabel = hasCallSpend(spend) && spend ? formatCallSpend(spend) : undefined;
 	const appShell = composition === "app";
+	const interrupt = interruptBannerCopy(
+		resolveInterruptPhase({
+			handRaised: drive.handRaised,
+			turnInFlight,
+		}),
+	);
+	const handleLeave = () => {
+		(onLeaveDrive ?? leaveDrive)();
+	};
 	return (
 		<>
+			{appShell && interrupt ? (
+				<div
+					aria-live="polite"
+					className="border-t border-amber-500/40 bg-amber-500/10 px-3 py-2"
+					data-slot="agency-interrupt-banner"
+					role="status"
+				>
+					<p className="text-sm font-semibold text-amber-950 dark:text-amber-100">
+						{interrupt.title}
+					</p>
+					<p className="text-[11px] text-amber-900/90 dark:text-amber-100/80">
+						{interrupt.hint}
+					</p>
+					<p className="sr-only">{INTERRUPT_HARD_CANCEL_HINT}</p>
+				</div>
+			) : null}
 			<DriveCallStrip
 				captionsOpen={captionsOpen}
 				composition={composition}
 				disabled={disabled}
 				drive={drive}
-				onLeaveDrive={leaveDrive}
+				onLeaveDrive={handleLeave}
 				onTogglePlan={appShell ? undefined : onTogglePlan}
 				onTogglePower={
 					appShell ? undefined : () => setPowerOpen((open) => !open)

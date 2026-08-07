@@ -98,15 +98,15 @@ Status vocabulary matches multi-device: `done` · `wip` · `todo` · `blocked` �
 | NOW-SHEETS | Plan / audit / captions as strip sheets | **done** | NOW-APP-SHELL | Hotpath D4 residual |
 | NOW-HOLD-TALK | Hold-to-talk primary on `?app=1` call | **done** | NOW-APP-SHELL | 52px press-hold; temp-unmute for utterance; desk mic/composer demoted |
 | NOW-STRIP-44 | 44px call strip + one-hand reach | **done** | NOW-APP-SHELL | App strip: mic · hand · CC · Leave (`size-11`) |
-| NOW-LANDSCAPE | Landscape call shell usable | todo | NOW-HOLD-TALK, NOW-STRIP-44 | Surfaces HTML models it; webview unproven |
-| NOW-RAISE-HAND | Raise-hand finishing chrome on phone | todo | NOW-STRIP-44 | F06; strip already has control on hub |
-| NOW-LEAVE-COPY | Leave-without-loss copy (not End) | todo | NOW-APP-SHELL | F07 / F14 |
-| NOW-STT-SAFARI | Hold-to-talk + STT on Safari / iOS | todo | NOW-HOLD-TALK | B04; Permissions-Policy on hosted |
-| NOW-PREVIEW | Preview honesty chip contract all devices | todo | NOW-APP-SHELL | B05 / F08 |
+| NOW-LANDSCAPE | Landscape call shell usable | **done** | NOW-HOLD-TALK, NOW-STRIP-44 | App grid Spotlight \| hold+strip; short-height min-h override |
+| NOW-RAISE-HAND | Raise-hand finishing chrome on phone | **done** | NOW-STRIP-44 | Full-width interrupt banner above strip |
+| NOW-LEAVE-COPY | Leave-without-loss copy (not End) | **done** | NOW-APP-SHELL | Visible Leave + lobby keep-running note |
+| NOW-STT-SAFARI | Hold-to-talk + STT on Safari / iOS | **done** | NOW-HOLD-TALK | Hub `Permissions-Policy: microphone=(self)`; Safari copy |
+| NOW-PREVIEW | Preview honesty chip contract all devices | **done** | NOW-APP-SHELL | `PREVIEW_CHIP_LABEL` on app lobby + demo Spotlight |
 | NOW-IOS-SMOKE | SwiftUI Open→Home→Call→Approval→Settings smoke | wip | — | B01 `apps/drive-ios` |
 | NOW-IOS-GLANCE | iOS fixtures read hub room snapshot (glance) | todo | NOW-IOS-SMOKE | B02 |
-| NOW-PWA | Web manifest + standalone + mic policy | todo | NOW-LANDSCAPE, NOW-STT-SAFARI | MC3 / B03 remainder |
-| NOW-FIRST-OPEN | Credential-free first-open → fixture room | todo | NOW-HOLD-TALK, NOW-PREVIEW | MC2 |
+| NOW-PWA | Web manifest + standalone + mic policy | **done** | NOW-LANDSCAPE, NOW-STT-SAFARI | `manifest.webmanifest` name **Cline Drive**; `?app=1` start |
+| NOW-FIRST-OPEN | Credential-free first-open → fixture room | **done** | NOW-HOLD-TALK, NOW-PREVIEW | Unconfigured Join → demo fixture + Preview chip |
 | NOW-HOSTED-ADR | Owner accept ADR-0016 path H | **done** | — | [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md) |
 | NOW-HOTPATH-D5 | Cloud signaling (same wire, hosted writer) | todo | NOW-HOSTED-ADR | Prefer after NOW-HOLD-TALK / NOW-STRIP-44 |
 
@@ -158,8 +158,8 @@ Canonical: [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner
 | 4 | **Yes** — force MC3 | NOW-PWA stays in Now |
 | 5 | **Cline default (freemium)**; BYOK secondary | Hosted turns = Sign in with Cline; no Drive plan chrome |
 
-Owner gates closed. Next build: **NOW-HOLD-TALK** + **NOW-STRIP-44**. D5
-unblocked, sequenced after those unless a hosted demo pulls it forward.
+Owner gates closed. MC1 polish + MC2/MC3 chrome landed. Next: iOS glance /
+**NOW-HOTPATH-D5** when a hosted real-turn demo needs it.
 
 ## Explicit YAGNI (still)
 
@@ -171,7 +171,7 @@ unblocked, sequenced after those unless a hosted demo pulls it forward.
 
 ## Hand back
 
-1. Next consumer build: **NOW-LANDSCAPE** / **NOW-RAISE-HAND** / **NOW-LEAVE-COPY** (MC1 polish), or **NOW-PREVIEW**.  
+1. Next: **NOW-IOS-GLANCE** / iOS smoke finish, or pull **NOW-HOTPATH-D5** for hosted turns.  
 2. Keep Status Hub open on `?demoPlans=1` while implementing — the map is the board.  
-3. Schedule **NOW-HOTPATH-D5** after call verbs unless a hosted demo forces it earlier.  
+3. Hosted site `_headers` should still grant `microphone=(self)` (hub already does).  
 4. After a Now task ships: flip status here, in [multi-device MATRIX](../multi-device/MATRIX.md), and in the demo fixture (same id).

@@ -26,6 +26,11 @@ import {
 	shouldShowCredentialOnboardingBanner,
 	writeCredentialOnboardingDismissed,
 } from "../../drive/credentialOnboarding";
+import {
+	consumeLeaveKeepRunningNote,
+	PREVIEW_CHIP_LABEL,
+	shouldShowPreviewChip,
+} from "../../drive/driveAppCallChrome";
 import type { DriveOpenCallRequest } from "../../drive/driveLaunch";
 import {
 	applyDriveRoomPreviewMessage,
@@ -38,6 +43,7 @@ import {
 	isDriveTransportErrorMessage,
 } from "../../drive/driveRoomPreview";
 import { DRIVE_DEFAULT_ROOM_ID } from "../../drive/types";
+import { readDrivecodeDemoHubBootstrap } from "@cline/drivecode-demo";
 import {
 	type HostMessage,
 	subscribeToHostMessages,
@@ -321,6 +327,13 @@ export function DriveView({
 	const [dismissed, setDismissed] = useState(() =>
 		readCredentialOnboardingDismissed(),
 	);
+	const [leaveNote, setLeaveNote] = useState<string | null>(null);
+
+	useEffect(() => {
+		if (composition === "app") {
+			setLeaveNote(consumeLeaveKeepRunningNote());
+		}
+	}, [composition]);
 
 	const requestSummary = useCallback(() => {
 		postToHost({ type: "status_summary", requestId: "drive-summary" });
@@ -436,13 +449,48 @@ export function DriveView({
 	});
 
 	if (composition === "app") {
+		const demoBootstrap = readDrivecodeDemoHubBootstrap(
+			typeof window === "undefined" ? "" : window.location.search,
+		);
+		const previewChip = shouldShowPreviewChip({
+			unconfigured: catalogReady && !configured,
+			demoQuery:
+				demoBootstrap.useShareScreenSpotlightDemo ||
+				demoBootstrap.useChatForkDemo,
+		});
+		// NOW-FIRST-OPEN: credential-free Join opens the fixture demo path.
+		const openCallOrPreview = (request: DriveOpenCallRequest) => {
+			if (catalogReady && !configured) {
+				onOpenDemo();
+				return;
+			}
+			onOpenCall(request);
+		};
 		return (
 			<PageFrame>
 				<PageHeader
 					description="Join or continue a call. Watch the agent, then steer when needed."
 					icon={DriveMarkIcon}
-					title="Drive"
+					title="Cline Drive"
 				/>
+				{previewChip ? (
+					<p
+						className="mb-3 inline-flex rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-900 dark:text-amber-100"
+						data-slot="preview-chip"
+					>
+						{PREVIEW_CHIP_LABEL}
+					</p>
+				) : null}
+				{leaveNote ? (
+					<p
+						aria-live="polite"
+						className="mb-3 rounded-md border border-emerald-500/35 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-900 dark:text-emerald-100"
+						data-slot="leave-keep-running"
+						role="status"
+					>
+						{leaveNote}
+					</p>
+				) : null}
 				{showCredentialBanner ? (
 					<CredentialOnboardingBanner
 						onDismiss={() => {
@@ -456,7 +504,7 @@ export function DriveView({
 				<RoomPreviewCard
 					composition="app"
 					lookupError={roomLookupError}
-					onOpenCall={onOpenCall}
+					onOpenCall={openCallOrPreview}
 					onRetry={requestRoom}
 					preview={roomPreview}
 				/>

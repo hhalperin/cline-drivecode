@@ -41,6 +41,7 @@ import {
 	interruptChromeCopy,
 	resolveInterruptPhase,
 } from "./agencyChrome";
+import { LEAVE_STRIP_LABEL } from "./driveAppCallChrome";
 import { isDriveHumanId } from "./participantIds";
 import { buildHumanPinDefaults, type HumanPinKind } from "./pinDefaults";
 import type { DriveSubMode, DriveUiState } from "./types";
@@ -588,27 +589,20 @@ export function DriveCallStrip({
 				>
 					{captionsOpen ? <CaptionsIcon /> : <CaptionsOffIcon />}
 				</StripButton>
-				{interruptCopy ? (
-					<span
-						aria-live="polite"
-						className="min-w-0 truncate text-xs font-medium text-amber-900 dark:text-amber-100"
-						data-slot="agency-interrupt"
-						role="status"
-					>
-						{interruptCopy}
-					</span>
-				) : null}
 				{onLeaveDrive ? (
 					<span className="ml-auto shrink-0">
-						<StripButton
+						<Button
+							aria-label={`${LEAVE_STRIP_LABEL} — room keeps running; rejoin anytime`}
+							className="h-11 shrink-0 touch-manipulation gap-1.5 px-3 text-sm font-semibold text-destructive hover:bg-destructive/10"
 							disabled={disabled}
-							label="Leave call (work continues; rejoin to catch up)"
 							onClick={() => onLeaveDrive()}
-							reachTarget
-							tone="danger"
+							size="sm"
+							type="button"
+							variant="outline"
 						>
-							<PhoneIcon className="rotate-[135deg]" />
-						</StripButton>
+							<PhoneIcon className="size-[18px] rotate-[135deg]" />
+							{LEAVE_STRIP_LABEL}
+						</Button>
 					</span>
 				) : null}
 			</div>

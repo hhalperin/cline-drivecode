@@ -1724,6 +1724,19 @@ function App() {
 						driveLaunchRequest={driveLaunchRequest}
 						initialSessionId={selectedSessionId}
 						onDriveLaunchHandled={acknowledgeDriveLaunch}
+						onReturnToLobby={() => {
+							setDriveLaunchRequest(null);
+							setSelectedSessionId(undefined);
+							setDriveShellMode("lobby");
+							const nextPath = drivePath({
+								mode: "lobby",
+								preserveSearch: persistentRouteSearchParams(),
+							});
+							if (currentPathWithSearch() !== nextPath) {
+								window.history.pushState(null, "", nextPath);
+							}
+							setLocationSearch(window.location.search);
+						}}
 						onSessionSelected={updateChatSessionRoute}
 					/>
 				);

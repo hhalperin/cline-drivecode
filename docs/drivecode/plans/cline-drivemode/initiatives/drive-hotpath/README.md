@@ -29,7 +29,7 @@
 
 ## Hand back
 
-Slices 1–4 landed; MC1 hold-to-talk + 44px strip landed on `?app=1`. Slice 5 is
-unblocked (path H) — prefer remaining MC1 polish before hosted writer ops,
-unless a phone real-turn demo forces D5 earlier. MCP stays an agent tool plane,
+Slices 1–4 landed; MC1–MC3 consumer chrome landed on `?app=1`. Slice 5
+(cloud signaling) remains the next hosted-writer track when a phone real-turn
+demo needs it. MCP stays an agent tool plane,
 not the phone session bus.
