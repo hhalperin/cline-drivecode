@@ -38,6 +38,7 @@ Mic permission string is already set for hold-to-talk (STT wiring comes later).
 |---|---|
 | Open | **Cline Drive** mark, Preview chip, Watch live / Continue |
 | Home | Live hero, Recent, leave keep-running banner, glass tab bar |
+| Browse | Rooms / Tasks / Artifacts / Status lite · tap-to-render phone diagram stack |
 | Call | Full-bleed Spotlight · hold-to-talk · raise-hand finishing banner · CC · Leave · Review→approval |
 | Approval | Sheet · Deny / Allow |
 | Settings | Grouped Appearance / Voice / Trust |
