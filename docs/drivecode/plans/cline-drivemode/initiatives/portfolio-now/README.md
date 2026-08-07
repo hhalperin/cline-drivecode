@@ -96,8 +96,8 @@ Status vocabulary matches multi-device: `done` · `wip` · `todo` · `blocked` �
 |---|---|---|---|---|
 | NOW-APP-SHELL | `?app=1` nav strip + Join/Continue lobby | **done** | — | Hotpath D4 + MC1 partial |
 | NOW-SHEETS | Plan / audit / captions as strip sheets | **done** | NOW-APP-SHELL | Hotpath D4 residual |
-| NOW-HOLD-TALK | Hold-to-talk primary on `?app=1` call | todo | NOW-APP-SHELL | MC1 call verbs; hub mic exists, consumer primacy does not |
-| NOW-STRIP-44 | 44px call strip + one-hand reach | todo | NOW-APP-SHELL | MC1 gate at 360×640 |
+| NOW-HOLD-TALK | Hold-to-talk primary on `?app=1` call | **done** | NOW-APP-SHELL | 52px press-hold; temp-unmute for utterance; desk mic/composer demoted |
+| NOW-STRIP-44 | 44px call strip + one-hand reach | **done** | NOW-APP-SHELL | App strip: mic · hand · CC · Leave (`size-11`) |
 | NOW-LANDSCAPE | Landscape call shell usable | todo | NOW-HOLD-TALK, NOW-STRIP-44 | Surfaces HTML models it; webview unproven |
 | NOW-RAISE-HAND | Raise-hand finishing chrome on phone | todo | NOW-STRIP-44 | F06; strip already has control on hub |
 | NOW-LEAVE-COPY | Leave-without-loss copy (not End) | todo | NOW-APP-SHELL | F07 / F14 |
@@ -171,7 +171,7 @@ unblocked, sequenced after those unless a hosted demo pulls it forward.
 
 ## Hand back
 
-1. Work **NOW-HOLD-TALK** + **NOW-STRIP-44** next (MC1 finish).  
+1. Next consumer build: **NOW-LANDSCAPE** / **NOW-RAISE-HAND** / **NOW-LEAVE-COPY** (MC1 polish), or **NOW-PREVIEW**.  
 2. Keep Status Hub open on `?demoPlans=1` while implementing — the map is the board.  
 3. Schedule **NOW-HOTPATH-D5** after call verbs unless a hosted demo forces it earlier.  
 4. After a Now task ships: flip status here, in [multi-device MATRIX](../multi-device/MATRIX.md), and in the demo fixture (same id).

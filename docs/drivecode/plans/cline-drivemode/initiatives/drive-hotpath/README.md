@@ -29,7 +29,7 @@
 
 ## Hand back
 
-Slices 1–4 landed. Slice 5 is unblocked (path H). Prefer finishing MC1 call
-verbs (`NOW-HOLD-TALK` / `NOW-STRIP-44`) before standing up hosted writer ops,
+Slices 1–4 landed; MC1 hold-to-talk + 44px strip landed on `?app=1`. Slice 5 is
+unblocked (path H) — prefer remaining MC1 polish before hosted writer ops,
 unless a phone real-turn demo forces D5 earlier. MCP stays an agent tool plane,
 not the phone session bus.

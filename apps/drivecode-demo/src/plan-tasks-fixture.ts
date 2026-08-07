@@ -122,14 +122,14 @@ const nowPortfolioTasks: TeamTask[] = [
 	task(
 		"NOW-HOLD-TALK",
 		"Hold-to-talk primary on ?app=1",
-		"pending",
+		"completed",
 		["NOW-APP-SHELL"],
 		"Now · MC1 call verbs",
 	),
 	task(
 		"NOW-STRIP-44",
 		"44px call strip one-hand reach",
-		"pending",
+		"completed",
 		["NOW-APP-SHELL"],
 		"Now · MC1 strip",
 	),

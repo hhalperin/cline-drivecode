@@ -235,8 +235,8 @@ runtime ADR. Reuse the Drive call loop; hide the hub. Prove delight on phone
 with a credential-free watch path before App Store / Play Store.
 
 **MC1 partial:** `?app=1` drops hub nav, Join/Continue lobby (`DriveView`
-`composition=app`), plan/audit/captions as call sheets. Still open: hold-to-talk
-as primary, brand polish, landscape gate. Next: finish MC1 call verbs, then MC2
-first-open / MC3 PWA. Apply
+`composition=app`), plan/audit/captions as call sheets, hold-to-talk primary +
+44px reach strip. Still open: brand polish, landscape gate, leave copy. Next:
+MC1 polish / MC2 first-open / MC3 PWA. Apply
 [MOBILE-BRAND-STYLING.md](../../../../design/brand/MOBILE-BRAND-STYLING.md)
 before restyling demos. Gaps: [GAPS.md](GAPS.md).

@@ -36,6 +36,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { parseDriveAppShell } from "@/lib/drive-shell";
 import type {
 	WebviewChatAttachments,
 	WebviewDefaults,
@@ -221,6 +222,11 @@ export default function Chat({
 	onDriveLaunchHandled,
 	onSessionSelected,
 }: ChatProps) {
+	/** Consumer `?app=1` — hold-to-talk + thin strip (NOW-HOLD-TALK / NOW-STRIP-44). */
+	const appShell = parseDriveAppShell(
+		typeof window === "undefined" ? "" : window.location.search,
+	);
+	const callComposition = appShell ? "app" : "hub";
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
 	const [status, setStatus] = useState("Waiting for RPC initialization...");
 	const [sessionId, setSessionId] = useState<string>();
@@ -2231,84 +2237,88 @@ export default function Chat({
 							</p>
 						) : null}
 						<DriveVoiceBar
+							composition={callComposition}
 							disabled={isHydrating}
 							onSendSpoken={sendDrivePrompt}
 							onSttError={setStatus}
 							sending={sending}
 							session={driveSession}
 						/>
-						{drive.active ? (
+						{drive.active && !appShell ? (
 							<DriveAddressChip
 								addressSet={drive.addressSet}
 								onAddressEveryone={() => applyAddressSet(EVERYONE_ADDRESS)}
 								participants={drive.participants}
 							/>
 						) : null}
-						{routeSuggestion ? (
+						{routeSuggestion && !appShell ? (
 							<RouteSuggestChip
 								onAccept={acceptRouteSuggestion}
 								onDismiss={skipRouteSuggestion}
 								suggestion={routeSuggestion}
 							/>
 						) : null}
-						<Composer
-							autoApproveTools={autoApproveTools}
-							disabled={isHydrating}
-							enableSpawn={enableSpawn}
-							enableTeams={enableTeams}
-							enableTools={enableTools}
-							maxIterations={maxIterations}
-							model={model}
-							mode={mode}
-							modelSelectorOpen={modelSelectorOpen}
-							models={models}
-							onAbort={() => {
-								postToHost({ type: "abort" });
-								setStatus("Abort requested...");
-							}}
-							onAutoApproveToolsChange={setAutoApproveTools}
-							onEnableSpawnChange={setEnableSpawn}
-							onEnableTeamsChange={setEnableTeams}
-							onEnableToolsChange={setEnableTools}
-							onModeChange={setMode}
-							onMaxIterationsChange={setMaxIterations}
-							onModelChange={setModel}
-							pendingSteers={pendingSteers}
-							onModelSelectorOpenChange={setModelSelectorOpen}
-							onProviderChange={(nextProvider) => {
-								setProvider(nextProvider);
-								const rememberedModel =
-									lastSelection.lastModelByProvider[nextProvider];
-								const providerModelIds = (
-									modelsByProvider[nextProvider] ?? []
-								).map((item) => item.id);
-								if (
-									rememberedModel &&
-									providerModelIds.includes(rememberedModel)
-								) {
-									setModel(rememberedModel);
-									return;
-								}
-								setModel("");
-							}}
-							onSend={({ prompt, attachments, attachmentCount }) => {
-								gateRouteThenFlush({
-									prompt,
-									attachments,
-									attachmentCount,
-									source: "text",
-								});
-							}}
-							onSystemPromptChange={setSystemPrompt}
-							onReasonLevelChange={setReasonLevel}
-							provider={provider}
-							providers={providers}
-							sending={sending}
-							status={status}
-							systemPrompt={systemPrompt}
-							reasonLevel={effectiveReasonLevel}
-							workspaceRoot={defaults.workspaceRoot}
-						/>
+						{/* App call: hold-to-talk owns send; desk composer steals thumb zone. */}
+						{drive.active && appShell ? null : (
+							<Composer
+								autoApproveTools={autoApproveTools}
+								disabled={isHydrating}
+								enableSpawn={enableSpawn}
+								enableTeams={enableTeams}
+								enableTools={enableTools}
+								maxIterations={maxIterations}
+								model={model}
+								mode={mode}
+								modelSelectorOpen={modelSelectorOpen}
+								models={models}
+								onAbort={() => {
+									postToHost({ type: "abort" });
+									setStatus("Abort requested...");
+								}}
+								onAutoApproveToolsChange={setAutoApproveTools}
+								onEnableSpawnChange={setEnableSpawn}
+								onEnableTeamsChange={setEnableTeams}
+								onEnableToolsChange={setEnableTools}
+								onModeChange={setMode}
+								onMaxIterationsChange={setMaxIterations}
+								onModelChange={setModel}
+								pendingSteers={pendingSteers}
+								onModelSelectorOpenChange={setModelSelectorOpen}
+								onProviderChange={(nextProvider) => {
+									setProvider(nextProvider);
+									const rememberedModel =
+										lastSelection.lastModelByProvider[nextProvider];
+									const providerModelIds = (
+										modelsByProvider[nextProvider] ?? []
+									).map((item) => item.id);
+									if (
+										rememberedModel &&
+										providerModelIds.includes(rememberedModel)
+									) {
+										setModel(rememberedModel);
+										return;
+									}
+									setModel("");
+								}}
+								onSend={({ prompt, attachments, attachmentCount }) => {
+									gateRouteThenFlush({
+										prompt,
+										attachments,
+										attachmentCount,
+										source: "text",
+									});
+								}}
+								onSystemPromptChange={setSystemPrompt}
+								onReasonLevelChange={setReasonLevel}
+								provider={provider}
+								providers={providers}
+								sending={sending}
+								status={status}
+								systemPrompt={systemPrompt}
+								reasonLevel={effectiveReasonLevel}
+								workspaceRoot={defaults.workspaceRoot}
+							/>
+						)}
 					</div>
 				</div>
 				{/*
@@ -2318,12 +2328,13 @@ export default function Chat({
 				 * top of it. DriveCallStrip no-ops (returns null) off a call.
 				 */}
 				<DriveCallStripDock
+					composition={callComposition}
 					currentModel={currentModelId}
 					disabled={isHydrating}
 					modelShortlist={modelShortlist}
 					onSelectModel={selectPowerModel}
 					onTogglePlan={
-						stageLayout
+						stageLayout && !appShell
 							? () => setPlanSheetOpen((open) => !open)
 							: undefined
 					}
