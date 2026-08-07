@@ -4,15 +4,16 @@
  */
 
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { DriveBrowseSurface } from "@/lib/drive-shell";
 import { cn } from "@/lib/utils";
-import {
-	DIAGRAM_NARROW_MAX_PX,
-	shouldAutoRenderMermaid,
-} from "./diagramPresentation";
 import { ScreenArtifact } from "./ScreenArtifact";
+import {
+	readBrowserVisualHints,
+	resolveVisualEngineParams,
+	shouldAutoRenderMermaidForParams,
+} from "./visualEngine";
 
 export type BrowseLiteIndexProps = {
 	onOpen: (surface: DriveBrowseSurface) => void;
@@ -114,7 +115,7 @@ function PageChrome({
 }: {
 	title: string;
 	onBack: () => void;
-	children: React.ReactNode;
+	children: ReactNode;
 }) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col" data-slot="drive-browse-lite">
@@ -139,24 +140,39 @@ function PageChrome({
 }
 
 function PhoneDiagramPreview() {
-	const [width, setWidth] = useState(() =>
-		typeof window === "undefined" ? 1024 : window.innerWidth,
+	const [box, setBox] = useState(() =>
+		typeof window === "undefined"
+			? { widthPx: 1024, heightPx: 768 }
+			: { widthPx: window.innerWidth, heightPx: window.innerHeight },
 	);
 	const [armed, setArmed] = useState(false);
 
 	useEffect(() => {
-		const onResize = () => setWidth(window.innerWidth);
+		const onResize = () =>
+			setBox({
+				widthPx: window.innerWidth,
+				heightPx: window.innerHeight,
+			});
 		window.addEventListener("resize", onResize);
 		return () => window.removeEventListener("resize", onResize);
 	}, []);
 
-	const auto = shouldAutoRenderMermaid({ surface: "browse", widthPx: width });
+	const params = useMemo(
+		() =>
+			resolveVisualEngineParams({
+				...box,
+				...readBrowserVisualHints(),
+			}),
+		[box],
+	);
+	const auto = shouldAutoRenderMermaidForParams("browse", params);
 	const show = auto || armed;
 
 	return (
 		<div className="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
 			<p className="mb-2 font-mono text-[10px] uppercase tracking-wide text-amber-800 dark:text-amber-200">
-				Diagram · {width <= DIAGRAM_NARROW_MAX_PX ? "phone stack" : "desk fit"}
+				Diagram · {params.format} · {params.layout}
+				{params.compactChrome ? " · app" : ""}
 			</p>
 			{show ? (
 				<div className="min-h-[12rem]">
@@ -169,6 +185,7 @@ function PhoneDiagramPreview() {
 								args: { mermaidSource: DEMO_MERMAID },
 							},
 						}}
+						surface="browse"
 					/>
 				</div>
 			) : (

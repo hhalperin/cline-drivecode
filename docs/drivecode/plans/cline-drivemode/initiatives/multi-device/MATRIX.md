@@ -23,7 +23,7 @@ The **multi-device-backlog** skill owns the edit discipline.
 | F14 | Leave handoff line | wip | todo | todo | todo | light keep-running line with F07 |
 | F15 | Voice mini-settings | wip | todo | wip | todo | ios: Settings toggles |
 | F16 | Browse lite | wip | wip | done | lite | hub `?app=1&browse=`; ios BrowseViews; not full Status Hub |
-| F17 | Viewport diagrams | wip | wip | done | n/a | `diagramPresentation` ≤720 tap/stack; ultrawide side-by-side |
+| F17 | Viewport diagrams | wip | wip | done | n/a | `visualEngine` frame measure → format/layout; Mermaid LR→TB on phone |
 | D01 | Live Activity | n/a | n/a | yagni | n/a | after Tier 1 |
 
 Last maintained: 2026-08-07 (Browse lite + mobile diagram contract).

@@ -116,7 +116,7 @@ Status vocabulary matches multi-device: `done` · `wip` · `todo` · `blocked` �
 | NOW-HOSTED-ADR | Owner accept ADR-0016 path H | **done** | — | [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md) |
 | NOW-HOTPATH-D5 | Cloud signaling (same wire, hosted writer) | todo | NOW-HOSTED-ADR | Prefer after NOW-HOLD-TALK / NOW-STRIP-44 |
 | NOW-BROWSE-LITE | Browse lite: rooms / tasks / artifacts / status | **done** | NOW-APP-SHELL | hub `?browse=` + ios `BrowseViews`; not full Status Hub |
-| NOW-DIAGRAM-MOBILE | Viewport-aware diagrams (tap / stack / ultrawide) | **done** | NOW-BROWSE-LITE | `diagramPresentation` + ScreenArtifact; phone tap-to-render off Spotlight |
+| NOW-DIAGRAM-MOBILE | Viewport-aware diagrams (tap / stack / ultrawide) | **done** | NOW-BROWSE-LITE | `visualEngine` frame params → ScreenArtifact; phone tap-to-render off Spotlight |
 
 ## Broader portfolio (not Now — still open)
 

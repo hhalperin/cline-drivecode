@@ -116,7 +116,7 @@ Grouped by job. Priority = consumer path first; Advanced stays collapsed.
 | Gap | Why it hurts | Fill |
 |---|---|---|
 | Browse lite fixtures ≠ live adapters | Glance only until B02 | Wire hub room/task sources |
-| Status Mermaid on first paint | Phone jank | **partial** — `diagramPresentation` tap-to-render ≤720; Spotlight still auto |
+| Status Mermaid on first paint | Phone jank | **partial** — `visualEngine` tap-to-render ≤720; Spotlight still auto |
 | Artifacts / agents deep | Consumer overload | Keep under Browse; default Home stays call-first |
 
 ### E · Install & distribute

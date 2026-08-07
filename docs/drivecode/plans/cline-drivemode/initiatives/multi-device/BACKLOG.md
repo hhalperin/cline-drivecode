@@ -13,7 +13,7 @@ Work queue for parity. Prefer small vertical slices that move a MATRIX cell
 | B04 | Hold-to-talk + STT on ios + Safari | ios, pwa | todo | Permissions-Policy on hosted |
 | B05 | Shared Preview/demo honesty component contract | all | todo | Same chip semantics |
 | B10 | Browse lite rooms/tasks/artifacts/status | hub, pwa, ios | **wip** | ios fixtures done; hub `DriveBrowseLite` + `?browse=`; live sources later (B02) |
-| B11 | Diagram viewport contract (tap / stack / ultrawide) | hub, pwa, ios | **wip** | `diagramPresentation.ts` + ScreenArtifact font/stack; ios tap stack fixture |
+| B11 | Diagram viewport contract (tap / stack / ultrawide) | hub, pwa, ios | **wip** | `visualEngine.ts` measures Spotlight frame; feeds Mermaid/animation; ios fixture |
 
 ## Next
 
