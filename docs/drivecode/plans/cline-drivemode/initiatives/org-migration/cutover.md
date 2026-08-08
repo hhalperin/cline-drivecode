@@ -167,19 +167,45 @@ repository check. A run where both jobs skip is the bug this step fixes.
 
 ## Phase 3 · Identity in the docs
 
-Gate: `grep -rn "hhalperin/cline-drivecode"` returns **only** archive and review
-files, and a tester following `install.md` clones the org.
+Gate: the only surviving matches are the four **keep-as-written** paths below,
+and a tester following `install.md` clones the org.
 
 Work the tiers from [inventory.md](inventory.md). Do **not** run a blind
-repo-wide `sed` — three of the tiers must not move.
+repo-wide `sed` — three of the tiers must not move, and one of them is this
+initiative.
+
+### Keep as written
+
+| Path | Why |
+|---|---|
+| `plans/cline-drivemode/archive/` | Archived handoffs describe what was true then |
+| `meta/reviews/` | Review narratives, same reason |
+| `plans/drivecode-sdk/delivery/07,08,09` | `07` is already marked historical by [HANDOFF.md](../../../../HANDOFF.md); carries 6 of its 9 refs |
+| **`plans/cline-drivemode/initiatives/org-migration/`** | **This plan.** Its refs are the evidence — the `git` output, the inventory tables, and the `before` side of every diff below. Rewriting them turns each diff into `drive-mode/…` → `drive-mode/…` and the runbook stops making sense |
+| `assets/changelog/repo-changelog.json` | Generated — regenerate, never edit (below) |
+
+### The rewrite
 
 ```bash
-# Blocking tier + should-follow tier. Archive/review/generated excluded.
+# Blocking + should-follow tiers only. --exclude-dir keeps this initiative's
+# evidence intact; the archive, reviews, drivecode-sdk/delivery and the
+# generated changelog are already outside these paths.
 grep -rln "hhalperin/cline-drivecode" \
+  --exclude-dir=org-migration \
   README.md AGENTS.md \
   docs/drivecode/reference docs/drivecode/design \
   docs/drivecode/plans/cline-drivemode/{delivery,leadership,adr,research,features,ops,initiatives} \
 | xargs sed -i 's|hhalperin/cline-drivecode|drive-mode/cline-drivecode|g'
+```
+
+### Verify the gate
+
+```bash
+# Must print nothing. Anything it prints is a ref that should have moved.
+grep -rln "hhalperin/cline-drivecode" . \
+  --exclude-dir=node_modules --exclude-dir=.git \
+  --exclude-dir=archive --exclude-dir=reviews --exclude-dir=org-migration \
+| grep -vE 'plans/drivecode-sdk/delivery/0[789]-|assets/changelog/repo-changelog\.json'
 ```
 
 Then, by hand:
@@ -192,9 +218,8 @@ Then, by hand:
 | `docs/drivecode/assets/changelog/repo-changelog.json` | **Generated.** Re-run `scripts/drive/seed-repo-changelog.ts`; do not hand-edit |
 | `drive-mode/site` `README.md` | Drop "(moving to `drive-mode` shortly)" and point the Cline Drive link at the org. Separate repo, separate PR |
 
-Leave untouched: `archive/HANDOFF-pr24-u4.md`, `meta/reviews/*`, and
-`plans/drivecode-sdk/delivery/07,08,09` — they describe what was true then, and
-`07` is already marked historical.
+Everything in **Keep as written** above stays as it is — the `sed` skips it and
+the gate command excludes it.
 
 ```bash
 bun run check:drivecode-docs

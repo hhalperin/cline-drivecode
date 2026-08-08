@@ -132,7 +132,7 @@ the debt it surfaces.
 | 0 | **Fork decision** | The owner picks A, B, or C above | Recorded as a DEC; `cutover.md` phase 1 has one path |
 | 1 | **Repo identity** | Fork resolved; `main` fast-forwarded to 81 commits ahead | `drive-mode/cline-drivecode@main` == personal `main`; repo answers to a plain `org:drive-mode` search |
 | 2 | **CI that tells the truth** | Inherited upstream crons disabled; `drive-beta-release` retargeted; CODEOWNERS + labels seeded | `drive-ci` green on the org; a dispatched `drive-beta-release` **runs** instead of skipping; zero scheduled runs in 48 h |
-| 3 | **Identity in the docs** | 45 refs retargeted; `site` README de-promised | `grep -r hhalperin/cline-drivecode` returns only archive and review files; a tester following `install.md` clones the org |
+| 3 | **Identity in the docs** | 45 refs retargeted; `site` README de-promised | The [cutover gate command](cutover.md#verify-the-gate) prints nothing — every remaining ref is in a keep-as-written path; a tester following `install.md` clones the org |
 | 4 | **Web app testable** | `cline.drivemode.ai` live from `drive-mode/site`; artifact handshake | [testing.md](testing.md) W-gates: TLS valid, `microphone=(self)` verified, demo plays on a phone |
 | 5 | **Mobile app testable** | PWA install path on the new hostname; iOS route documented honestly | [testing.md](testing.md) M-gates: standalone window runs the call shell; MC3 mic policy verified |
 | 6 | **Harness duplication ADR** | An ADR that either extracts, bridges, or deliberately forks the two kernels | ADR proposed against [DEC-package-location](../../decisions/DEC-package-location.md); no code change required to open it |
