@@ -2,7 +2,8 @@
 
 **ADR** = Architecture Decision Record (industry-standard naming; same artifact family as cursor-drive and harrison-site).
 
-**Status board.** [ADR-0000-status-board.md](ADR-0000-status-board.md) — Accepted / Recommended / Proposed / Open, clusters, and **decision coverage gaps** in one place.
+**Status board.** [ADR-0000-status-board.md](ADR-0000-status-board.md) — Accepted / Recommended / Proposed / Open, clusters, and **decision coverage gaps** in one place.  
+**Coverage inventory.** [decision-coverage.md](decision-coverage.md) — binding clauses, domain tags, and domain matrix for ADR-0001…0029 + DEC-\* + Architecture D1–D10.
 **Acceptance.** 2026-07-29 human `accept all`: ADR-0000…0013 + DEC bundle. ADR-0014 Accepted on `main` the same day. **2026-08-08 cleanup:** ADR-0023 reconciled; ADR-0023 / 0027 / 0028 / 0029 Accepted; path H + DEC-mobile on the board.
 
 **Hygiene (unpoisoned context).** Prefer **rewrite-in-place** so each ADR’s

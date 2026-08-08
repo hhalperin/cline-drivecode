@@ -2,7 +2,7 @@
 
 **Purpose.** One place to see what is Accepted, Proposed, Recommended-default, or Superseded.
 **Owner.** Drivecode SE lead / PM.
-**Related.** [decision-changelog.md](decision-changelog.md) (chronology), [LEADERSHIP-BRIEF.md](../leadership/LEADERSHIP-BRIEF.md), [HANDOFF.md](../delivery/HANDOFF.md), [../../HANDOFF.md](../../../HANDOFF.md).
+**Related.** [decision-changelog.md](decision-changelog.md) (chronology), [decision-coverage.md](decision-coverage.md) (binding-clause inventory), [LEADERSHIP-BRIEF.md](../leadership/LEADERSHIP-BRIEF.md), [HANDOFF.md](../delivery/HANDOFF.md), [../../HANDOFF.md](../../../HANDOFF.md).
 
 ## Status legend
 
