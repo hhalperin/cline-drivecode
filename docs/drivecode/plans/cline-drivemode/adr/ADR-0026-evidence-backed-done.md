@@ -50,8 +50,3 @@ contract, not the Done ledger.
 runbook/PR claim contracts, and ADR-0025 E1 L1 consumer are on tip of this
 stack. Remaining: full Finding 1 consumer matrix, BACKLOG render, consumer-path
 grep v2.
-
-## Changelog
-
-- 2026-08-03 — Accepted (evidence-backed Done refusal path).
-- 2026-08-08 — Twin link to ADR-0025.

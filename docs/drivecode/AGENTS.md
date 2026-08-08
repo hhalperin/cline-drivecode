@@ -26,7 +26,7 @@ Fix failures before merging Drive doc changes.
 | `plans/cline-drivemode/leadership/` | SE/PM briefs, systems analysis, entry gates |
 | `plans/cline-drivemode/delivery/` | TASK-GRAPH, AGENT-RUNBOOK, active track handoff |
 | `plans/cline-drivemode/decisions/` | `DEC-*` |
-| `plans/cline-drivemode/adr/` | `ADR-NNNN-*` + status board |
+| `plans/cline-drivemode/adr/` | `ADR-NNNN-*` + status board + `decision-changelog.md` (chronology out of band) |
 | `plans/cline-drivemode/prd/` | Product requirements |
 | `plans/cline-drivemode/features/` | `DRV-*.md` one-pagers only |
 | `plans/cline-drivemode/initiatives/<slug>/` | Multi-file delivery plans (README required) |

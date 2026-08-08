@@ -80,8 +80,3 @@ Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cl
 - **Snapshot every append** → works but heavier than trim-triggered write; revisit if hydrate from mid-cap logs is slow.
 - **MCP Streamable HTTP as room transport** → rejected; rooms are sequenced sticky state; MCP 2026-07-28 is stateless request/response for tools.
 - **CRDT multi-writer** → rejected (Architecture D2 / ADR-0013).
-
-## Changelog
-
-- 2026-08-06 — Proposed; H1 fold checkpoint designed (slice 1).
-- 2026-08-08 — Accepted; slices renamed H1–H5; H1–H4 marked shipped, H5 open.

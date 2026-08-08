@@ -72,8 +72,3 @@ backlog beside [defaults-delivery.md](../delivery/defaults-delivery.md) and
 - WebRTC / multi-human media.
 - Agents / Teams spawn UI before D1 / E2 enforcement.
 - Unifying Status Hub and Drive bank into one store.
-
-## Changelog
-
-- 2026-08-04 — Proposed (Drive = ADLC control plane; no second workflow runtime).
-- 2026-08-08 — Accepted (decision-level).

@@ -34,7 +34,7 @@
 
 **2026-08-07.** Path H + freemium owner defaults ([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)); ADR-0016 rewritten in place for dual install paths.
 
-**2026-08-08.** ADR cleanup wave: reconcile ADR-0023; Accept ADR-0023 / 0027 / 0028 / 0029 (H1–H4 shipped, H5 open); fold path H onto main board; rename hotpath slices **H1–H5** (avoid Architecture D1–D10 collision); change control → **current truth singular** (rewrite-in-place over stacked amendments).
+**2026-08-08.** ADR cleanup wave: reconcile ADR-0023; Accept ADR-0023 / 0027 / 0028 / 0029 (H1–H4 shipped, H5 open); fold path H onto main board; rename hotpath slices **H1–H5**; change control → **current truth singular**; chronology → [decision-changelog.md](decision-changelog.md).
 
 ## Clusters (read together)
 
@@ -171,10 +171,12 @@ paragraphs poison the context window and slow decisions.
 
 1. **Prefer rewrite-in-place** when a decision’s substance changes or tip makes
    a Finding false. Edit Context / Decision so the main text is true *now*.
-2. **Changelog at the bottom** — every substantive edit **appends** one line
-   under `## Changelog` (newest last). Format:
-   `- YYYY-MM-DD — what changed (one clause).` No second Decision body.
-   Status stays a single current verdict, not a stack of “Amended …” banners.
+2. **Chronology lives in
+   [decision-changelog.md](decision-changelog.md)** — not inside the ADR.
+   Every substantive rewrite appends one line under that record’s heading
+   there (`- YYYY-MM-DD — …`, newest last). Passing an ADR into a context
+   window should load only current truth. Status stays a single current
+   verdict, not a stack of “Amended …” banners.
 3. **New ADR / DEC** only for a real architectural fork (new plane, new writer,
    supersession). Link it here; old record flips to Superseded with one line
    “Superseded by ADR-NNNN”.
@@ -183,8 +185,3 @@ paragraphs poison the context window and slow decisions.
 5. Board (this file) stays the index; Impl column tracks shipped vs decision.
 6. Hotpath implementation slices use **H1–H5** only. Architecture defaults keep
    **D1–D10**.
-
-## Changelog
-
-- 2026-07-29 — Board opened; ADR-0000…0013 + DEC bundle Accepted.
-- 2026-08-08 — Cleanup wave indexed; clusters + coverage gaps; current-truth / bottom Changelog hygiene.
