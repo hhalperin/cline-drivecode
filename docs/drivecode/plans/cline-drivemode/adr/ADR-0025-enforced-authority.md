@@ -232,3 +232,8 @@ forbidden-key scanners it must not become a transcript read-back by another name
 6. **Whether unenforced-declaration is a CI failure or a tracked exemption
    list.** Hard failure is honest and will block unrelated work the first time
    someone lands a schema ahead of its consumer.
+
+## Changelog
+
+- 2026-08-03 — Accepted (declared authority needs enforcement-path consumer).
+- 2026-08-08 — Twin link to ADR-0026; context note that ADR-0023 is Accepted.
