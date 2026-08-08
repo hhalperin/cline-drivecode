@@ -31,21 +31,23 @@ It does **not** mean an infinite scroll of stranger content. Drive’s wedge sta
 
 ## The hard fork (owner decision)
 
-[ADR-0016](../../adr/ADR-0016-distribution-and-positioning.md) locked beta as
-**public self-hosted**: clone, run a local hub, no multi-tenant hosted service.
-[hosted-preview](../hosted-preview/) tiers 1–3 are pages; **tier 4 (hosted hub)
-contradicts ADR-0016**.
+[ADR-0016](../../adr/ADR-0016-distribution-and-positioning.md) locked developer
+beta as **public self-hosted** (clone + local hub). **Path H** (hosted
+single-writer, same Drive wire) was **accepted 2026-08-07** —
+[DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md).
+Multi-human rooms stay out. [hosted-preview](../hosted-preview/) tiers 1–3
+remain the credential-free watch path until D5 + ADR-0021 land.
 
 A less-technical mass market **cannot** start with `git clone` + API keys.
 
 | Path | Who it serves | ADR-0016 |
 |---|---|---|
 | **M — Mobile shell on tiers 1–3** | Anyone with a phone; credential-free watch / guided tour | Compatible today |
-| **H — Hosted runtime (tier 4+)** | Real agent turns for people without a daemon | **Requires superseding or amending ADR-0016** + ADR-0021 credential story |
+| **H — Hosted runtime (tier 4+)** | Real agent turns for people without a daemon | **Accepted** (path H) — wire [ADR-0029](../../adr/ADR-0029-room-hotpath-redesign.md) D5 + [ADR-0021](../../adr/ADR-0021-drive-credential-onboarding.md) |
 
-**Recommendation:** ship **M** hard (acquire and prove delight), draft the ADR
-amendment for **H** in parallel, do not pretend a mock transport is a finished
-consumer product.
+**Recommendation:** ship **M** hard (acquire and prove delight); build **H**
+as the same wire on a hosted writer — do not pretend a mock transport is a
+finished consumer product.
 
 ```mermaid
 flowchart LR
@@ -53,9 +55,9 @@ flowchart LR
   Watch --> Steer[Steer by voice]
   Steer --> Share[Share a moment]
   Share --> Install[Add to Home Screen]
-  Install --> Hosted{Hosted runtime?}
-  Hosted -->|no — ADR-0016| Demo[Stay on demo / self-host CTA]
-  Hosted -->|yes — new ADR| Real[Real agent turns]
+  Install -->   Hosted{Hosted runtime?}
+  Hosted -->|self-host CTA| Demo[Demo / clone hub]
+  Hosted -->|path H accepted| Real[Real agent turns]
 ```
 
 ## Product shape (mobile)
@@ -169,15 +171,17 @@ Motion on Spotlight card land / raise-hand. Optional shareable beat capture
 **Gate.** Fixture multi-tool turn never feels silent; raise-hand shows finishing
 state; reduced-motion still readable.
 
-### Phase MC5 · Hosted path decision (ADR)
+### Phase MC5 · Hosted path (path H accepted)
 
-**Goal.** Decide whether mass-market real agents are in scope.
+**Goal.** Real agent turns on phone without a local daemon.
 
-**Changes.** Draft ADR amending or superseding ADR-0016 for a hosted / freemium
-runtime; address ADR-0021 key broadcast. If rejected, MC stays demo + self-host
-CTA forever and we stop promising “just open the app and build.”
+**Changes.** Path H accepted ([DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md)
+/ ADR-0016 amendment). Implement hosted writer (ADR-0029 D5) + ADR-0021
+credential readiness. Economics: **Cline default (freemium)**; BYOK secondary —
+no Drive-owned plan chrome.
 
-**Gate.** Written owner accept/reject. No silent drift into tier 4.
+**Gate.** Phone completes a real turn against hosted single-writer; Preview
+honesty when credentials missing.
 
 ### Phase MC6 · Native shells
 
@@ -214,17 +218,15 @@ as hub adapters land. Android stays YAGNI until ios+pwa Tier 1 green.
 ux-quality phases 0–2 remain prerequisites for MC1 (honest states, stage budget,
 collapsible rail). MC does not invent a parallel layout system.
 
-## Open decisions (owner)
+## Owner decisions
 
-1. **Amend ADR-0016 for a hosted consumer path?** Recommended: draft yes for
-   MC5; ship MC0–MC4 without waiting.
-2. **Default voice on first open?** Mic muted (safe) + one-tap “tap to talk”
-   teaching, or hold-to-talk hot from beat one with a clear mute?
-3. **Brand name on the home screen icon** — “Drive” alone vs “Cline Drive”?
-4. **Freemium model for hosted turns** (if H) — included tokens vs BYOK after
-   demo. BYOK alone will not convert this audience.
-5. **Force MC3 (PWA) onto the roadmap now?** Recommended: yes — install is the
-   consumer product, not an optional phase 8.
+Closed 2026-08-07 — [DEC-mobile-consumer-owner](../../decisions/DEC-mobile-consumer-owner.md):
+
+1. **Path H** — yes (hosted single-writer).
+2. **Voice** — default muted; strip Mute/Unmute = enable-microphone toggle.
+3. **Home-screen name** — **Cline Drive**.
+4. **MC3 on Now roadmap** — yes.
+5. **Hosted economics** — **Cline default (freemium)**; BYOK secondary.
 
 ## Hand back
 
@@ -232,9 +234,9 @@ Mobile consumer is a **shell and distribution** problem first, then a hosted-
 runtime ADR. Reuse the Drive call loop; hide the hub. Prove delight on phone
 with a credential-free watch path before App Store / Play Store.
 
-**MC1 partial:** `?app=1` drops hub nav, Join/Continue lobby (`DriveView`
-`composition=app`), plan/audit/captions as call sheets. Still open: hold-to-talk
-as primary, brand polish, landscape gate. Next: finish MC1 call verbs, then MC2
-first-open / MC3 PWA. Apply
+**MC1–MC3 on hub:** `?app=1` Join/Continue, hold-to-talk, 44px Leave strip,
+landscape two-column, raise-hand banner, Preview chip, credential-free
+Join→demo fixture, PWA manifest **Cline Drive**. Still open: brand polish,
+iOS glance, hosted D5. Apply
 [MOBILE-BRAND-STYLING.md](../../../../design/brand/MOBILE-BRAND-STYLING.md)
 before restyling demos. Gaps: [GAPS.md](GAPS.md).

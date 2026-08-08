@@ -46,7 +46,7 @@
 | [ADR-0013](ADR-0013-state-partition.md) | Three-lane state partition | **Accepted** | partial | Log + live + facets; two live maps wording soft |
 | [ADR-0014](ADR-0014-chat-fork-lifecycle.md) | Chat-fork lifecycle | **Accepted** | shipped | Hub `drive.fork.*` + PromotePacket |
 | [ADR-0015](ADR-0015-task-session-observability.md) | Local task-session observability | **Accepted** | partial | Slices + privacy UI + host compile enqueue; materialize into `.driveagent/` still host |
-| [ADR-0016](ADR-0016-distribution-and-positioning.md) | Drive mode distribution & positioning | **Accepted** | decision | Route B fork; public self-hosted beta |
+| [ADR-0016](ADR-0016-distribution-and-positioning.md) | Drive mode distribution & positioning | **Accepted** | decision | Route B fork; self-hosted beta; **path H** + hosted economics **Cline freemium default** (2026-08-07; [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)) |
 | [ADR-0017](ADR-0017-narration-bound-presentation-cues.md) | Narration-bound presentation cues | **Proposed — deferred** | deferred | Demo canvas only; behind S9 |
 | [ADR-0018](ADR-0018-agent-runtime-contract.md) | Agent runtime contract (DriveTask v1) | **Accepted** | partial | `run.ts` + interop + Agent Control hub tools + completion guard; see ADR-0019 |
 | [ADR-0019](ADR-0019-driveplan-kanban-interop-wire.md) | DrivePlan–Kanban Interop wire | **Accepted** | partial | `execute` / `collectReceipt` + `KanbanInteropHost`; Kanban/hub host adapters still thin |
@@ -59,7 +59,7 @@
 | [ADR-0026](ADR-0026-evidence-backed-done.md) | Evidence-backed Done needs a refusal path | **Accepted** | partial | Delivery twin of ADR-0025. Registry + `check-drivecode-done.ts`; cold-start cites `claim:<id>`; stack-safe docs/sdk CI; runbook/PR claim contracts; ADR-0025 E1 L1 consumer landed. Full Finding 1 class + BACKLOG render still follow-on. |
 | [ADR-0027](ADR-0027-role-tiers.md) | A role tier is a permission ceiling, or it is a prompt | **Proposed** | decision | Applies ADR-0025's rule to the recurring three-tier (Architect → Tech Lead → Developer) ask. The hierarchy is already ~built: `"handoff"` is a `MissionLogKind`, the shared design doc is `TeamOutcome`/`TeamOutcomeFragment` with `draft`→`in_review`→`finalized`. Missing tier is a one-line union edit — hence the guard: **no third tier until D1 wires `capPreset` into `call_seat`**, and `DEFAULT_MAX_CHAT_FORK_DEPTH` stays 1. **Corrects ADR-0023:** its Finding 2 ("unbounded generations") is stale — `c8d2e53` (#146) added the depth guard, enforced in `assertForkLegal` as `depth_exceeded`. Also records three disjoint role vocabularies (team / router / `call_join`) |
 | [ADR-0028](ADR-0028-adlc-control-plane.md) | Drive Mode is the ADLC control plane | **Proposed** | decision | Factory loop over existing room/bank/gates/status/rollup/receipt planes. No second workflow runtime. Sequences B2/B3 + Status→Drive offer bridge + receipt product wire; spawn UI stays behind enforced-authority E2. Initiative: [adlc-drive-factory](../initiatives/adlc-drive-factory/). |
-| [ADR-0029](ADR-0029-room-hotpath-redesign.md) | Room hot-path redesign (checkpoint, deltas, one stage clock) | **Proposed** | partial | Amends ADR-0013 hydrate guarantee. Slices 1–4 landed on hotpath PR track; slice 5 cloud signaling blocked on ADR-0016 path H. Initiative: [drive-hotpath](../initiatives/drive-hotpath/). |
+| [ADR-0029](ADR-0029-room-hotpath-redesign.md) | Room hot-path redesign (checkpoint, deltas, one stage clock) | **Proposed** | partial | Amends ADR-0013 hydrate guarantee. Slices 1–4 landed; slice 5 cloud signaling **unblocked** (path H accepted). Initiative: [drive-hotpath](../initiatives/drive-hotpath/). |
 
 ## Leadership decisions (this wave)
 
@@ -68,6 +68,7 @@
 | [DEC-agent-source-of-truth](../decisions/DEC-agent-source-of-truth.md) | Author in `.driveagent/`; compile into host | **Accepted** |
 | [DEC-package-location](../decisions/DEC-package-location.md) | `@cline/drive` in monorepo for phase 1 | **Accepted** |
 | [DEC-open-product-forks](../decisions/DEC-open-product-forks.md) | Focus / streams / share / accent / revise | **Accepted** (bundle) |
+| [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md) | Path H, muted mic, Cline Drive name, MC3 on Now | **Accepted** (2026-08-07) |
 
 ## Architecture D1–D10
 
@@ -105,7 +106,7 @@ SDK amendments (reducer/projection in `@cline/drive`; host port + conformance ki
 - Dual prompt stores (facets + homes) → **Rejected** ([DEC-agent-source-of-truth](../decisions/DEC-agent-source-of-truth.md)).
 - Background turns in unfocused rooms (MVP) → **Rejected**.
 - Distribution route (upstream vs fork vs hybrid) → **Route B, fork** ([ADR-0016](ADR-0016-distribution-and-positioning.md), 2026-08-02). Revisitable after the beta.
-- Hosted beta → **Rejected** for the MVP: the beta is public but **self-hosted**. A hosted hub would require multi-human rooms and a hosted-hub initiative, both explicit non-goals today.
+- Hosted **multi-human** rooms → **Rejected** (still). Self-hosted beta remains the developer path. **Path H** (hosted single-writer, same wire, phone/PWA) → **Accepted 2026-08-07** — not multi-tenant social rooms; see ADR-0016 amendment + DEC-mobile-consumer-owner.
 - Narration cue schema accept ([ADR-0017](ADR-0017-narration-bound-presentation-cues.md)) → **deferred**, not open: spotlight S9 is outside the MVP cut, so this is off the beta's critical path.
 
 ## Change control
