@@ -8,8 +8,9 @@
 **Hygiene (unpoisoned context).** Prefer **rewrite-in-place** so each ADR’s
 Context/Decision reads as current tip truth. Do not leave a false Finding beside
 an “amendment: ignore the above” note — that doubles the claim set and slows
-decisions. Chronology belongs in Status / History; new ADR only for a real fork
-or supersession. See ADR-0000 § Change control.
+decisions. Chronology is a mini **`## Changelog`** at the **bottom** of the
+file (`YYYY-MM-DD — …`). Status is one current verdict. New ADR only for a real
+fork or supersession. See ADR-0000 § Change control.
 
 | ID | Title | Status | Features |
 |---|---|---|---|

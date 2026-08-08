@@ -59,7 +59,7 @@ Call surface = Spotlight + one strip + sheets. Plan editor, task bank, audit, me
 
 ### H5 · Signaling topology (slice 5 — open)
 
-Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cloud` (hosted single-writer room service) with the **same Drive wire**. Phone / PWA use cloud under path H ([ADR-0016](ADR-0016-distribution-and-positioning.md) amended 2026-08-07; [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)). MCP stays off the room wire.
+Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cloud` (hosted single-writer room service) with the **same Drive wire**. Phone / PWA use cloud under path H ([ADR-0016](ADR-0016-distribution-and-positioning.md); [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)). MCP stays off the room wire.
 
 ## Consequences
 
@@ -80,3 +80,8 @@ Extend ADR-0009-style profiles to **where the hub runs**: `local` (today) vs `cl
 - **Snapshot every append** → works but heavier than trim-triggered write; revisit if hydrate from mid-cap logs is slow.
 - **MCP Streamable HTTP as room transport** → rejected; rooms are sequenced sticky state; MCP 2026-07-28 is stateless request/response for tools.
 - **CRDT multi-writer** → rejected (Architecture D2 / ADR-0013).
+
+## Changelog
+
+- 2026-08-06 — Proposed; H1 fold checkpoint designed (slice 1).
+- 2026-08-08 — Accepted; slices renamed H1–H5; H1–H4 marked shipped, H5 open.

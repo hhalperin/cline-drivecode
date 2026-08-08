@@ -131,3 +131,8 @@ Delegation belongs in the gate taxonomy rather than a bespoke approval path.
 2. **Does a consult get its own context, or see the room?**
 3. **Whether delegation needs approval per spawn, per session, or per pack.**
 4. **Whether an agent may consult a pack the human has never seen.**
+
+## Changelog
+
+- 2026-08-02 — Proposed (consult vs delegate; bound fork depth; hub enforcement).
+- 2026-08-08 — Finding 2 rewritten for tip (#146 depth guard); Accepted; Impl partial.

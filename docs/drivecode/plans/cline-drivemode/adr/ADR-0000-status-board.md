@@ -171,13 +171,20 @@ paragraphs poison the context window and slow decisions.
 
 1. **Prefer rewrite-in-place** when a decision’s substance changes or tip makes
    a Finding false. Edit Context / Decision so the main text is true *now*.
-   Put chronology in Status, Metadata, or a short **History** footnote — not as
-   a second Decision that contradicts the first.
-2. **New ADR / DEC** only for a real architectural fork (new plane, new writer,
+2. **Changelog at the bottom** — every substantive edit **appends** one line
+   under `## Changelog` (newest last). Format:
+   `- YYYY-MM-DD — what changed (one clause).` No second Decision body.
+   Status stays a single current verdict, not a stack of “Amended …” banners.
+3. **New ADR / DEC** only for a real architectural fork (new plane, new writer,
    supersession). Link it here; old record flips to Superseded with one line
    “Superseded by ADR-NNNN”.
-3. Do not silently edit Accepted decisions **in feature files** — change the
+4. Do not silently edit Accepted decisions **in feature files** — change the
    ADR/DEC, then point features at it.
-4. Board (this file) stays the index; Impl column tracks shipped vs decision.
-5. Hotpath implementation slices use **H1–H5** only. Architecture defaults keep
+5. Board (this file) stays the index; Impl column tracks shipped vs decision.
+6. Hotpath implementation slices use **H1–H5** only. Architecture defaults keep
    **D1–D10**.
+
+## Changelog
+
+- 2026-07-29 — Board opened; ADR-0000…0013 + DEC bundle Accepted.
+- 2026-08-08 — Cleanup wave indexed; clusters + coverage gaps; current-truth / bottom Changelog hygiene.

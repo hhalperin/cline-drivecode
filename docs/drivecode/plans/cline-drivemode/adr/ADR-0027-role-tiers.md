@@ -110,3 +110,8 @@ added under the impression that a role vocabulary is missing.
 - **Reject the hierarchy outright.** Rejected — prompt-level version is useful.
 - **Fold role into `WorkLease` and drop member roles entirely.** Larger; own ADR
   if pursued.
+
+## Changelog
+
+- 2026-08-04 — Proposed (tier waits on live `capPreset`; depth stays 1; three role vocabularies named).
+- 2026-08-08 — Accepted as binding guard; ADR-0023 marked reconciled.

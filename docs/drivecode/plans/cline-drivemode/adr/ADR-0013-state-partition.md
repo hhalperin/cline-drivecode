@@ -57,3 +57,8 @@ Drive state is partitioned into three lanes:
 - [01-architecture.md](../foundation/01-architecture.md) D10
 - Implementation plan: Drive three-lane state partition
 - Bank markdown projection remains under `.drive/bank/`; bank **history** appends under `.cline/drive/bank/events.jsonl` (envelope `family: "bank"`). Unifying the markdown root is deferred.
+
+## Changelog
+
+- 2026-07-29 — Accepted (three lanes: event log / live room / facets).
+- 2026-08-08 — Live-room hydrate via fold checkpoint ([ADR-0029](ADR-0029-room-hotpath-redesign.md) H1) folded into Decision (no stacked amendment).

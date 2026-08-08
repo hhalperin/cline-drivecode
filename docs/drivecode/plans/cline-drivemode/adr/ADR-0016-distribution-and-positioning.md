@@ -29,9 +29,6 @@ pricing chrome.
 product) remains revisitable once the beta produces evidence. Schemas stay
 clean; fork divergence stays confined to Drive surfaces.
 
-**History:** Route B accepted 2026-08-02; path H + freemium owner defaults
-2026-08-07.
-
 ## Metadata
 
 - Date: 2026-08-01
@@ -173,3 +170,9 @@ they do **not** keep this record in Proposed status.
 - [DEC-package-location](../decisions/DEC-package-location.md), [DEC-open-product-forks](../decisions/DEC-open-product-forks.md)
 - [spotlight-screen-share/overview.md](../initiatives/spotlight-screen-share/overview.md), [drive-audio/overview.md](../initiatives/drive-audio/overview.md)
 - `sdk/packages/shared/src/drive/director.ts` (typed show artifacts), `sdk/packages/shared/src/drive/room.ts` (room schemas)
+
+## Changelog
+
+- 2026-08-02 — Accepted Route B (standalone fork); self-hosted beta.
+- 2026-08-07 — Path H + freemium owner defaults ([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)).
+- 2026-08-08 — Status rewritten as singular dual-path distribution; History moved here.
