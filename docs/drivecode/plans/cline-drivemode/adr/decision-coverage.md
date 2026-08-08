@@ -1,5 +1,7 @@
 # Decision coverage inventory
 
+**Companion.** Chronology: [decision-changelog.md](decision-changelog.md). Status board: [ADR-0000](ADR-0000-status-board.md).
+
 **Purpose.** Atomic binding-clause inventory of ADR-0001…0029, leadership DEC-\*, and Architecture D1–D10 — grounded in Decision sections and [ADR-0000](ADR-0000-status-board.md) Impl.  
 **Sources.** `adr/ADR-*.md`, `decisions/DEC-*.md`, [foundation/01-architecture.md](../foundation/01-architecture.md).  
 **ADR-0000.** Exists as the living **status board** (legend, Impl column, clusters, coverage gaps, Still Open). Body detail for 0000 is not inventoried here.  
