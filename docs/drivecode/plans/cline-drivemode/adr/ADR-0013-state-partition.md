@@ -22,6 +22,8 @@ Drive state is partitioned into three lanes:
 2. **Live room (ephemeral).** One hub-owned `RoomSnapshot` (plus live director fields owned by the same store) folded from the log. Process memory only; rebuildable by replaying the log. Single writer. Dual live Maps are forbidden.
 3. **Facets (durable).** `.cline/drive` disk contract, hub-written. Seeds live values at room create. Must never overwrite live mid-call.
 
+**Amendment ([ADR-0029](ADR-0029-room-hotpath-redesign.md) H1):** Live snapshot remains rebuildable after retention trim by persisting a fold **checkpoint** (`checkpoint.json` with `seq` + `RoomSnapshot`) when the JSONL drops oldest records. Hydrate loads the checkpoint then folds only the log tail. From-zero replay alone is insufficient once joins have been trimmed.
+
 **Adapters later (not this ADR's implementation):** remote participant bridge, org IdP / admin config, audit export. They bind to the log + `DriveHostPort`, not to a second room model.
 
 **Amendment (ADR-0029):** Live snapshot remains rebuildable after retention trim by persisting a fold **checkpoint** (`checkpoint.json` with `seq` + `RoomSnapshot`) when the JSONL drops oldest records. Hydrate loads the checkpoint then folds only the log tail. From-zero replay alone is insufficient once joins have been trimmed.
