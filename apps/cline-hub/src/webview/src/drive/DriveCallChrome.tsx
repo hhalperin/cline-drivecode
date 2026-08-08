@@ -816,6 +816,7 @@ export function DriveCallStrip({
 				<span
 					className="shrink-0 rounded-full border border-border bg-muted/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-foreground"
 					data-slot="call-spend-pill"
+					role="status"
 				>
 					{spendLabel}
 				</span>
