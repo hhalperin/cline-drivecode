@@ -1,8 +1,8 @@
 # 09 · Next-task proposer (harness boundary)
 
-**Status.** Follow-on design note (not active harness PR work).  
+**Status.** Rule-2 pure helpers **landed** (claim:drv-bank-ops); no scorer, by rule 3.  
 **Product research.** [cline-drivemode/research/16-task-as-unit-models.md](../../cline-drivemode/research/16-task-as-unit-models.md)  
-**Decision spine.** [ADR-0015](../../cline-drivemode/adr/ADR-0015-task-session-observability.md) (Proposed), [ADR-0008](../../cline-drivemode/adr/ADR-0008-task-bank.md)
+**Decision spine.** [ADR-0015](../../cline-drivemode/adr/ADR-0015-task-session-observability.md) (**Accepted**), [ADR-0008](../../cline-drivemode/adr/ADR-0008-task-bank.md)
 
 ## Problem
 
@@ -48,9 +48,36 @@ Caption:
 Kept: meta-layer owns composition/policy; cedes the turn loop.  
 Rejected here: eval/prompt-optimization as a shipped harness concern; telemetry defaults that retain session prose.
 
-## When to implement
+## Implementation state (2026-08-08)
 
-After [task-satisfaction-observability slice 1–2](../../cline-drivemode/initiatives/task-satisfaction-observability/) make session trajectories trustworthy. Until then, “next task” is the bank cursor only.
+The gate below is **met** — [task-satisfaction-observability](../../cline-drivemode/initiatives/task-satisfaction-observability/) slices 1–3 landed on `main` (#80). It only ever gated the **scorer**; the rule-2 pure helpers were never gated, and were simply never built.
+
+| Rule | State |
+|---|---|
+| 1 · `nowTaskId` / `nextTaskId` from `deriveBankSnapshot` | Holds. `bankSnapshot.ts` is the only producer; nothing competes with it |
+| 2 · pure helpers — stall classify, draft validation, op builders | **Complete.** `stallClassifier.ts` already shipped; `DriveTaskDraft` + `bankOps.ts` land here |
+| 3 · learned scorer out-of-process / host-side | Holds by absence. **No scorer exists and none is proposed** — gate met is not a reason to build one |
+| 4 · no hidden predictor loop in `createDriveHarness` | Holds. Builders are standalone; `harness.ts` is untouched |
+| 5 · `planShowIntents` stays presentation ranking | Holds. `director/planShowIntents.ts`, unrelated to `BankOp` |
+
+`BankOp` — the type this note's own diagram centres on — did not exist before this slice. The bank was mutated only through `BankStore`'s 13 effectful methods, so there was no way to *propose* a bank change without performing it.
+
+**What landed**
+
+| Surface | Where |
+|---|---|
+| `DriveTaskDraft` / `DriveTaskDraftSchema` / `parseDriveTaskDraft` | `sdk/packages/shared/src/drive/bank.ts` |
+| `BankOp`, `buildBankOpsForDrafts`, `applyAppendTasksToPlan` | `sdk/packages/drive/src/bankOps.ts` |
+
+Design notes worth keeping:
+
+- A draft is `{title, body}` **only**. `id` and `status` are commit-time facts; `lastFailure` is runtime history. `.strict()` is the privacy mechanism — an extra `transcript` key fails to parse, so a draft cannot smuggle session prose into the bank. A forbidden-key list like [`stallClassifier`](../../../../sdk/packages/drive/src/stallClassifier.ts)'s would be wrong here: a task's `body` is *legitimately* prose, so the invariant is "no unknown keys", not "no prose".
+- Ids are **caller input**. A pure builder that minted its own would not be deterministic, and the host already owns bank identity.
+- `appendTasksToPlan.taskIds` are the new ids, not the resulting plan order, so two proposals cannot clobber each other's ordering. `applyAppendTasksToPlan` holds the concat rule so hosts do not each re-derive it.
+
+**Not built, deliberately:** a `proposeNextTasks` ranker. Rule 1 makes it a duplicate of the bank cursor, and anything smarter is the rule-4 predictor loop this note exists to forbid.
+
+**Next, if wanted:** a host call site — the agent-turn path that produces drafts and commits the ops through `BankStore`. That is host work under ADR-0008, not harness work, and no product surface has asked for it yet.
 
 ## References
 
