@@ -64,10 +64,11 @@ The gate below is **met** — [task-satisfaction-observability](../../cline-driv
 
 **What landed**
 
-| Surface | Where |
-|---|---|
-| `DriveTaskDraft` / `DriveTaskDraftSchema` / `parseDriveTaskDraft` | `sdk/packages/shared/src/drive/bank.ts` |
-| `BankOp`, `buildBankOpsForDrafts`, `applyAppendTasksToPlan` | `sdk/packages/drive/src/bankOps.ts` |
+| Surface | Where | Diagram box |
+|---|---|---|
+| `DriveTaskDraft` / `DriveTaskDraftSchema` / `parseDriveTaskDraft` | `sdk/packages/shared/src/drive/bank.ts` | draft DriveTask |
+| `BankOp`, `buildBankOpsForDrafts`, `applyAppendTasksToPlan` | `sdk/packages/drive/src/bankOps.ts` | ProposeOp |
+| `commitBankOps(store, ops) → BankSnapshot` | `sdk/packages/drive/src/commitBankOps.ts` | Commit → Cursor |
 
 Design notes worth keeping:
 
@@ -75,9 +76,25 @@ Design notes worth keeping:
 - Ids are **caller input**. A pure builder that minted its own would not be deterministic, and the host already owns bank identity.
 - `appendTasksToPlan.taskIds` are the new ids, not the resulting plan order, so two proposals cannot clobber each other's ordering. `applyAppendTasksToPlan` holds the concat rule so hosts do not each re-derive it.
 
-**Not built, deliberately:** a `proposeNextTasks` ranker. Rule 1 makes it a duplicate of the bank cursor, and anything smarter is the rule-4 predictor loop this note exists to forbid.
+### Two bank behaviors the commit tests pin down
 
-**Next, if wanted:** a host call site — the agent-turn path that produces drafts and commits the ops through `BankStore`. That is host work under ADR-0008, not harness work, and no product surface has asked for it yet.
+Both surfaced while writing `commitBankOps` and matter to anyone building the proposer:
+
+1. **The propose window shuts with the final task.** `completeTask` archives the plan once `openTaskIds` is empty (`bankStore.ts`), so a plan cannot be extended after its last completion — the append is refused as `closed`. A proposer must draft *before* the last task finishes, or open a new plan. This is the sharpest real constraint on "predict the next task": there is no post-hoc window.
+2. **Appending to a `draft` plan succeeds but moves no cursor**, because `deriveBankSnapshot` only reads an `active` plan. Only `closed` is refused, so drafting into a not-yet-activated plan is legal and silent.
+
+Commit is sequential and **non-atomic** — `BankStore` is file-backed with no transaction. Plan preconditions are checked before any task is written, so the common failure cannot orphan tasks; a store error mid-batch still leaves earlier ops applied, and callers reconcile from the returned snapshot. There is deliberately no rollback layer.
+
+### Not built, deliberately
+
+- **A `proposeNextTasks` ranker.** Rule 1 makes it a duplicate of the bank cursor, and anything smarter is the rule-4 predictor loop this note exists to forbid.
+- **A `harness.bank` surface.** `DriveHostPort` has no bank op, so a harness namespace could not commit — it would be a pure alias for `buildBankOpsForDrafts` with no behavior of its own. Until a host-port bank commit exists, **the propose surface is the exported builder**, and `harness.ts` stays untouched (which is also this slice's rule-4 evidence).
+
+### Next: the host call site, and why it is queued
+
+The remaining link is an agent-turn path that produces drafts and commits the ops. It is host work under [ADR-0008](../../cline-drivemode/adr/ADR-0008-task-bank.md) and lands as a hub command beside the other `call_*` handlers — which puts it in the same file set PR [#217](https://github.com/hhalperin/cline-drivecode/pull/217) rewrites (`drive-room-handlers.ts`, `hub-server-transport.ts`). Sequence it **after #217 merges**, batched with the [`call_dismiss_participant` wire](08-followon-tasks.md) that is blocked on the same files.
+
+No product surface has requested the call site yet, so the batch is queued rather than scheduled.
 
 ## References
 

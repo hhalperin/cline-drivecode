@@ -19,8 +19,14 @@ claims:
           - kind: test
             path: sdk/packages/shared/src/drive/bank.test.ts
             command: bun -F @cline/shared test -- bank
+      - id: ac-bank-ops-commit
+        evidence:
+          - kind: test
+            path: sdk/packages/drive/src/commitBankOps.test.ts
+            command: bun -F @cline/drive test -- commitBankOps
     consumers:
       - sdk/packages/drive/src/bankOps.ts
+      - sdk/packages/drive/src/commitBankOps.ts
       - sdk/packages/shared/src/drive/bank.ts
 
   - id: drv-gates-feed
