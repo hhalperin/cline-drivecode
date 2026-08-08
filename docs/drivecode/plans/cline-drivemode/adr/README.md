@@ -9,10 +9,11 @@
 **Hygiene (unpoisoned context).** Prefer **rewrite-in-place** so each ADR’s
 Context/Decision reads as current tip truth. Do not leave a false Finding beside
 an “amendment: ignore the above” note — that doubles the claim set and slows
-decisions. Chronology is **out of band**: [decision-changelog.md](decision-changelog.md)
-(append under the record’s heading). Do not put `## Changelog` inside ADRs —
-keeps the passable context window clean. Status is one current verdict. New ADR
-only for a real fork or supersession. See ADR-0000 § Change control.
+decisions. Out of band: [decision-changelog.md](decision-changelog.md)
+(chronology) and [decision-coverage.md](decision-coverage.md) (clause inventory).
+Do not put changelogs inside ADRs — keeps the passable context window clean.
+Status is one current verdict. New ADR only for a real fork or supersession.
+See ADR-0000 § Change control.
 
 | ID | Title | Status | Features |
 |---|---|---|---|
