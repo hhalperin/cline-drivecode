@@ -32,9 +32,9 @@
 
 **2026-08-03.** ADR-0025 / ADR-0026 Accepted (authority twins).
 
-**2026-08-07.** Path H + freemium owner defaults ([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)); ADR-0016 amended.
+**2026-08-07.** Path H + freemium owner defaults ([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)); ADR-0016 rewritten in place for dual install paths.
 
-**2026-08-08.** ADR cleanup wave: reconcile ADR-0023; Accept ADR-0023 / 0027 / 0028 / 0029 (H1–H4 shipped, H5 open); fold path H onto main board; rename hotpath slices **H1–H5** (avoid Architecture D1–D10 collision).
+**2026-08-08.** ADR cleanup wave: reconcile ADR-0023; Accept ADR-0023 / 0027 / 0028 / 0029 (H1–H4 shipped, H5 open); fold path H onto main board; rename hotpath slices **H1–H5** (avoid Architecture D1–D10 collision); change control → **current truth singular** (rewrite-in-place over stacked amendments).
 
 ## Clusters (read together)
 
@@ -165,7 +165,19 @@ Where product / platform work is advancing **without** a binding ADR (or with on
 
 ## Change control
 
-1. New architectural fork → new ADR or DEC, linked here.
-2. Do not silently edit Accepted decisions in feature files.
-3. Supersessions require a one-line “Supersedes X” in the new record and a status flip here.
-4. Hotpath implementation slices use **H1–H5** only. Architecture defaults keep **D1–D10**.
+**Current truth is singular.** The ADR body an agent (or human) reads must not
+contain two opposing claims about tip. Stale Findings + “amendment: ignore that”
+paragraphs poison the context window and slow decisions.
+
+1. **Prefer rewrite-in-place** when a decision’s substance changes or tip makes
+   a Finding false. Edit Context / Decision so the main text is true *now*.
+   Put chronology in Status, Metadata, or a short **History** footnote — not as
+   a second Decision that contradicts the first.
+2. **New ADR / DEC** only for a real architectural fork (new plane, new writer,
+   supersession). Link it here; old record flips to Superseded with one line
+   “Superseded by ADR-NNNN”.
+3. Do not silently edit Accepted decisions **in feature files** — change the
+   ADR/DEC, then point features at it.
+4. Board (this file) stays the index; Impl column tracks shipped vs decision.
+5. Hotpath implementation slices use **H1–H5** only. Architecture defaults keep
+   **D1–D10**.

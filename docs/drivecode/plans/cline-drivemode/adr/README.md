@@ -5,6 +5,12 @@
 **Status board.** [ADR-0000-status-board.md](ADR-0000-status-board.md) — Accepted / Recommended / Proposed / Open, clusters, and **decision coverage gaps** in one place.
 **Acceptance.** 2026-07-29 human `accept all`: ADR-0000…0013 + DEC bundle. ADR-0014 Accepted on `main` the same day. **2026-08-08 cleanup:** ADR-0023 reconciled; ADR-0023 / 0027 / 0028 / 0029 Accepted; path H + DEC-mobile on the board.
 
+**Hygiene (unpoisoned context).** Prefer **rewrite-in-place** so each ADR’s
+Context/Decision reads as current tip truth. Do not leave a false Finding beside
+an “amendment: ignore the above” note — that doubles the claim set and slows
+decisions. Chronology belongs in Status / History; new ADR only for a real fork
+or supersession. See ADR-0000 § Change control.
+
 | ID | Title | Status | Features |
 |---|---|---|---|
 | [ADR-0000](ADR-0000-status-board.md) | Decision status board | Living | — |

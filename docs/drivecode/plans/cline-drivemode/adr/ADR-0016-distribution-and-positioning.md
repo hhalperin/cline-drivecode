@@ -2,37 +2,35 @@
 
 ## Status
 
-**Accepted 2026-08-02 — Route B (standalone fork product), for now.**  
-**Amended 2026-08-07 — path H (hosted consumer runtime) accepted** — see below
-and [DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md).
+**Accepted** — Route B fork product, with two install paths (self-host + path H).
 
 Harrison's call: keep Drive mode in the `hhalperin/cline-drivecode` fork and
 merge nothing upstream to `cline/cline` for now.
 
-**Beta shape (decided 2026-08-02):** public, **self-hosted** — anyone can clone
-the fork and run it. The hub remains a locally-spawned single-writer daemon for
-that path. Multi-human rooms stay an explicit non-goal (see
-[spotlight-screen-share](../initiatives/spotlight-screen-share/overview.md)
-non-goals). This obliges the packaging work in the MVP plan — a tagged release
-artifact, install docs proven by a clean clone on a second machine, a preflight
-check, and a support path.
+**Distribution (current):**
 
-**Path H amendment (2026-08-07):** a **hosted single-writer room service** that
-speaks the **same Drive wire** is an accepted product path for phone / PWA
-consumers who will not run a local daemon. It does **not** reopen multi-human
-rooms, does **not** make MCP the room bus, and does **not** replace Route B
-self-host. Signaling topology is [ADR-0029](ADR-0029-room-hotpath-redesign.md)
-**H5**; credentials remain [ADR-0021](ADR-0021-drive-credential-onboarding.md).
-Hosted-turn economics: **Cline default (freemium)** — Sign in with Cline /
-account credits primary, BYOK secondary
-([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md) §5).
+1. **Self-hosted beta (Route B).** Anyone can clone the fork and run it. The
+   hub is a locally-spawned single-writer daemon. Packaging: tagged release,
+   install docs proven by a clean clone on a second machine, preflight check,
+   support path.
+2. **Path H (hosted consumer).** A **hosted single-writer room service** that
+   speaks the **same Drive wire** is an accepted product path for phone / PWA
+   consumers who will not run a local daemon
+   ([DEC-mobile-consumer-owner](../decisions/DEC-mobile-consumer-owner.md)).
+   Signaling: [ADR-0029](ADR-0029-room-hotpath-redesign.md) **H5**. Credentials:
+   [ADR-0021](ADR-0021-drive-credential-onboarding.md). Economics: **Cline
+   default (freemium)** — Sign in with Cline / account credits primary, BYOK
+   secondary.
 
-**What this defers rather than closes.** Route C (upstream the protocol, keep
-the hub as the product) remains the recommendation in the analysis below and is
-revisitable once the beta produces evidence. Nothing in the MVP forecloses it:
-the schemas stay clean and the fork's divergence stays confined to Drive
-surfaces. The rebase-treadmill cost named under Consequences is accepted
-knowingly for the beta window.
+**Still non-goals:** multi-human rooms; MCP as the room bus; Drive-owned plan /
+pricing chrome.
+
+**Deferred, not closed:** Route C (upstream the protocol, keep the hub as the
+product) remains revisitable once the beta produces evidence. Schemas stay
+clean; fork divergence stays confined to Drive surfaces.
+
+**History:** Route B accepted 2026-08-02; path H + freemium owner defaults
+2026-08-07.
 
 ## Metadata
 
