@@ -232,7 +232,7 @@ Re-checked the three out-of-scope items against tip. Two are resolved; one is a 
 
 | Item | Actual state |
 |---|---|
-| Team / `team_` guard | **Already enforced** — [`import-boundary.test.ts`](../../../../sdk/packages/drive/src/import-boundary.test.ts) bans `\bTeam\b\|\bteam_` in kernel source (alongside the type-only `@cline/shared` rule and the `:7891` ban). It landed as a package test, not a CI script, which is why searching `scripts/` and `.github/` finds nothing. Nothing to build |
+| Team / `team_` guard | **Already enforced** — [`import-boundary.test.ts`](../../../../../sdk/packages/drive/src/import-boundary.test.ts) bans `\bTeam\b\|\bteam_` in kernel source (alongside the type-only `@cline/shared` rule and the `:7891` ban). It landed as a package test, not a CI script, which is why searching `scripts/` and `.github/` finds nothing. Nothing to build |
 | Webview pack library | Partially landed — `RosterPackLibrary` / `AddPackMenu` exist (claim:drv-roster-pack-library). Remaining ACs belong to DRV-ROSTER-PACK, not this track |
 | `call_dismiss_participant` wire | **Genuinely open.** `planDismissParticipant` is pure, exported (`drive/src/index.ts`), and table-tested (`room/seatSources.test.ts`) — but no hub command exists in `HubCommandName`, `hub-server-transport.ts`, or `drive-room-handlers.ts`. F2.3's remove-pack path is the pattern to mirror |
 

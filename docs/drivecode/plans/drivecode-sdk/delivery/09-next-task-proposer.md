@@ -72,7 +72,7 @@ The gate below is **met** — [task-satisfaction-observability](../../cline-driv
 
 Design notes worth keeping:
 
-- A draft is `{title, body}` **only**. `id` and `status` are commit-time facts; `lastFailure` is runtime history. `.strict()` is the privacy mechanism — an extra `transcript` key fails to parse, so a draft cannot smuggle session prose into the bank. A forbidden-key list like [`stallClassifier`](../../../../sdk/packages/drive/src/stallClassifier.ts)'s would be wrong here: a task's `body` is *legitimately* prose, so the invariant is "no unknown keys", not "no prose".
+- A draft is `{title, body}` **only**. `id` and `status` are commit-time facts; `lastFailure` is runtime history. `.strict()` is the privacy mechanism — an extra `transcript` key fails to parse, so a draft cannot smuggle session prose into the bank. A forbidden-key list like [`stallClassifier`](../../../../../sdk/packages/drive/src/stallClassifier.ts)'s would be wrong here: a task's `body` is *legitimately* prose, so the invariant is "no unknown keys", not "no prose".
 - Ids are **caller input**. A pure builder that minted its own would not be deterministic, and the host already owns bank identity.
 - `appendTasksToPlan.taskIds` are the new ids, not the resulting plan order, so two proposals cannot clobber each other's ordering. `applyAppendTasksToPlan` holds the concat rule so hosts do not each re-derive it.
 
