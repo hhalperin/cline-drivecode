@@ -64,7 +64,9 @@ export function consumeLeaveKeepRunningNote(
 	return LEAVE_KEEP_RUNNING_LINE;
 }
 
-if (import.meta.main) {
+// `import.meta.main` is a Bun runtime property; the webview tsconfig does not
+// declare it, so read it through a cast rather than widening ImportMeta.
+if ((import.meta as { main?: boolean }).main) {
 	console.assert(
 		APP_STRIP_CONTROLS.length === 4 && APP_STRIP_CONTROLS[0] === "mic",
 		"app strip stays four reach targets",

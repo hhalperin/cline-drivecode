@@ -488,7 +488,7 @@ export function DriveView({
 			onOpenCall(request);
 		};
 		const joinDefault = () =>
-			openCallOrPreview({ roomId: DRIVE_DEFAULT_ROOM_ID });
+			openCallOrPreview({ action: "join", roomId: DRIVE_DEFAULT_ROOM_ID });
 
 		const showBrowsePage = Boolean(browse && onBrowse);
 		const showBrowseIndex = appTab === "browse" && !browse;

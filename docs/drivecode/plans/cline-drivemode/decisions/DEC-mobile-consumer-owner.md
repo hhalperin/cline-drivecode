@@ -1,12 +1,12 @@
 # DEC · Mobile consumer owner defaults (2026-08-07)
 
 **Status.** Accepted  
-**Date.** 2026-08-07 (amended same day — hosted economics)  
+**Date.** 2026-08-07 (amended same day — hosted economics); slice id rename 2026-08-08  
 **Deciders.** Harrison (owner)  
 **Aligns with.** [ADR-0016](../adr/ADR-0016-distribution-and-positioning.md) (path H
 amendment), [ADR-0021](../adr/ADR-0021-drive-credential-onboarding.md),
 [mobile-consumer](../initiatives/mobile-consumer/),
-[portfolio-now](../initiatives/portfolio-now/), [ADR-0029](../adr/ADR-0029-room-hotpath-redesign.md) D5
+[ADR-0029](../adr/ADR-0029-room-hotpath-redesign.md) **H5**
 
 ## Context
 
@@ -21,8 +21,8 @@ brand / MC3 first; freemium vs BYOK closed as **Cline default** the same day.
    single-writer hub (same Drive wire) is an accepted product path for phone /
    PWA real turns. Self-hosted Route B beta remains valid. Multi-human rooms
    stay a non-goal. Engineering track: [ADR-0029](../adr/ADR-0029-room-hotpath-redesign.md)
-   D5 / [portfolio-now](../initiatives/portfolio-now/) `NOW-HOTPATH-D5`. Credential
-   story still [ADR-0021](../adr/ADR-0021-drive-credential-onboarding.md).
+   **H5**. Credential story still
+   [ADR-0021](../adr/ADR-0021-drive-credential-onboarding.md).
 2. **Voice default** — **Mic muted on join.** The strip Mute/Unmute control is
    the **Enable microphone** toggle (unmute = enable). Hold-to-talk teaching
    assumes muted start; do not ship hot-mic-from-beat-one as the consumer
@@ -30,7 +30,7 @@ brand / MC3 first; freemium vs BYOK closed as **Cline default** the same day.
 3. **Home-screen / PWA display name** — **“Cline Drive”** (not “Drive” alone).
    Manifest `name` / `short_name` and splash copy use this when MC3 lands.
 4. **MC3 (PWA) on the Now roadmap** — **Yes.** Install habit is not optional
-   phase-8 polish; keep `NOW-PWA` in the Now sequencer.
+   phase-8 polish; keep PWA install on the consumer Now sequencer.
 5. **Hosted-turn economics** — **Cline default (freemium).** Hosted real turns
    use **Sign in with Cline** / account credits as the primary path; **BYOK is
    secondary** (same posture as [ADR-0021](../adr/ADR-0021-drive-credential-onboarding.md)
@@ -41,9 +41,9 @@ brand / MC3 first; freemium vs BYOK closed as **Cline default** the same day.
 
 ## Sequencing (not economics)
 
-Next build remains **`NOW-HOLD-TALK` + `NOW-STRIP-44`** (finish MC1 call verbs).
-`NOW-HOTPATH-D5` is **unblocked** by path H but stays **after** those unless a
-hosted real-turn demo forces it earlier.
+Next build remains finish MC1 call verbs (hold-to-talk + strip). ADR-0029 **H5**
+is **unblocked** by path H but stays **after** those unless a hosted real-turn
+demo forces it earlier.
 
 ## Consequences
 
@@ -65,7 +65,7 @@ hosted real-turn demo forces it earlier.
 
 ## References
 
-- Owner answers recorded against [portfolio-now](../initiatives/portfolio-now/)
-  and [mobile-consumer open decisions](../initiatives/mobile-consumer/README.md)
+- Owner answers recorded against
+  [mobile-consumer open decisions](../initiatives/mobile-consumer/README.md)
 - Mark / motion still [DEC-drive-mark-official](DEC-drive-mark-official.md);
   this DEC only names the **product string** on the home screen
