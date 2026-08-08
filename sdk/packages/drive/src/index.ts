@@ -27,6 +27,7 @@ export {
 	type BuildBankOpsForDraftsInput,
 } from "./bankOps.js";
 export { deriveBankSnapshot } from "./bankSnapshot.js";
+export { commitBankOps } from "./commitBankOps.js";
 export {
 	type BankStore,
 	type CreateBankStoreOptions,
