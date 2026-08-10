@@ -104,6 +104,11 @@ Verifying a change actually landed
 - `git checkout -- <file>` on a file whose fix is uncommitted reverts the fix along with whatever you were undoing. If you revert something to prove a test is non-vacuous, restore from a copy rather than from git, and grep for the change afterwards.
 - Reverting a fix to confirm its test fails is worth the minute it costs, and the *shape* of the failure is the real signal: a correctly-scoped guard fails only its own test and leaves the narrow-scope ones passing. A fix that breaks both was too broad.
 
+Tests that can silently skip themselves
+- A test that bails out when its environment cannot support it is indistinguishable from a passing test, and `if (...).is_err() { return; }` is how that happens quietly. The desktop wake-lock tests asserted on a real OS lock; acquiring one needs a session bus, CI has none, `keepawake` fails there with ENOENT, and every test returned early while reading as full coverage. It was only caught because reverting the fix failed to break anything.
+- The fix is not a better skip condition, it is testing the layer where the bug actually lives. The wake-lock bug was bookkeeping — one window releasing another window's claim — so the tests now assert on the holder set, which needs no session bus. Keep the environment-dependent call out of the assertion path.
+- Whenever a fix comes with a test, revert the fix and confirm the test fails. The *shape* of the failure is the signal: a correctly-scoped guard fails only its own test. Passing after a revert means the test is vacuous, not that the fix is elegant.
+
 Tests: what vitest will not catch
 - Vitest does not typecheck, so a green suite can still fail `tsc`. Two that bite in this repo: board column literals require `title`, and `vi.fn(async () => true)` with no typed parameter makes `mock.calls[0][0]` an empty tuple — so the assertion you added the mock for will not compile. Type the parameter: `vi.fn(async (_task: BoardCard) => true)`.
 - `createUniqueTaskId` strips dashes and truncates to five characters, so passing `() => "task-managed"` as the uuid generator produces the id `taskm`. Read the id off the create result instead of assuming the one you passed in.
