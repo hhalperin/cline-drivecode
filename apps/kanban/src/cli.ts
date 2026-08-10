@@ -296,6 +296,12 @@ async function tryOpenExistingServer(options: { noOpen: boolean; shouldAutoOpenB
 		? buildKanbanRuntimeUrl(`/${encodeURIComponent(workspaceId)}`)
 		: getKanbanRuntimeOrigin();
 	console.log(`Kanban already running at ${getKanbanRuntimeOrigin()}`);
+	// Attaching counts as being ready. A supervising host spawned us to learn
+	// an origin, and this path reaches one without starting a server — without
+	// announcing here, a host restarting onto an already-live Kanban would
+	// wait forever for a handshake that never comes, and its runtime/windows
+	// features would stay dark next to a perfectly reachable server.
+	emitHostHandshake({ endpoint: getKanbanRuntimeOrigin() });
 	if (!options.noOpen && options.shouldAutoOpenBrowser) {
 		try {
 			const { openInBrowser } = await import("./server/browser.js");

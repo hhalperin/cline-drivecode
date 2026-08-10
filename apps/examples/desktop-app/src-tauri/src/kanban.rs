@@ -302,6 +302,33 @@ pub fn ensure_kanban_runtime_started_with(
         .stdout
         .take()
         .ok_or_else(|| "failed to capture Kanban runtime stdout".to_string())?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| "failed to capture Kanban runtime stderr".to_string())?;
+
+    // Drain stderr on its own thread. Piping it and never reading is not
+    // merely wasteful: a child that writes enough to fill the pipe buffer
+    // blocks on the write and stops making progress, which would look like
+    // Kanban hanging for no reason. The sidecar drains both streams for the
+    // same reason.
+    thread::spawn(move || {
+        let mut reader = BufReader::new(stderr);
+        let mut line = String::new();
+        loop {
+            line.clear();
+            let Ok(bytes) = reader.read_line(&mut line) else {
+                break;
+            };
+            if bytes == 0 {
+                break;
+            }
+            let trimmed = line.trim();
+            if !trimmed.is_empty() {
+                eprintln!("[kanban-runtime] {trimmed}");
+            }
+        }
+    });
 
     let state_for_stdout = state.clone();
     thread::spawn(move || {
