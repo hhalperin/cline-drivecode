@@ -5,6 +5,18 @@
  * see: a typo here fails at runtime with `command not found`, in a packaged
  * app, on someone else's machine. The Rust side declares the same literals,
  * and `src-tauri/src/kanban.rs` carries the matching list.
+ *
+ * ## Not every name here is registered yet
+ *
+ * `kanban.rs` currently registers only `kanban_handshake` and
+ * `kanban_pick_directory`. The rest are declared here because the adapter
+ * implements them and the host will grow them — but nothing calls an
+ * unregistered one, because the handshake omits its capability and the bridge
+ * turns the whole namespace into a no-op. That is the capability model doing
+ * its job: the constant existing is not a claim that the command does.
+ *
+ * The order to add one is host first, then `CAPABILITIES` in `kanban.rs` —
+ * never the reverse, or the bridge will start making calls that fail.
  */
 
 /** Handshake. Returns {@link KanbanHandshakePayload}. */

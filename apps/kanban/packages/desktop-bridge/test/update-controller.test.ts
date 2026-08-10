@@ -286,3 +286,48 @@ describe("subscribers", () => {
 		expect(healthy).toHaveBeenCalledOnce();
 	});
 });
+
+describe("ready is terminal against unsolicited backend events", () => {
+	// The controller refuses to *start* a check from `ready`, but backends
+	// also report on their own timers, and those arrive without anyone
+	// calling check(). Clearing the prompt then tells the user there is
+	// nothing to install while the downloaded artifact sits on disk.
+	beforeEach(() => {
+		backend.emit({ kind: "ready", version: "2.0.0" });
+	});
+
+	it.each([
+		["checking", { kind: "checking" } as const],
+		["up-to-date", { kind: "up-to-date" } as const],
+		["available", { kind: "available", version: "2.1.0" } as const],
+		["progress", { kind: "progress", percent: 12 } as const],
+		["error", { kind: "error", message: "provider 500" } as const],
+	])("ignores a stray %s event", (_label, event) => {
+		backend.emit(event);
+
+		expect(controller.getStatus()).toEqual({
+			kind: "ready",
+			version: "2.0.0",
+		});
+	});
+
+	it("notifies no subscriber for an ignored event", () => {
+		const seen: string[] = [];
+		controller.subscribe((status) => seen.push(status.kind));
+
+		backend.emit({ kind: "checking" });
+
+		expect(seen).toEqual([]);
+	});
+
+	it("still accepts a newer version finishing its download", () => {
+		// The one transition worth applying from `ready`: the prompt should
+		// name the version the user would actually get.
+		backend.emit({ kind: "ready", version: "2.1.0" });
+
+		expect(controller.getStatus()).toEqual({
+			kind: "ready",
+			version: "2.1.0",
+		});
+	});
+});

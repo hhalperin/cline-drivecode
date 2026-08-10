@@ -20,8 +20,10 @@
  */
 
 import {
+	isDesktopCapability,
 	toDesktopPlatform,
 	type DeepLinkTarget,
+	type DesktopCapability,
 	type DesktopHost,
 	type DesktopMenuAction,
 } from "@kanban/desktop-bridge";
@@ -101,6 +103,11 @@ export async function createTauriDesktopHost(
 		return null;
 	}
 
+	// Anything this build doesn't recognise is dropped rather than failing
+	// the handshake, matching parseBridgeBootstrap: a newer host advertising
+	// an unknown capability should stay usable for the ones we do know.
+	const declaredCapabilities: DesktopCapability[] =
+		handshake.capabilities.filter(isDesktopCapability);
 	const hostCapabilities = new Set(handshake.capabilities);
 	const window = surface.currentWindow();
 	const focus: FocusTracker = createFocusTracker(window);
@@ -117,6 +124,7 @@ export async function createTauriDesktopHost(
 		platform: toDesktopPlatform(handshake.platform),
 		appVersion: handshake.appVersion,
 		isPackaged: handshake.isPackaged,
+		declaredCapabilities,
 
 		openProjectWindow(projectId) {
 			void surface

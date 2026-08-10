@@ -44,6 +44,7 @@ function makeHarness(overrides: Partial<DesktopHost> = {}): Harness {
 		platform: "darwin",
 		appVersion: "1.2.3",
 		isPackaged: true,
+		declaredCapabilities: ["windows", "runtime", "dialogs", "actions"],
 		openProjectWindow,
 		restartRuntime,
 		reveal,
@@ -131,7 +132,7 @@ describe("handshake", () => {
 		},
 	);
 
-	it("keeps the always-available capabilities even on a bare host", () => {
+	it("keeps the declared command-backed capabilities on a backend-less host", () => {
 		const { host } = makeHarness({
 			updater: null,
 			notifications: null,
@@ -145,6 +146,30 @@ describe("handshake", () => {
 			"runtime",
 			"windows",
 		]);
+	});
+
+	it("omits a command-backed capability the host does not declare", () => {
+		// Nothing in TypeScript can check that a command exists on the other
+		// side of the IPC boundary, so an undeclared one must not be assumed.
+		const { host } = makeHarness({ declaredCapabilities: ["dialogs"] });
+		const { api } = createDesktopBridge(host);
+
+		expect(api.capabilities).not.toContain("windows");
+		expect(api.capabilities).not.toContain("runtime");
+		expect(api.capabilities).not.toContain("actions");
+		expect(api.capabilities).toContain("dialogs");
+	});
+
+	it("ignores a declared capability that a supplied backend would have proven", () => {
+		// Declaring "updates" without an updater would advertise a namespace
+		// backed by nothing; the backend is the only proof that counts.
+		const { host } = makeHarness({
+			declaredCapabilities: ["windows", "updates"],
+			updater: null,
+		});
+		const { api } = createDesktopBridge(host);
+
+		expect(api.capabilities).not.toContain("updates");
 	});
 });
 
@@ -350,5 +375,36 @@ describe("dispose", () => {
 		bridge.dispose();
 
 		expect(second).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe("undeclared namespaces are no-ops", () => {
+	beforeEach(() => {
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+	});
+
+	it("does not reach the host for any undeclared command", async () => {
+		const harness = makeHarness({ declaredCapabilities: [] });
+		const { api } = createDesktopBridge(harness.host);
+
+		api.windows.openProject("my-app");
+		api.runtime.restart();
+		api.actions.publish([]);
+		await expect(api.dialogs.pickDirectory()).resolves.toBeNull();
+
+		expect(harness.openProjectWindow).not.toHaveBeenCalled();
+		expect(harness.restartRuntime).not.toHaveBeenCalled();
+		expect(harness.publishMenuActions).not.toHaveBeenCalled();
+		expect(harness.pickDirectory).not.toHaveBeenCalled();
+	});
+
+	it("returns a usable unsubscribe from an undeclared onInvoke", () => {
+		// Callers wire this in an effect cleanup unconditionally, so it has to
+		// hand back something callable rather than throwing.
+		const harness = makeHarness({ declaredCapabilities: [] });
+		const { api } = createDesktopBridge(harness.host);
+
+		expect(() => api.actions.onInvoke(() => {})()).not.toThrow();
+		expect(harness.menuUnsubscribe).not.toHaveBeenCalled();
 	});
 });

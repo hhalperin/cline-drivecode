@@ -125,10 +125,20 @@ export class UpdateController {
 	}
 
 	private applyBackendEvent(event: UpdaterBackendEvent): void {
-		// Backends keep reporting after a terminal state (they re-emit on their
-		// own timers), and nothing downstream should be able to walk a
-		// ready-to-install update back to "checking".
 		if (this.status.kind === "unsupported") return;
+
+		// `ready` is terminal until the user restarts. Backends keep reporting
+		// on their own timers well after a download finishes, and a stray
+		// `checking` / `up-to-date` / `error` arriving here would clear an
+		// install prompt for an update already sitting on disk — the user is
+		// then told there is nothing to install while the artifact waits.
+		//
+		// `check()` refuses to leave `ready` for the same reason; this is the
+		// other half of that rule, for transitions we did not initiate.
+		//
+		// A further `ready` is the one event still worth applying: it means a
+		// newer version finished downloading, and the prompt should name it.
+		if (this.status.kind === "ready" && event.kind !== "ready") return;
 
 		switch (event.kind) {
 			case "checking":

@@ -63,6 +63,21 @@ export interface DesktopHost {
 	/** Drives {@link resolveUpdateSupport}; false in `tauri dev`. */
 	readonly isPackaged: boolean;
 
+	/**
+	 * Command-backed capabilities the host declares it implements.
+	 *
+	 * Split from the three below on whether presence can be *proven*. A host
+	 * supplying an `updater` object has demonstrably got one; a host claiming
+	 * `windows` has only asserted that a command exists on the other side of
+	 * an IPC boundary, and nothing in TypeScript can check that.
+	 *
+	 * So these are declared rather than derived, and declaring one that isn't
+	 * really there is the one way to turn a documented no-op into a call that
+	 * fails. The Rust side keeps its list next to the commands it registers
+	 * for exactly that reason.
+	 */
+	readonly declaredCapabilities: readonly DesktopCapability[];
+
 	/** Open (or focus) a window for a project. */
 	openProjectWindow(projectId: string): void;
 	/** Restart the Kanban runtime child process. */
@@ -125,8 +140,24 @@ export interface DesktopBridge {
 	dispose(): void;
 }
 
+/**
+ * Capabilities a host must declare, because no object it hands us proves
+ * they work. The rest are derived from the backends it supplies.
+ */
+const COMMAND_BACKED_CAPABILITIES: readonly DesktopCapability[] = [
+	"windows",
+	"runtime",
+	"dialogs",
+	"actions",
+];
+
 export function createDesktopBridge(host: DesktopHost): DesktopBridge {
-	const capabilities: DesktopCapability[] = ["windows", "runtime", "dialogs", "actions"];
+	// Intersected rather than trusted wholesale: a host declaring "updates"
+	// here must still supply an updater, or the capability would advertise a
+	// namespace backed by nothing.
+	const capabilities: DesktopCapability[] = COMMAND_BACKED_CAPABILITIES.filter(
+		(capability) => host.declaredCapabilities.includes(capability),
+	);
 
 	const updates = new UpdateController(
 		host.updater,
@@ -146,6 +177,9 @@ export function createDesktopBridge(host: DesktopHost): DesktopBridge {
 	const presence = host.presence ? new PresenceController(host.presence) : null;
 	if (presence) capabilities.push("presence");
 
+	const has = (capability: DesktopCapability): boolean =>
+		capabilities.includes(capability);
+
 	const disposers: Array<() => void> = [];
 
 	const api: DesktopApi = {
@@ -156,6 +190,7 @@ export function createDesktopBridge(host: DesktopHost): DesktopBridge {
 
 		windows: {
 			openProject(projectId) {
+				if (!has("windows")) return;
 				const parsed = openProjectWindowPayloadSchema.safeParse({ projectId });
 				if (!parsed.success) {
 					warnInvalidPayload("windows.openProject", parsed.error);
@@ -167,6 +202,7 @@ export function createDesktopBridge(host: DesktopHost): DesktopBridge {
 
 		runtime: {
 			restart() {
+				if (!has("runtime")) return;
 				host.restartRuntime();
 			},
 		},
@@ -220,6 +256,7 @@ export function createDesktopBridge(host: DesktopHost): DesktopBridge {
 
 		actions: {
 			publish(actions) {
+				if (!has("actions")) return;
 				const parsed = menuActionsPayloadSchema.safeParse(actions);
 				if (!parsed.success) {
 					warnInvalidPayload("actions.publish", parsed.error);
@@ -228,6 +265,9 @@ export function createDesktopBridge(host: DesktopHost): DesktopBridge {
 				host.publishMenuActions(parsed.data);
 			},
 			onInvoke(listener) {
+				// Returns a no-op unsubscribe rather than throwing, so a caller
+				// can wire this unconditionally in an effect cleanup.
+				if (!has("actions")) return () => {};
 				const unsubscribe = host.onMenuActionInvoked(listener);
 				disposers.push(unsubscribe);
 				return unsubscribe;
@@ -236,6 +276,7 @@ export function createDesktopBridge(host: DesktopHost): DesktopBridge {
 
 		dialogs: {
 			async pickDirectory(options) {
+				if (!has("dialogs")) return null;
 				const parsed = pickDirectoryPayloadSchema.safeParse(options);
 				if (!parsed.success) {
 					warnInvalidPayload("dialogs.pickDirectory", parsed.error);

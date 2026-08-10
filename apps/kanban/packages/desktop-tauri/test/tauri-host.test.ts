@@ -386,3 +386,30 @@ describe("presence", () => {
 		);
 	});
 });
+
+describe("declared capabilities", () => {
+	it("passes the host's contract capabilities through to the bridge", async () => {
+		const host = await makeHost(
+			makeFake({
+				...FULL_HANDSHAKE,
+				capabilities: ["dialogs", "presence"],
+			}),
+		);
+
+		expect([...(host?.declaredCapabilities ?? [])].sort()).toEqual([
+			"dialogs",
+			"presence",
+		]);
+	});
+
+	it("drops host capabilities the contract does not define", async () => {
+		// `tray` is a real hint the Rust side sends, but it is not one of the
+		// contract's capabilities — passing it through would make the bridge
+		// advertise something `isDesktopCapability` would later reject.
+		const host = await makeHost(
+			makeFake({ ...FULL_HANDSHAKE, capabilities: ["presence", "tray"] }),
+		);
+
+		expect(host?.declaredCapabilities).toEqual(["presence"]);
+	});
+});
