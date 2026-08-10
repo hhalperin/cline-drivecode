@@ -871,6 +871,7 @@ fn set_tray_status(
 fn main() {
     let desktop_backend = Arc::new(DesktopBackendState::default());
     let kanban_runtime = Arc::new(kanban::KanbanRuntimeState::default());
+    let kanban_wake_lock = Arc::new(kanban::KanbanWakeLockState::default());
     let launch_cwd = std::env::current_dir()
         .map(|p| p.to_string_lossy().to_string())
         .unwrap_or_else(|_| ".".to_string());
@@ -887,6 +888,7 @@ fn main() {
         .manage(Arc::new(UpdateState::default()))
         .manage(DesktopMenuActionState::default())
         .manage(kanban_runtime.clone())
+        .manage(kanban_wake_lock.clone())
         .setup(|app| {
             setup_tray_icon(app)?;
             let app_context = app.state::<AppContext>().inner().clone();
@@ -945,7 +947,8 @@ fn main() {
             kanban::kanban_pick_directory,
             kanban::kanban_runtime_endpoint,
             kanban::kanban_restart_runtime,
-            kanban::kanban_open_project_window
+            kanban::kanban_open_project_window,
+            kanban::kanban_set_wake_lock
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri app")

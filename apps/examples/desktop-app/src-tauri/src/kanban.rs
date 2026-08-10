@@ -15,6 +15,10 @@
 //! - `updates` / `notifications` — those need Tauri plugins this build does
 //!   not link.
 //!
+//! Sleep prevention is not a bridge capability and needs no entry: it hangs
+//! off `presence`, which the host already advertises. The bridge signals it
+//! when the in-flight count crosses zero.
+//!
 //! `tray` is absent for a different and more interesting reason: this app's
 //! tray already has a "N sessions running" item that Cline's own
 //! `set_tray_status` owns. Kanban's presence summary is the same *kind* of
@@ -244,6 +248,87 @@ fn resolve_kanban_runtime_entry(workspace_root: &str) -> Option<PathBuf> {
     candidate.exists().then_some(candidate)
 }
 
+/// Directories a GUI-launched process needs appended to PATH.
+///
+/// This is the single most load-bearing detail in spawning the runtime, and
+/// it is invisible until it bites. A double-clicked `.app` on macOS inherits
+/// launchd's PATH — roughly `/usr/bin:/bin:/usr/sbin:/sbin` — which contains
+/// neither `bun` nor Homebrew nor nvm. Spawning bare `bun` from there fails
+/// with "No such file or directory" and the runtime simply never starts.
+///
+/// It matters twice over, because Kanban then launches *agents* by name.
+/// `apps/kanban/AGENTS.md` is explicit that agent detection must use direct
+/// PATH checks rather than an interactive login shell — a heavy `conda` or
+/// `nvm` init per task can freeze the runtime. So the PATH has to be right
+/// here, at spawn, rather than recovered later by shelling out.
+///
+/// Ported from the Electron host's `runtime-child-env.ts`, which existed for
+/// exactly this reason.
+fn gui_launch_path_dirs() -> Vec<PathBuf> {
+    if cfg!(target_os = "macos") {
+        [
+            "/opt/homebrew/bin",
+            "/opt/homebrew/sbin",
+            "/usr/local/bin",
+            "/usr/local/sbin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin",
+        ]
+        .iter()
+        .map(PathBuf::from)
+        .collect()
+    } else if cfg!(target_os = "linux") {
+        ["/usr/local/bin", "/snap/bin", "/usr/bin", "/bin"]
+            .iter()
+            .map(PathBuf::from)
+            .collect()
+    } else if cfg!(target_os = "windows") {
+        let mut dirs = Vec::new();
+        if let Ok(app_data) = std::env::var("APPDATA") {
+            dirs.push(PathBuf::from(app_data).join("npm"));
+        }
+        if let Ok(local_app_data) = std::env::var("LOCALAPPDATA") {
+            let base = PathBuf::from(local_app_data);
+            dirs.push(base.join("Programs").join("nodejs"));
+            // WinGet's shims live in `Links`, not `Packages` — the latter
+            // holds install directories that are not themselves on PATH.
+            dirs.push(base.join("Microsoft").join("WinGet").join("Links"));
+        }
+        if let Ok(program_files) = std::env::var("ProgramFiles") {
+            dirs.push(PathBuf::from(program_files).join("Git").join("cmd"));
+        }
+        if let Ok(program_files_x86) = std::env::var("ProgramFiles(x86)") {
+            dirs.push(PathBuf::from(program_files_x86).join("Git").join("cmd"));
+        }
+        dirs
+    } else {
+        Vec::new()
+    }
+}
+
+/// PATH with the GUI-launch directories appended, preserving order and
+/// dropping duplicates so an already-correct PATH is left effectively alone.
+fn enriched_path(current: Option<&str>) -> String {
+    let separator = if cfg!(windows) { ';' } else { ':' };
+    let mut parts: Vec<String> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    for part in current.unwrap_or("").split(separator).filter(|p| !p.is_empty()) {
+        if seen.insert(part.to_string()) {
+            parts.push(part.to_string());
+        }
+    }
+    for dir in gui_launch_path_dirs() {
+        let dir = dir.to_string_lossy().into_owned();
+        if seen.insert(dir.clone()) {
+            parts.push(dir);
+        }
+    }
+    parts.join(&separator.to_string())
+}
+
 fn spawn_kanban_runtime_process(workspace_root: &str) -> Result<Child, String> {
     let entry = resolve_kanban_runtime_entry(workspace_root).ok_or_else(|| {
         format!("Kanban runtime entry not found under workspace_root={workspace_root}")
@@ -254,6 +339,10 @@ fn spawn_kanban_runtime_process(workspace_root: &str) -> Result<Child, String> {
         .arg(entry.to_string_lossy().to_string())
         .arg("--no-open")
         .current_dir(workspace_root)
+        // Every other parent env var is inherited, matching the Electron
+        // host's "forward everything" model — agent shells need the full
+        // environment, not a curated subset.
+        .env("PATH", enriched_path(std::env::var("PATH").ok().as_deref()))
         // Without this Kanban stays silent and the shell never learns the
         // origin; see host-handshake.ts for why it is opt-in.
         .env(HOST_HANDSHAKE_ENV, "1")
@@ -361,6 +450,68 @@ pub fn ensure_kanban_runtime_started_with(
 
     *process_guard = Some(child);
     Ok(())
+}
+
+/// Holds the system awake while Kanban reports work in flight.
+///
+/// This is the Electron host's `powerSaveBlocker.start("prevent-app-suspension")`,
+/// and losing it would quietly undo the product's premise: the whole point of
+/// leaving agents running is that you walk away, and a machine that suspends
+/// ten minutes later stops them mid-task. It is the one desktop feature whose
+/// absence is invisible until it costs someone a run.
+///
+/// Held as an `Option` because the guard releases on drop — clearing it *is*
+/// the release, so the state is the lock.
+#[derive(Default)]
+pub struct KanbanWakeLockState {
+    guard: Mutex<Option<keepawake::KeepAwake>>,
+}
+
+impl KanbanWakeLockState {
+    fn set(&self, active: bool) -> Result<(), String> {
+        let Ok(mut guard) = self.guard.lock() else {
+            return Err("failed to lock wake-lock state".to_string());
+        };
+        if active {
+            if guard.is_some() {
+                return Ok(());
+            }
+            let lock = keepawake::Builder::default()
+                // Idle only: the display may sleep, the machine may not. A
+                // desktop that also refuses to blank the screen for hours of
+                // background work is a battery and burn-in problem, and is
+                // not what the Electron host did either.
+                .idle(true)
+                .reason("Cline Kanban agents are working")
+                .app_name("Cline Code")
+                .create()
+                .map_err(|error| format!("failed to acquire wake lock: {error}"))?;
+            *guard = Some(lock);
+        } else {
+            // Dropping the guard releases the lock.
+            *guard = None;
+        }
+        Ok(())
+    }
+
+    /// Test-only. The lock's real observable is the machine not sleeping,
+    /// which no unit test can assert, so the tests assert on this instead.
+    /// Gated rather than left public so it cannot drift into being a
+    /// substitute for the behaviour it stands in for.
+    #[cfg(test)]
+    pub fn is_held(&self) -> bool {
+        self.guard.lock().map(|g| g.is_some()).unwrap_or(false)
+    }
+}
+
+/// Called by the bridge's presence controller whenever the in-flight count
+/// crosses zero in either direction.
+#[tauri::command]
+pub fn kanban_set_wake_lock(
+    state: State<'_, Arc<KanbanWakeLockState>>,
+    active: bool,
+) -> Result<(), String> {
+    state.set(active)
 }
 
 #[tauri::command]
@@ -606,5 +757,56 @@ mod supervision_tests {
     #[test]
     fn unreserved_url_characters_survive_encoding_unchanged() {
         assert_eq!(urlencode("Aa0-_.~"), "Aa0-_.~");
+    }
+}
+
+#[cfg(test)]
+mod wake_lock_tests {
+    use super::*;
+
+    #[test]
+    fn starts_released() {
+        assert!(!KanbanWakeLockState::default().is_held());
+    }
+
+    #[test]
+    fn acquiring_is_idempotent() {
+        // Presence is edge-triggered, but a reconnecting renderer can replay
+        // the same edge. Re-acquiring must not stack locks that then need two
+        // releases to actually let the machine sleep.
+        let state = KanbanWakeLockState::default();
+
+        let first = state.set(true);
+        let second = state.set(true);
+
+        // A headless CI box may have no session bus to take a lock from;
+        // treat acquisition failure as "not applicable" rather than failing,
+        // but never accept one call succeeding and the other not.
+        if first.is_ok() {
+            assert!(second.is_ok());
+            assert!(state.is_held());
+        }
+    }
+
+    #[test]
+    fn releasing_is_idempotent_and_actually_releases() {
+        let state = KanbanWakeLockState::default();
+        let _ = state.set(true);
+
+        state.set(false).expect("release should not fail");
+        state.set(false).expect("a second release should be a no-op");
+
+        assert!(!state.is_held());
+    }
+
+    #[test]
+    fn a_release_after_no_acquire_is_harmless() {
+        // The first presence update can report zero running tasks, which
+        // sends `false` before anything was ever held.
+        let state = KanbanWakeLockState::default();
+
+        state.set(false).expect("release without acquire should be a no-op");
+
+        assert!(!state.is_held());
     }
 }
