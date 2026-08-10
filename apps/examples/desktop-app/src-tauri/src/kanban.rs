@@ -462,63 +462,38 @@ pub fn ensure_kanban_runtime_started_with(
 ///
 /// Held as an `Option` because the guard releases on drop — clearing it *is*
 /// the release, so the state is the lock.
+/// Holder set and OS guard behind **one** mutex, deliberately.
+///
+/// They were two, and that was a race: `reconcile` read the holder set,
+/// released that lock, then took the guard lock. Between those steps another
+/// window could claim and acquire, and the first thread would then apply its
+/// stale "nobody is holding" snapshot and drop the lock — leaving bookkeeping
+/// that says work is in flight and no lock to match. Presence is
+/// edge-triggered, so the still-working window never re-sends `true` and the
+/// machine sleeps mid-run.
+///
+/// Lock ordering discipline would have fixed it, but not durably: it survives
+/// only as long as everyone touching this remembers. One mutex makes the
+/// inconsistent state unrepresentable. The cost is holding it across the
+/// acquisition syscall, which is short and uncontended.
 #[derive(Default)]
-pub struct KanbanWakeLockState {
-    guard: Mutex<Option<keepawake::KeepAwake>>,
+struct WakeLockInner {
     /// Labels of windows currently reporting work in flight.
     ///
     /// The lock is app-wide but the signal is per-window: every project
     /// window runs its own renderer with its own `PresenceController` and its
     /// own running count. Treating the latest `false` as "release" let one
     /// window finishing suspend the machine while another still had agents
-    /// working — the exact failure this feature exists to prevent, arrived at
-    /// from the opposite direction. The lock is therefore held while *any*
-    /// window claims it.
-    holders: Mutex<std::collections::HashSet<String>>,
+    /// working. The lock is therefore held while *any* window claims it.
+    holders: std::collections::HashSet<String>,
+    guard: Option<keepawake::KeepAwake>,
 }
 
-impl KanbanWakeLockState {
-    fn set(&self, window_label: &str, active: bool) -> Result<(), String> {
-        {
-            let Ok(mut holders) = self.holders.lock() else {
-                return Err("failed to lock wake-lock holders".to_string());
-            };
-            if active {
-                holders.insert(window_label.to_string());
-            } else {
-                holders.remove(window_label);
-            }
-        }
-        self.reconcile()
-    }
-
-    /// Drop a window's claim outright.
-    ///
-    /// A window closed mid-run never sends its `false`, and without this its
-    /// claim would outlive it and hold the machine awake forever — the
-    /// mirror-image bug of releasing too early, and the harder one to notice
-    /// because nothing visibly breaks.
-    pub fn release_window(&self, window_label: &str) {
-        if let Ok(mut holders) = self.holders.lock() {
-            if holders.remove(window_label) {
-                drop(holders);
-                let _ = self.reconcile();
-            }
-        }
-    }
-
-    /// Bring the OS lock in line with the holder set.
-    fn reconcile(&self) -> Result<(), String> {
-        let wanted = self
-            .holders
-            .lock()
-            .map(|holders| !holders.is_empty())
-            .unwrap_or(false);
-
-        let Ok(mut guard) = self.guard.lock() else {
-            return Err("failed to lock wake-lock state".to_string());
-        };
-        match (wanted, guard.is_some()) {
+impl WakeLockInner {
+    /// Bring the OS guard in line with the holder set. Callers already hold
+    /// the mutex, which is what makes this atomic with respect to the set.
+    fn reconcile(&mut self) -> Result<(), String> {
+        match (!self.holders.is_empty(), self.guard.is_some()) {
             (true, false) => {
                 let lock = keepawake::Builder::default()
                     // Idle only: the display may sleep, the machine may not. A
@@ -530,13 +505,47 @@ impl KanbanWakeLockState {
                     .app_name("Cline Code")
                     .create()
                     .map_err(|error| format!("failed to acquire wake lock: {error}"))?;
-                *guard = Some(lock);
+                self.guard = Some(lock);
             }
             // Dropping the guard releases the lock.
-            (false, true) => *guard = None,
+            (false, true) => self.guard = None,
             _ => {}
         }
         Ok(())
+    }
+}
+
+#[derive(Default)]
+pub struct KanbanWakeLockState {
+    inner: Mutex<WakeLockInner>,
+}
+
+impl KanbanWakeLockState {
+    fn set(&self, window_label: &str, active: bool) -> Result<(), String> {
+        let Ok(mut inner) = self.inner.lock() else {
+            return Err("failed to lock wake-lock state".to_string());
+        };
+        if active {
+            inner.holders.insert(window_label.to_string());
+        } else {
+            inner.holders.remove(window_label);
+        }
+        inner.reconcile()
+    }
+
+    /// Drop a window's claim outright.
+    ///
+    /// A window closed mid-run never sends its `false`, and without this its
+    /// claim would outlive it and hold the machine awake forever — the
+    /// mirror-image bug of releasing too early, and the harder one to notice
+    /// because nothing visibly breaks.
+    pub fn release_window(&self, window_label: &str) {
+        let Ok(mut inner) = self.inner.lock() else {
+            return;
+        };
+        if inner.holders.remove(window_label) {
+            let _ = inner.reconcile();
+        }
     }
 
     /// Whether any window currently claims the lock.
@@ -550,9 +559,9 @@ impl KanbanWakeLockState {
     /// lives here, so here is where it can be tested honestly.
     #[cfg(test)]
     fn wants_lock(&self) -> bool {
-        self.holders
+        self.inner
             .lock()
-            .map(|holders| !holders.is_empty())
+            .map(|inner| !inner.holders.is_empty())
             .unwrap_or(false)
     }
 }
@@ -906,6 +915,68 @@ mod wake_lock_tests {
         state.release_window(WIN_A);
 
         assert!(!state.wants_lock());
+    }
+
+    #[test]
+    fn concurrent_claims_and_releases_leave_consistent_state() {
+        // The race this pins: holder set and OS guard used to sit behind
+        // separate mutexes, so a thread could read "nobody holding", lose the
+        // CPU while another window claimed and acquired, then apply its stale
+        // snapshot and drop the lock. Bookkeeping would say work was in
+        // flight with no lock to match, and edge-triggered presence would
+        // never re-send.
+        //
+        // One mutex makes that unrepresentable. This exercises the interleave
+        // it would have needed, and asserts the invariant afterwards.
+        let state = Arc::new(KanbanWakeLockState::default());
+        let handles: Vec<_> = (0..16)
+            .map(|i| {
+                let state = state.clone();
+                let label = format!("kanban-project-{}", i % 4);
+                thread::spawn(move || {
+                    for _ in 0..50 {
+                        let _ = state.set(&label, true);
+                        let _ = state.set(&label, false);
+                    }
+                })
+            })
+            .collect();
+        for handle in handles {
+            handle.join().expect("no thread should panic");
+        }
+
+        // Every claim was paired with a release, so nothing may be left held.
+        assert!(!state.wants_lock());
+    }
+
+    #[test]
+    fn a_surviving_claim_outlives_a_concurrent_release_storm() {
+        // The asymmetric case, which is the one that actually bites: one
+        // window keeps working while others churn. Its claim must still stand
+        // at the end.
+        let state = Arc::new(KanbanWakeLockState::default());
+        let _ = state.set("kanban-project-long-runner", true);
+
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                let state = state.clone();
+                let label = format!("kanban-project-churn-{i}");
+                thread::spawn(move || {
+                    for _ in 0..50 {
+                        let _ = state.set(&label, true);
+                        let _ = state.set(&label, false);
+                    }
+                })
+            })
+            .collect();
+        for handle in handles {
+            handle.join().expect("no thread should panic");
+        }
+
+        assert!(
+            state.wants_lock(),
+            "the long-running window's claim must survive the churn"
+        );
     }
 
     #[test]
