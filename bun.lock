@@ -364,6 +364,7 @@
       },
       "dependencies": {
         "@cline/core": "workspace:*",
+        "@cline/drive": "workspace:*",
         "@cline/shared": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.27.1",
         "@sentry/node": "^10.45.0",

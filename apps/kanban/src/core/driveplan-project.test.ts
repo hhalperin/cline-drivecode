@@ -3,6 +3,7 @@ import { isDriveplanManagedCard } from "./api-contract";
 import { projectDriveRunToBoard } from "./driveplan-project";
 import { addTaskToColumn, updateTask } from "./task-board-mutations";
 import type { RuntimeBoardData } from "./api-contract";
+import type { DriveRunProjection } from "./driveplan-project";
 
 function emptyBoard(): RuntimeBoardData {
 	return {
@@ -16,32 +17,64 @@ function emptyBoard(): RuntimeBoardData {
 	};
 }
 
+/**
+ * Build a complete DriveRun spec around the work items a test cares about.
+ *
+ * Needed because the projection now takes Drive's own `DriveRun` rather than
+ * a local subset that modelled `workItems` alone. That subset could not
+ * represent waves or gates at all — which is the same reason it silently
+ * dropped `evidenceRequirements`.
+ */
+function driveRun(
+	workItems: DriveRunProjection["spec"]["workItems"],
+	overrides: { id?: string; driveTaskId?: string } = {},
+): DriveRunProjection {
+	return {
+		id: overrides.id ?? "run_1",
+		driveTaskId: overrides.driveTaskId ?? "task_1",
+		title: "Test run",
+		status: "running",
+		spec: {
+			revision: 1,
+			maxParallel: 1,
+			waves: [
+				{
+					id: "wave_1",
+					title: "Wave 1",
+					workItemIds: workItems.map((item) => item.id),
+				},
+			],
+			gates: [{ id: "gate_admission", kind: "gate.admission", label: "Admission" }],
+			workItems,
+		},
+	};
+}
+
 describe("projectDriveRunToBoard", () => {
 	it("creates managed cards with autoReviewEnabled false", () => {
 		const result = projectDriveRunToBoard(
 			emptyBoard(),
-			{
-				id: "run_1",
-				driveTaskId: "task_1",
-				spec: {
-					workItems: [
-						{
-							id: "wi_a",
-							objective: "Patch retry",
-							isolation: "worktree",
-							writeClaims: ["src/a.ts"],
-							status: "PENDING",
-						},
-						{
-							id: "wi_b",
-							objective: "Run tests",
-							isolation: "shared",
-							writeClaims: [],
-							status: "RUNNING",
-						},
-					],
+			driveRun(
+[
+				{
+					id: "wi_a",
+					objective: "Patch retry",
+					isolation: "worktree_isolated",
+					writeClaims: ["src/a.ts"],
+					evidenceRequirements: ["unit tests pass"],
+					status: "PENDING",
 				},
-			},
+				{
+					id: "wi_b",
+					objective: "Run tests",
+					isolation: "workspace_shared",
+					writeClaims: [],
+					evidenceRequirements: [],
+					status: "RUNNING",
+				},
+],
+{ id: "run_1", driveTaskId: "task_1" },
+),
 			"main",
 			() => "uuid-1",
 			100,
@@ -61,42 +94,38 @@ describe("projectDriveRunToBoard", () => {
 	it("is idempotent for the same externalRef", () => {
 		const first = projectDriveRunToBoard(
 			emptyBoard(),
-			{
-				id: "run_1",
-				driveTaskId: "task_1",
-				spec: {
-					workItems: [
-						{
-							id: "wi_a",
-							objective: "Patch",
-							isolation: "worktree",
-							writeClaims: [],
-							status: "PENDING",
-						},
-					],
+			driveRun(
+[
+				{
+					id: "wi_a",
+					objective: "Patch",
+					isolation: "worktree_isolated",
+					writeClaims: [],
+					evidenceRequirements: [],
+					status: "PENDING",
 				},
-			},
+],
+{ id: "run_1", driveTaskId: "task_1" },
+),
 			"main",
 			() => "uuid-1",
 			100,
 		);
 		const second = projectDriveRunToBoard(
 			first.board,
-			{
-				id: "run_1",
-				driveTaskId: "task_1",
-				spec: {
-					workItems: [
-						{
-							id: "wi_a",
-							objective: "Patch",
-							isolation: "worktree",
-							writeClaims: [],
-							status: "PENDING",
-						},
-					],
+			driveRun(
+[
+				{
+					id: "wi_a",
+					objective: "Patch",
+					isolation: "worktree_isolated",
+					writeClaims: [],
+					evidenceRequirements: [],
+					status: "PENDING",
 				},
-			},
+],
+{ id: "run_1", driveTaskId: "task_1" },
+),
 			"main",
 			() => "uuid-2",
 			200,
@@ -200,5 +229,76 @@ describe("DrivePlan cards resist re-enabling automation Kanban does not own", ()
 		);
 
 		expect(updated.task?.autoReviewEnabled).toBe(true);
+	});
+});
+
+describe("the projection is Drive's, not a copy", () => {
+	// These pin the two behaviours the local mirror had drifted on. They pass
+	// only because `applyProjection` is imported from @cline/drive — a
+	// reintroduced copy would have to reproduce them exactly to stay green.
+	function firstCardPrompt(evidence: string[]): string {
+		const result = projectDriveRunToBoard(
+			emptyBoard(),
+			driveRun([
+				{
+					id: "wi_a",
+					objective: "Patch retry",
+					isolation: "worktree_isolated",
+					writeClaims: ["src/a.ts"],
+					evidenceRequirements: evidence,
+					status: "PENDING",
+				},
+			]),
+			"main",
+			() => "uuid-evidence",
+			1,
+		);
+		const card = result.board.columns
+			.flatMap((column) => column.cards)
+			.find((candidate) => candidate.prompt.includes("WorkItem: wi_a"));
+		if (!card) throw new Error("expected a projected card");
+		return card.prompt;
+	}
+
+	it("carries evidence requirements into the card prompt", () => {
+		// The mirror omitted this line entirely, so a work item's evidence
+		// requirements never reached the agent expected to satisfy them: the
+		// card said what to do and silently dropped what to prove.
+		expect(firstCardPrompt(["unit tests pass", "no lint errors"])).toContain(
+			"Evidence: unit tests pass, no lint errors",
+		);
+	});
+
+	it("says so explicitly when a work item requires no evidence", () => {
+		// "none" rather than an absent line — an absent line is
+		// indistinguishable from the bug above.
+		expect(firstCardPrompt([])).toContain("Evidence: none");
+	});
+
+	it("projects cards that do not start in plan mode", () => {
+		// The mirror had this inverted. Drive decides admission; a card that
+		// opens in plan mode when Drive expects otherwise changes what the
+		// agent does first.
+		const result = projectDriveRunToBoard(
+			emptyBoard(),
+			driveRun([
+				{
+					id: "wi_a",
+					objective: "Patch retry",
+					isolation: "worktree_isolated",
+					writeClaims: [],
+					evidenceRequirements: [],
+					status: "PENDING",
+				},
+			]),
+			"main",
+			() => "uuid-planmode",
+			1,
+		);
+		const card = result.board.columns
+			.flatMap((column) => column.cards)
+			.find((candidate) => candidate.prompt.includes("WorkItem: wi_a"));
+
+		expect(card?.startInPlanMode).toBe(false);
 	});
 });

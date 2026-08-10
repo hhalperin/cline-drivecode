@@ -1,97 +1,42 @@
 /**
  * DrivePlan → Kanban projection host (ADR-0018 §7).
- * Mirrors @cline/drive applyProjection card shape without taking a package dep.
+ *
+ * The card shape is Drive's, not ours: `applyProjection` is imported from
+ * `@cline/drive` rather than reimplemented here.
+ *
+ * This file used to carry a copy, on the rationale that Kanban should not
+ * take a package dependency on Drive. That was true when Kanban was a
+ * separate repository consuming `@cline/*` from npm; in the monorepo Drive is
+ * a workspace sibling and the copy bought nothing but drift — and it had
+ * already drifted twice by the time it was replaced:
+ *
+ *   - `startInPlanMode` was `true` here and `false` in Drive, so every
+ *     projected card opened in the wrong mode.
+ *   - the prompt omitted the `Evidence:` line entirely, so a work item's
+ *     evidence requirements never reached the agent expected to satisfy
+ *     them — the card said what to do and silently dropped what to prove.
+ *
+ * Neither would fail a test on either side, because each side tested its own
+ * copy. Importing the real function is what makes that class of divergence
+ * impossible rather than merely unlikely.
  */
+
+import { applyProjection, type ProjectedKanbanCard } from "@cline/drive";
+import type { DriveRun } from "@cline/shared";
 
 import type { RuntimeBoardColumnId, RuntimeBoardData } from "./api-contract";
 import { isDriveplanManagedCard } from "./api-contract";
 import { addTaskToColumn } from "./task-board-mutations";
 
-export type DriveRunWorkItemProjection = {
-	id: string;
-	objective: string;
-	isolation: string;
-	writeClaims: string[];
-	status: "PENDING" | "RUNNING" | "FAILED" | "SUCCESS" | "AWAITING_REVIEW";
-};
+export type { ProjectedKanbanCard };
 
-export type DriveRunProjection = {
-	id: string;
-	driveTaskId: string;
-	spec: {
-		workItems: DriveRunWorkItemProjection[];
-	};
-};
-
-export type ProjectedKanbanCard = {
-	title: string;
-	prompt: string;
-	startInPlanMode: boolean;
-	autoReviewEnabled: false;
-	externalRef: {
-		system: "driveplan";
-		driveTaskId: string;
-		driveRunId: string;
-		workItemId?: string;
-	};
-	columnHint: RuntimeBoardColumnId;
-};
-
-function columnForStatus(
-	status: DriveRunWorkItemProjection["status"],
-): ProjectedKanbanCard["columnHint"] {
-	switch (status) {
-		case "PENDING":
-			return "backlog";
-		case "RUNNING":
-		case "FAILED":
-			return "in_progress";
-		case "SUCCESS":
-		case "AWAITING_REVIEW":
-			return "review";
-		default: {
-			const _exhaustive: never = status;
-			return _exhaustive;
-		}
-	}
-}
-
-/** Same card descriptors as @cline/drive applyProjection. */
-export function applyProjectionLocal(run: DriveRunProjection): {
-	driveTaskId: string;
-	driveRunId: string;
-	cards: ProjectedKanbanCard[];
-} {
-	const cards: ProjectedKanbanCard[] = run.spec.workItems.map((item) => ({
-		title: `${item.id} · ${item.objective}`,
-		prompt: [
-			`DriveTask: ${run.driveTaskId}`,
-			`DriveRun: ${run.id}`,
-			`WorkItem: ${item.id}`,
-			"",
-			item.objective,
-			"",
-			`Isolation: ${item.isolation}`,
-			item.writeClaims.length
-				? `Write claims: ${item.writeClaims.join(", ")}`
-				: "Write claims: none",
-		].join("\n"),
-		startInPlanMode: true,
-		autoReviewEnabled: false,
-		externalRef: {
-			system: "driveplan",
-			driveTaskId: run.driveTaskId,
-			driveRunId: run.id,
-			workItemId: item.id,
-		},
-		columnHint: columnForStatus(item.status),
-	}));
-	return {
-		driveTaskId: run.driveTaskId,
-		driveRunId: run.id,
-		cards,
-	};
-}
+/**
+ * The run shape the projection needs.
+ *
+ * Aliased to Drive's own type so a change there surfaces here as a type
+ * error rather than as cards that quietly stop matching the run.
+ */
+export type DriveRunProjection = DriveRun;
 
 export type ProjectDriveRunToBoardResult = {
 	board: RuntimeBoardData;
@@ -109,7 +54,7 @@ export function projectDriveRunToBoard(
 	randomUuid: () => string,
 	now: number = Date.now(),
 ): ProjectDriveRunToBoardResult {
-	const projection = applyProjectionLocal(run);
+	const projection = applyProjection(run);
 	const existingRefs = new Set<string>();
 	for (const column of board.columns) {
 		for (const card of column.cards) {
@@ -137,8 +82,12 @@ export function projectDriveRunToBoard(
 		if (existingRefs.has(key)) {
 			continue;
 		}
-		const columnId =
-			card.columnHint === "trash" ? "backlog" : card.columnHint;
+		// Drive's `columnHint` is backlog | in_progress | review — trash is
+		// deliberately not projectable, because discarding a work item is a
+		// Drive-side decision, not something a projection can express. The
+		// guard that used to map trash onto backlog here was unreachable, and
+		// switching to Drive's own type is what proved it.
+		const columnId: RuntimeBoardColumnId = card.columnHint;
 		const result = addTaskToColumn(
 			next,
 			columnId,
