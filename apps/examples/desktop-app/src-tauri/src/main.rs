@@ -933,6 +933,16 @@ fn main() {
                     let _ = window.hide();
                 }
             }
+            // A window closed mid-run never sends its wake-lock release, and
+            // an orphaned claim would hold the machine awake indefinitely.
+            // Destroyed rather than CloseRequested: the main window prevents
+            // close and merely hides, and a hidden window's agents are still
+            // working.
+            if let WindowEvent::Destroyed = event {
+                window
+                    .state::<Arc<kanban::KanbanWakeLockState>>()
+                    .release_window(window.label());
+            }
         })
         .invoke_handler(tauri::generate_handler![
             get_desktop_backend_endpoint,

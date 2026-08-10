@@ -465,42 +465,95 @@ pub fn ensure_kanban_runtime_started_with(
 #[derive(Default)]
 pub struct KanbanWakeLockState {
     guard: Mutex<Option<keepawake::KeepAwake>>,
+    /// Labels of windows currently reporting work in flight.
+    ///
+    /// The lock is app-wide but the signal is per-window: every project
+    /// window runs its own renderer with its own `PresenceController` and its
+    /// own running count. Treating the latest `false` as "release" let one
+    /// window finishing suspend the machine while another still had agents
+    /// working — the exact failure this feature exists to prevent, arrived at
+    /// from the opposite direction. The lock is therefore held while *any*
+    /// window claims it.
+    holders: Mutex<std::collections::HashSet<String>>,
 }
 
 impl KanbanWakeLockState {
-    fn set(&self, active: bool) -> Result<(), String> {
+    fn set(&self, window_label: &str, active: bool) -> Result<(), String> {
+        {
+            let Ok(mut holders) = self.holders.lock() else {
+                return Err("failed to lock wake-lock holders".to_string());
+            };
+            if active {
+                holders.insert(window_label.to_string());
+            } else {
+                holders.remove(window_label);
+            }
+        }
+        self.reconcile()
+    }
+
+    /// Drop a window's claim outright.
+    ///
+    /// A window closed mid-run never sends its `false`, and without this its
+    /// claim would outlive it and hold the machine awake forever — the
+    /// mirror-image bug of releasing too early, and the harder one to notice
+    /// because nothing visibly breaks.
+    pub fn release_window(&self, window_label: &str) {
+        if let Ok(mut holders) = self.holders.lock() {
+            if holders.remove(window_label) {
+                drop(holders);
+                let _ = self.reconcile();
+            }
+        }
+    }
+
+    /// Bring the OS lock in line with the holder set.
+    fn reconcile(&self) -> Result<(), String> {
+        let wanted = self
+            .holders
+            .lock()
+            .map(|holders| !holders.is_empty())
+            .unwrap_or(false);
+
         let Ok(mut guard) = self.guard.lock() else {
             return Err("failed to lock wake-lock state".to_string());
         };
-        if active {
-            if guard.is_some() {
-                return Ok(());
+        match (wanted, guard.is_some()) {
+            (true, false) => {
+                let lock = keepawake::Builder::default()
+                    // Idle only: the display may sleep, the machine may not. A
+                    // desktop that also refuses to blank the screen for hours
+                    // of background work is a battery and burn-in problem, and
+                    // is not what the Electron host did either.
+                    .idle(true)
+                    .reason("Cline Kanban agents are working")
+                    .app_name("Cline Code")
+                    .create()
+                    .map_err(|error| format!("failed to acquire wake lock: {error}"))?;
+                *guard = Some(lock);
             }
-            let lock = keepawake::Builder::default()
-                // Idle only: the display may sleep, the machine may not. A
-                // desktop that also refuses to blank the screen for hours of
-                // background work is a battery and burn-in problem, and is
-                // not what the Electron host did either.
-                .idle(true)
-                .reason("Cline Kanban agents are working")
-                .app_name("Cline Code")
-                .create()
-                .map_err(|error| format!("failed to acquire wake lock: {error}"))?;
-            *guard = Some(lock);
-        } else {
             // Dropping the guard releases the lock.
-            *guard = None;
+            (false, true) => *guard = None,
+            _ => {}
         }
         Ok(())
     }
 
-    /// Test-only. The lock's real observable is the machine not sleeping,
-    /// which no unit test can assert, so the tests assert on this instead.
-    /// Gated rather than left public so it cannot drift into being a
-    /// substitute for the behaviour it stands in for.
+    /// Whether any window currently claims the lock.
+    ///
+    /// This, not the OS guard, is what the tests assert on — and the
+    /// distinction is load-bearing. A headless box has no session bus, so
+    /// `keepawake` fails with ENOENT and the guard is never populated there.
+    /// Tests written against the guard passed on such a box by skipping,
+    /// which reads as coverage while asserting nothing. The bug this
+    /// bookkeeping exists to prevent — one window releasing another's claim —
+    /// lives here, so here is where it can be tested honestly.
     #[cfg(test)]
-    pub fn is_held(&self) -> bool {
-        self.guard.lock().map(|g| g.is_some()).unwrap_or(false)
+    fn wants_lock(&self) -> bool {
+        self.holders
+            .lock()
+            .map(|holders| !holders.is_empty())
+            .unwrap_or(false)
     }
 }
 
@@ -508,10 +561,13 @@ impl KanbanWakeLockState {
 /// crosses zero in either direction.
 #[tauri::command]
 pub fn kanban_set_wake_lock(
+    window: tauri::Window,
     state: State<'_, Arc<KanbanWakeLockState>>,
     active: bool,
 ) -> Result<(), String> {
-    state.set(active)
+    // Keyed on the calling window: see `holders` for why a single boolean is
+    // not enough once more than one project window exists.
+    state.set(window.label(), active)
 }
 
 #[tauri::command]
@@ -764,49 +820,103 @@ mod supervision_tests {
 mod wake_lock_tests {
     use super::*;
 
+    const WIN_A: &str = "kanban-project-a";
+    const WIN_B: &str = "kanban-project-b";
+
+    // These assert on `wants_lock()` rather than on the OS guard on purpose.
+    // Acquiring a real lock needs a session bus that CI does not have, so
+    // guard-based assertions silently skip exactly where they most need to
+    // run. `set` still returns the acquisition error for the caller to log;
+    // the bookkeeping it updates is correct either way.
+
     #[test]
-    fn starts_released() {
-        assert!(!KanbanWakeLockState::default().is_held());
+    fn starts_with_no_claim() {
+        assert!(!KanbanWakeLockState::default().wants_lock());
     }
 
     #[test]
-    fn acquiring_is_idempotent() {
-        // Presence is edge-triggered, but a reconnecting renderer can replay
-        // the same edge. Re-acquiring must not stack locks that then need two
-        // releases to actually let the machine sleep.
+    fn a_window_claiming_holds_the_lock() {
         let state = KanbanWakeLockState::default();
+        let _ = state.set(WIN_A, true);
 
-        let first = state.set(true);
-        let second = state.set(true);
-
-        // A headless CI box may have no session bus to take a lock from;
-        // treat acquisition failure as "not applicable" rather than failing,
-        // but never accept one call succeeding and the other not.
-        if first.is_ok() {
-            assert!(second.is_ok());
-            assert!(state.is_held());
-        }
+        assert!(state.wants_lock());
     }
 
     #[test]
-    fn releasing_is_idempotent_and_actually_releases() {
+    fn claiming_twice_still_needs_only_one_release() {
+        // Presence is edge-triggered, but a reconnecting renderer replays the
+        // edge. Stacking claims would mean two releases before the machine
+        // could ever sleep.
         let state = KanbanWakeLockState::default();
-        let _ = state.set(true);
+        let _ = state.set(WIN_A, true);
+        let _ = state.set(WIN_A, true);
 
-        state.set(false).expect("release should not fail");
-        state.set(false).expect("a second release should be a no-op");
+        let _ = state.set(WIN_A, false);
 
-        assert!(!state.is_held());
+        assert!(!state.wants_lock());
     }
 
     #[test]
-    fn a_release_after_no_acquire_is_harmless() {
-        // The first presence update can report zero running tasks, which
-        // sends `false` before anything was ever held.
+    fn a_release_without_a_claim_is_harmless() {
+        // The first presence update can report zero running tasks, sending
+        // `false` before anything was ever claimed.
         let state = KanbanWakeLockState::default();
 
-        state.set(false).expect("release without acquire should be a no-op");
+        let _ = state.set(WIN_A, false);
 
-        assert!(!state.is_held());
+        assert!(!state.wants_lock());
+    }
+
+    #[test]
+    fn one_window_finishing_does_not_release_anothers_claim() {
+        // The regression this pins. Every project window runs its own
+        // PresenceController with its own running count, so window A hitting
+        // zero used to release an app-wide lock window B still needed —
+        // suspending the machine with B's agents mid-task.
+        let state = KanbanWakeLockState::default();
+        let _ = state.set(WIN_A, true);
+        let _ = state.set(WIN_B, true);
+
+        let _ = state.set(WIN_A, false);
+
+        assert!(state.wants_lock(), "B still has work in flight");
+    }
+
+    #[test]
+    fn the_claim_drops_once_the_last_window_finishes() {
+        let state = KanbanWakeLockState::default();
+        let _ = state.set(WIN_A, true);
+        let _ = state.set(WIN_B, true);
+
+        let _ = state.set(WIN_A, false);
+        let _ = state.set(WIN_B, false);
+
+        assert!(!state.wants_lock());
+    }
+
+    #[test]
+    fn a_closed_window_does_not_claim_the_lock_forever() {
+        // The mirror-image bug, and the harder one to notice: a window closed
+        // mid-run never sends its `false`, so without an explicit release its
+        // claim would outlive it and keep the machine awake indefinitely with
+        // nothing visibly wrong.
+        let state = KanbanWakeLockState::default();
+        let _ = state.set(WIN_A, true);
+
+        state.release_window(WIN_A);
+
+        assert!(!state.wants_lock());
+    }
+
+    #[test]
+    fn closing_an_unrelated_window_leaves_other_claims_alone() {
+        // Every window destroy calls this, including windows that never ran
+        // anything.
+        let state = KanbanWakeLockState::default();
+        let _ = state.set(WIN_A, true);
+
+        state.release_window("kanban-project-never-claimed");
+
+        assert!(state.wants_lock(), "A's claim must survive an unrelated close");
     }
 }
