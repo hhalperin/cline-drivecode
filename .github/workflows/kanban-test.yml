@@ -14,6 +14,10 @@ on:
         paths:
             - "apps/kanban/**"
             - "sdk/**"
+            # Kanban's workspace membership and install graph live here, so a
+            # change to either can break it without touching apps/kanban.
+            - "package.json"
+            - "bun.lock"
             - ".github/workflows/kanban-test.yml"
             - ".github/actions/setup-bun-workspace/**"
     # Deliberately unfiltered by base branch, matching sdk-test / drive-ci:
@@ -23,6 +27,10 @@ on:
         paths:
             - "apps/kanban/**"
             - "sdk/**"
+            # Kanban's workspace membership and install graph live here, so a
+            # change to either can break it without touching apps/kanban.
+            - "package.json"
+            - "bun.lock"
             - ".github/workflows/kanban-test.yml"
             - ".github/actions/setup-bun-workspace/**"
     workflow_dispatch:

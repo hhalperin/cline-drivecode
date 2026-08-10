@@ -4,37 +4,18 @@
  * VS Code "Dev (Full Stack)" launch config.
  */
 
-import { spawn, spawnSync } from "node:child_process";
-import { access } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { connect, createServer } from "node:net";
-import { join } from "node:path";
+import { ensureWorkspaceReady } from "./ensure-workspace.mjs";
 
 const isWindows = process.platform === "win32";
 
 async function ensureDependenciesInstalled() {
-	const lockIndicator = join(
-		process.cwd(),
-		"node_modules",
-		".package-lock.json",
-	);
-	try {
-		await access(lockIndicator);
-		return;
-	} catch {
-		// node_modules is missing; fall through to install below.
-	}
-	console.warn(
-		"node_modules not installed in this worktree. Running npm ci...",
-	);
-	for (const args of [["ci"], ["--prefix", "web-ui", "ci"]]) {
-		const result = spawnSync("npm", args, {
-			stdio: "inherit",
-			shell: isWindows,
-		});
-		if (result.status !== 0) {
-			process.exit(result.status ?? 1);
-		}
-	}
+	// In the monorepo, installs come from the workspace root via bun. The old
+	// npm-era bootstrap looked for `node_modules/.package-lock.json` — a marker
+	// bun never writes — and then ran `npm ci`, which now has no lockfile to read.
+	// Reporting the right command beats attempting the wrong install.
+	await ensureWorkspaceReady();
 }
 
 // Must run before importing any third-party modules so a fresh worktree with
