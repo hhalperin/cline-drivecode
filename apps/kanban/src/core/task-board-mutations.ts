@@ -8,6 +8,7 @@ import type {
     RuntimeTaskClineSettings,
     RuntimeTaskImage,
 } from "./api-contract";
+import { isDriveplanManagedCard } from "./api-contract";
 import { createUniqueTaskId } from "./task-id";
 import { resolveTaskTitle } from "./task-title";
 
@@ -642,7 +643,15 @@ export function updateTask(
 				title: resolveTaskTitle(input.title, prompt),
 				prompt,
 				startInPlanMode: Boolean(input.startInPlanMode),
-				autoReviewEnabled: Boolean(input.autoReviewEnabled),
+				// Same rule the create path applies, for the same reason: DrivePlan
+				// owns review for the cards it manages, gating it behind a receipt
+				// Kanban cannot see. Create forced this off and the card schema
+				// re-forces it on parse, so a card edited here looked correct again
+				// after any reload — which is exactly what made it easy to miss
+				// that the edit had persisted `true` in between.
+				autoReviewEnabled: isDriveplanManagedCard(card)
+					? false
+					: Boolean(input.autoReviewEnabled),
 				autoReviewMode: normalizeTaskAutoReviewMode(input.autoReviewMode),
 				images: input.images === undefined ? card.images : cloneTaskImages(input.images),
 				agentId: input.agentId === undefined ? card.agentId : (input.agentId ?? undefined),
