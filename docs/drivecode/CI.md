@@ -61,7 +61,15 @@ Force all jobs: `workflow_dispatch`, `workflow_call` with `force: true`, or labe
 
 ### Manual `ci/*` overrides (template checkboxes)
 
-`ci/vscode`, `ci/e2e`, `ci/e2e-full`, `ci/sdk`, `ci/docs`
+`ci/vscode`, `ci/e2e`, `ci/e2e-full`, `ci/sdk`, `ci/docs`, `ci/desktop`
+
+`ci/desktop` behaves like `ci/e2e-full`: it always wakes when checked rather than
+deduping against paths. `desktop-test.yml`'s path filter already runs the
+typecheck and Rust jobs on any desktop change, but its `packaged` job — build the
+Linux bundle, install it, launch it under Xvfb, observe the process tree — is
+gated off PRs because a Linux `tauri build` is slow. Forcing that job is the
+whole point of the checkbox, so deduping would make it a no-op on the PRs that
+want it.
 
 `ci/drive` is still a template checkbox and label — `drive-ci.yml` reads it directly for force. The label-overrides companion does **not** call `drive-ci` again.
 

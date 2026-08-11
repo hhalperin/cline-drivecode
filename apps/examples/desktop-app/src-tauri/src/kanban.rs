@@ -96,26 +96,77 @@ pub fn kanban_pick_directory(title: Option<String>) -> Option<String> {
 mod tests {
     use super::*;
 
+    /// Repo root, from this crate's manifest directory.
+    ///
+    /// `apps/examples/desktop-app/src-tauri` → four levels up.
+    fn repo_root() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("..")
+            .join("..")
+            .join("..")
+            .join("..")
+    }
+
+    /// The bridge contract's `DESKTOP_CAPABILITIES`, read from the TypeScript
+    /// source rather than copied into Rust.
+    ///
+    /// This used to be a hand-maintained `const CONTRACT` array here. Two lists
+    /// that must agree, with nothing holding them together, is the same shape
+    /// of defect as the capability manifest that motivated these tests: the
+    /// copy can go stale and the test keeps passing while asserting against
+    /// yesterday's contract.
+    fn contract_capabilities() -> Vec<String> {
+        let path = repo_root()
+            .join("apps")
+            .join("kanban")
+            .join("packages")
+            .join("desktop-bridge")
+            .join("src")
+            .join("contract.ts");
+        let source = std::fs::read_to_string(&path).unwrap_or_else(|error| {
+            panic!(
+                "cannot read the bridge contract at {}: {error}. \
+                 If the package moved, this test moves with it — do not delete it \
+                 and go back to a copied list.",
+                path.display()
+            )
+        });
+
+        let start = source
+            .find("DESKTOP_CAPABILITIES = [")
+            .unwrap_or_else(|| panic!("DESKTOP_CAPABILITIES not found in {}", path.display()));
+        let body = &source[start..];
+        let end = body
+            .find(']')
+            .unwrap_or_else(|| panic!("DESKTOP_CAPABILITIES is unterminated in {}", path.display()));
+
+        let names: Vec<String> = body[..end]
+            .split('"')
+            .skip(1)
+            .step_by(2)
+            .map(|name| name.to_string())
+            .collect();
+        assert!(
+            !names.is_empty(),
+            "parsed DESKTOP_CAPABILITIES as empty from {} — the parser and the \
+             file's shape have diverged",
+            path.display()
+        );
+        names
+    }
+
     #[test]
     fn advertises_only_capabilities_the_bridge_contract_defines() {
         // `DESKTOP_CAPABILITIES` in contract.ts is the source of truth. An
         // entry here that the contract doesn't know is dropped by
         // `parseBridgeBootstrap`'s filter, which would look like the feature
         // silently not working.
-        const CONTRACT: &[&str] = &[
-            "windows",
-            "runtime",
-            "updates",
-            "notifications",
-            "presence",
-            "actions",
-            "dialogs",
-        ];
+        let contract = contract_capabilities();
 
         for capability in CAPABILITIES {
             assert!(
-                CONTRACT.contains(capability),
-                "{capability} is not in the bridge contract"
+                contract.iter().any(|name| name == capability),
+                "{capability} is not in the bridge contract ({contract:?})"
             );
         }
     }
@@ -130,6 +181,163 @@ mod tests {
                 "{absent} is advertised but has no host implementation"
             );
         }
+    }
+
+    /// Every `windows` entry across every capability file.
+    ///
+    /// Returned with its file name so a failure names the manifest to edit.
+    fn capability_window_patterns() -> Vec<(String, String)> {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("capabilities");
+        let entries = std::fs::read_dir(&dir)
+            .unwrap_or_else(|error| panic!("cannot read {}: {error}", dir.display()));
+
+        let mut patterns = Vec::new();
+        for entry in entries {
+            let path = entry.expect("readable capability entry").path();
+            if path.extension().and_then(|value| value.to_str()) != Some("json") {
+                continue;
+            }
+            let name = path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("<unnamed>")
+                .to_string();
+            let raw = std::fs::read_to_string(&path)
+                .unwrap_or_else(|error| panic!("cannot read {}: {error}", path.display()));
+            let parsed: serde_json::Value = serde_json::from_str(&raw)
+                .unwrap_or_else(|error| panic!("{} is not valid JSON: {error}", path.display()));
+
+            let windows = parsed
+                .get("windows")
+                .and_then(|value| value.as_array())
+                .unwrap_or_else(|| panic!("{name} has no `windows` array"));
+            for pattern in windows {
+                let pattern = pattern
+                    .as_str()
+                    .unwrap_or_else(|| panic!("{name} has a non-string `windows` entry"));
+                patterns.push((name.clone(), pattern.to_string()));
+            }
+        }
+
+        assert!(
+            !patterns.is_empty(),
+            "no capability files found under {} — Tauri matches capabilities by \
+             window label, so zero patterns means every window is unpermissioned",
+            dir.display()
+        );
+        patterns
+    }
+
+    /// Minimal `*` glob match, matching how Tauri globs window labels.
+    ///
+    /// Deliberately supports only `*`, and `assert_patterns_are_matchable`
+    /// below refuses anything richer. A silently wrong matcher would make this
+    /// whole test file agree with itself and with nothing else.
+    fn glob_matches(pattern: &str, label: &str) -> bool {
+        let mut segments = pattern.split('*');
+        let Some(first) = segments.next() else {
+            return pattern == label;
+        };
+        if !label.starts_with(first) {
+            return false;
+        }
+        let mut rest = &label[first.len()..];
+
+        let segments: Vec<&str> = segments.collect();
+        let Some((last, middle)) = segments.split_last() else {
+            return rest.is_empty();
+        };
+        for segment in middle {
+            match rest.find(segment) {
+                Some(index) => rest = &rest[index + segment.len()..],
+                None => return false,
+            }
+        }
+        rest.len() >= last.len() && rest.ends_with(last)
+    }
+
+    #[test]
+    fn every_window_the_host_can_open_is_named_by_a_capability() {
+        // Tauri matches capabilities by window *label*. When the only
+        // capability named `main`, the per-project windows — labelled
+        // `kanban-project-*`, and where the Kanban UI actually runs — got no
+        // permissions at all, so every core window and event call the adapter
+        // made from them was denied. The bridge was inert in exactly the
+        // windows it exists to serve while the main window it never runs in
+        // worked fine, which is why nothing looked broken.
+        //
+        // Nine PRs of green CI did not catch that, because the manifest is JSON
+        // consumed by Tauri at runtime and no test had ever read it.
+        let patterns = capability_window_patterns();
+
+        // Deliberately varied: a plain id, a path, spaces, dots, a literal
+        // underscore, and non-ASCII — the label encoder escapes each of these
+        // differently, and a capability glob has to survive all of them.
+        let project_ids = [
+            "acme",
+            "/Users/dev/code/acme",
+            "my app/web",
+            "my-app-web",
+            "my_app_web",
+            "my.app.web",
+            "täsk-bränch",
+            "",
+        ];
+
+        for project_id in project_ids {
+            let label = kanban_project_window_label(project_id);
+            assert!(
+                patterns
+                    .iter()
+                    .any(|(_, pattern)| glob_matches(pattern, &label)),
+                "project id {project_id:?} opens window {label:?}, which no capability \
+                 matches — that window would launch with zero permissions. \
+                 Patterns present: {patterns:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_main_window_is_named_by_a_capability() {
+        // The label in tauri.conf.json's `app.windows`. Guarded alongside the
+        // project windows so a capability rename cannot silently strip the one
+        // window that has always worked.
+        let patterns = capability_window_patterns();
+        assert!(
+            patterns
+                .iter()
+                .any(|(_, pattern)| glob_matches(pattern, "main")),
+            "no capability matches the `main` window; patterns present: {patterns:?}"
+        );
+    }
+
+    #[test]
+    fn capability_patterns_stay_within_what_this_test_can_check() {
+        // `glob_matches` handles `*` only. If a manifest starts using `?`,
+        // character classes or braces, the assertions above would quietly
+        // mismatch and report a false pass — the exact failure mode they exist
+        // to prevent. Fail loudly here instead, so the matcher gets extended
+        // deliberately.
+        for (file, pattern) in capability_window_patterns() {
+            assert!(
+                !pattern.contains(['?', '[', ']', '{', '}']),
+                "{file} uses glob syntax richer than `*` in {pattern:?}; extend \
+                 `glob_matches` before adding it, or these tests will pass \
+                 without checking anything"
+            );
+        }
+    }
+
+    #[test]
+    fn the_project_window_glob_does_not_match_unrelated_labels() {
+        // Guards the matcher itself. Without this, a `glob_matches` that
+        // returned `true` unconditionally would make every assertion above
+        // pass.
+        assert!(glob_matches("kanban-project-*", "kanban-project-acme"));
+        assert!(glob_matches("main", "main"));
+        assert!(!glob_matches("main", "main-window"));
+        assert!(!glob_matches("kanban-project-*", "main"));
+        assert!(!glob_matches("kanban-project-*", "kanban-projec"));
     }
 }
 
@@ -304,7 +512,7 @@ fn resolve_kanban_runtime_entry(workspace_root: &str) -> Option<PathBuf> {
 /// exactly this reason.
 fn gui_launch_path_dirs() -> Vec<PathBuf> {
     if cfg!(target_os = "macos") {
-        [
+        let mut dirs: Vec<PathBuf> = [
             "/opt/homebrew/bin",
             "/opt/homebrew/sbin",
             "/usr/local/bin",
@@ -316,12 +524,16 @@ fn gui_launch_path_dirs() -> Vec<PathBuf> {
         ]
         .iter()
         .map(PathBuf::from)
-        .collect()
+        .collect();
+        dirs.extend(user_install_dirs());
+        dirs
     } else if cfg!(target_os = "linux") {
-        ["/usr/local/bin", "/snap/bin", "/usr/bin", "/bin"]
+        let mut dirs: Vec<PathBuf> = ["/usr/local/bin", "/snap/bin", "/usr/bin", "/bin"]
             .iter()
             .map(PathBuf::from)
-            .collect()
+            .collect();
+        dirs.extend(user_install_dirs());
+        dirs
     } else if cfg!(target_os = "windows") {
         let mut dirs = Vec::new();
         if let Ok(app_data) = std::env::var("APPDATA") {
@@ -344,6 +556,29 @@ fn gui_launch_path_dirs() -> Vec<PathBuf> {
     } else {
         Vec::new()
     }
+}
+
+/// Per-user tool directories, appended after the system ones above.
+///
+/// The list above covers Homebrew and `/usr/local`, which is where a
+/// package-managed `bun` lands. It does not cover where bun's *own* installer
+/// puts it: `curl -fsSL https://bun.sh/install | bash` writes `~/.bun/bin`,
+/// which is on nobody's launchd PATH. That is the most common way to install
+/// bun, so the function whose entire job is making a double-clicked `.app` find
+/// `bun` was missing the single most likely place to find it.
+///
+/// Appended rather than prepended: it only decides anything when none of the
+/// system directories supplied a binary, which is exactly the gap. A user who
+/// already has Homebrew's `bun` keeps resolving to it.
+fn user_install_dirs() -> Vec<PathBuf> {
+    // `home` on Unix, and launchd does set HOME for a GUI-launched app.
+    let Ok(home) = std::env::var("HOME") else {
+        return Vec::new();
+    };
+    if home.is_empty() {
+        return Vec::new();
+    }
+    vec![PathBuf::from(home).join(".bun").join("bin")]
 }
 
 /// PATH with the GUI-launch directories appended, preserving order and
@@ -780,6 +1015,10 @@ mod supervision_tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
 
+    /// Keeps marker paths distinct when tests run in parallel within one
+    /// process, which is cargo's default.
+    static SIGTERM_MARKER_SEQ: AtomicUsize = AtomicUsize::new(0);
+
     /// A child that stays alive, standing in for a runtime still booting.
     fn spawn_pending_runtime() -> Result<Child, String> {
         Command::new("sleep")
@@ -923,6 +1162,171 @@ mod supervision_tests {
 
         assert!(!state.is_current_generation(first), "the old child is superseded");
         assert!(state.is_current_generation(second), "the live child still speaks");
+    }
+
+    /// A child that announces `endpoint` and then exits, leaving its stdout
+    /// held open by a backgrounded grandchild for `hold_secs`.
+    ///
+    /// That shape is the point. The direct child is reaped immediately, so the
+    /// next startup check spawns a replacement, but the drainer thread reading
+    /// the pipe does not see EOF until the grandchild exits — which is how a
+    /// superseded drainer comes to fire *after* its successor has already
+    /// announced. Testing the race with two live children instead would need
+    /// the spawn guard bypassed, and testing it with plain timing would be a
+    /// coin flip.
+    #[cfg(unix)]
+    fn spawn_announcing_then_lingering(endpoint: &str, hold_secs: u32) -> Result<Child, String> {
+        let ready = format!(r#"{{"type":"ready","endpoint":"{endpoint}"}}"#);
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("echo '{ready}'; sleep {hold_secs} &"))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| e.to_string())
+    }
+
+    #[cfg(unix)]
+    fn wait_for_endpoint(state: &Arc<KanbanRuntimeState>, expected: Option<&str>) -> bool {
+        for _ in 0..200 {
+            if state.endpoint().as_deref() == expected {
+                return true;
+            }
+            thread::sleep(Duration::from_millis(25));
+        }
+        false
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn a_dead_childs_late_eof_does_not_clear_the_live_endpoint() {
+        // #237 recorded that endpoint clearing had no unit test because it
+        // "needs a real child process". It does — and a real child process is
+        // cheap. This drives the actual stdout drainer rather than the
+        // generation counter in isolation, so it fails if the guard is dropped
+        // from the EOF branch even though the counter itself still works.
+        let state = Arc::new(KanbanRuntimeState::default());
+        state.reopen();
+
+        // The first child's pipe closes at 2s; the replacement's is held for
+        // 10s. The gap is the window the assertion runs in: long enough for
+        // the superseded drainer to have fired, short enough that the live
+        // child is unambiguously still announcing.
+        ensure_kanban_runtime_started_with(&state, || {
+            spawn_announcing_then_lingering("http://127.0.0.1:4101", 2)
+        })
+        .expect("first runtime should start");
+        assert!(
+            wait_for_endpoint(&state, Some("http://127.0.0.1:4101")),
+            "the first child never announced; got {:?}",
+            state.endpoint()
+        );
+
+        // Retry until the supervisor observes the first child as dead and
+        // actually spawns a successor. A bare single call races: the first
+        // child announces before it exits, so `try_wait` can still report it
+        // live and the call returns without spawning anything — leaving
+        // generation 1 current, so the lingering drainer's EOF *would*
+        // legitimately clear the endpoint and the test would fail for a reason
+        // that is not the bug under test.
+        let spawned = Arc::new(AtomicUsize::new(0));
+        for _ in 0..200 {
+            let counter = spawned.clone();
+            ensure_kanban_runtime_started_with(&state, move || {
+                counter.fetch_add(1, Ordering::SeqCst);
+                spawn_announcing_then_lingering("http://127.0.0.1:4202", 10)
+            })
+            .expect("replacement runtime should start");
+            if spawned.load(Ordering::SeqCst) > 0 {
+                break;
+            }
+            thread::sleep(Duration::from_millis(25));
+        }
+        assert_eq!(
+            spawned.load(Ordering::SeqCst),
+            1,
+            "the replacement never spawned, so nothing superseded the first child"
+        );
+        assert!(
+            wait_for_endpoint(&state, Some("http://127.0.0.1:4202")),
+            "the replacement never announced; got {:?}",
+            state.endpoint()
+        );
+
+        // Outlive the first child's lingering grandchild, so its drainer
+        // reaches EOF well after the successor announced. The replacement's
+        // pipe stays open past this point, so anything that clears the
+        // endpoint here is the superseded drainer and nothing else.
+        thread::sleep(Duration::from_secs(3));
+
+        assert_eq!(
+            state.endpoint().as_deref(),
+            Some("http://127.0.0.1:4202"),
+            "a superseded child's EOF cleared the live endpoint; every project \
+             window would now open against a dead origin"
+        );
+        state.stop();
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn shutdown_asks_the_runtime_to_exit_before_killing_it() {
+        // #237 replaced a bare seven-second wait with SIGTERM-then-wait, and
+        // recorded that it had no test because it needs a real child. The
+        // child writes a marker from its TERM handler, so the assertion is
+        // that the signal was *delivered and handled* — not merely that the
+        // process is gone, which SIGKILL would also achieve.
+        //
+        // Kanban persists board state and worktree bookkeeping on shutdown.
+        // Being killed mid-write is what the grace period exists to prevent,
+        // and before this fix SIGKILL was the only signal it ever received.
+        let dir = std::env::temp_dir().join(format!(
+            "kanban-sigterm-{}-{}",
+            std::process::id(),
+            SIGTERM_MARKER_SEQ.fetch_add(1, Ordering::SeqCst)
+        ));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        let marker = dir.join("terminated");
+
+        let state = Arc::new(KanbanRuntimeState::default());
+        state.reopen();
+        let marker_for_child = marker.clone();
+        ensure_kanban_runtime_started_with(&state, move || {
+            Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "trap 'echo caught > \"{}\"; exit 0' TERM; while true; do sleep 0.05; done",
+                    marker_for_child.display()
+                ))
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()
+                .map_err(|e| e.to_string())
+        })
+        .expect("runtime should start");
+
+        // Let the shell install its trap before signalling it.
+        thread::sleep(Duration::from_millis(300));
+
+        let started = std::time::Instant::now();
+        state.stop();
+        let elapsed = started.elapsed();
+
+        assert!(
+            marker.exists(),
+            "the runtime was never asked to exit — no SIGTERM handler ran, so \
+             the only signal it received was the SIGKILL after the grace period"
+        );
+        // The grace loop is 70 × 100ms. Timing out in full is the pre-fix
+        // behaviour, so this separates "asked and it left" from "waited then
+        // killed" even if something else were to create the marker.
+        assert!(
+            elapsed < Duration::from_secs(5),
+            "shutdown took {elapsed:?}; the grace period elapsed in full, which \
+             means the child was killed rather than asked"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
@@ -1140,5 +1544,113 @@ mod wake_lock_tests {
         let _ = state.set(WIN_B, true);
 
         assert!(state.wants_lock(), "B's claim is unaffected by A being destroyed");
+    }
+}
+
+/// The GUI-launch PATH policy.
+///
+/// `enriched_path` is pure, so the policy half of the launchd problem is
+/// testable without a desktop. The end-to-end half — that a launched bundle
+/// actually finds `bun` — lives in the packaged smoke test, which runs the
+/// built binary under a deliberately launchd-shaped environment.
+#[cfg(test)]
+mod gui_launch_path_tests {
+    use super::*;
+
+    /// What a double-clicked `.app` actually inherits from launchd.
+    const LAUNCHD_PATH: &str = "/usr/bin:/bin:/usr/sbin:/sbin";
+
+    fn split(path: &str) -> Vec<String> {
+        let separator = if cfg!(windows) { ';' } else { ':' };
+        path.split(separator).map(|part| part.to_string()).collect()
+    }
+
+    #[test]
+    fn a_launchd_path_gains_every_gui_launch_directory() {
+        // The presenting bug: a bare `Command::new("bun")` against this PATH
+        // fails with "No such file or directory" and nothing else, so a
+        // double-clicked app silently never starts the runtime while a
+        // shell-launched dev run works fine.
+        let enriched = split(&enriched_path(Some(LAUNCHD_PATH)));
+
+        for dir in gui_launch_path_dirs() {
+            let dir = dir.to_string_lossy().into_owned();
+            assert!(
+                enriched.contains(&dir),
+                "{dir} is missing from the enriched PATH: {enriched:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn the_inherited_path_keeps_its_order_and_precedence() {
+        // Appending rather than prepending is deliberate: an already-correct
+        // PATH must resolve exactly as it did before, or the desktop host
+        // would start picking different binaries than the terminal does.
+        let enriched = split(&enriched_path(Some(LAUNCHD_PATH)));
+        let inherited = split(LAUNCHD_PATH);
+
+        assert_eq!(
+            enriched[..inherited.len()],
+            inherited[..],
+            "the inherited PATH must come first, unchanged"
+        );
+    }
+
+    #[test]
+    fn an_already_correct_path_gains_no_duplicates() {
+        // Duplicate entries are harmless to resolution but make the PATH grow
+        // on every nested spawn, and Kanban spawns agents from this env.
+        let already = gui_launch_path_dirs()
+            .iter()
+            .map(|dir| dir.to_string_lossy().into_owned())
+            .collect::<Vec<_>>()
+            .join(if cfg!(windows) { ";" } else { ":" });
+
+        let enriched = split(&enriched_path(Some(&already)));
+        let mut seen = std::collections::HashSet::new();
+        for entry in &enriched {
+            assert!(seen.insert(entry.clone()), "{entry} appears twice in {enriched:?}");
+        }
+        assert_eq!(enriched, split(&already), "an already-correct PATH is left alone");
+    }
+
+    #[test]
+    fn an_empty_or_absent_path_still_yields_the_gui_directories() {
+        // `std::env::var("PATH")` can legitimately fail under `env -i`.
+        for input in [None, Some("")] {
+            let enriched = split(&enriched_path(input));
+            assert!(
+                !enriched.is_empty() && !enriched[0].is_empty(),
+                "an absent PATH produced {enriched:?} rather than the GUI directories"
+            );
+        }
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn the_directory_bun_installs_itself_into_is_covered() {
+        // Named separately from the loop above because it is the specific gap:
+        // the system list covers a package-managed bun, but bun's own
+        // installer writes ~/.bun/bin, and that is how most people have it.
+        let Ok(home) = std::env::var("HOME") else {
+            // Nothing to assert about a home directory that does not exist.
+            return;
+        };
+        if home.is_empty() {
+            return;
+        }
+        let expected = PathBuf::from(&home)
+            .join(".bun")
+            .join("bin")
+            .to_string_lossy()
+            .into_owned();
+
+        let enriched = split(&enriched_path(Some(LAUNCHD_PATH)));
+        assert!(
+            enriched.contains(&expected),
+            "{expected} is missing; a bun installed by bun's own installer would \
+             not be found from a GUI launch. Enriched PATH: {enriched:?}"
+        );
     }
 }

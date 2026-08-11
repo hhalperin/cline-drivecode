@@ -37,6 +37,7 @@ jobs:
                         "ci/e2e-full",
                         "ci/sdk",
                         "ci/docs",
+                        "ci/desktop",
                       ]
 
                       const current = new Set((pr.labels || []).map((l) => l.name))

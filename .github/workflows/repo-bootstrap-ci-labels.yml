@@ -32,6 +32,7 @@ jobs:
                         { name: "ci/e2e-full", color: "E11D48", description: "Force e2e ubuntu+windows+macos" },
                         { name: "ci/sdk", color: "E11D48", description: "Force SDK / CLI suite" },
                         { name: "ci/docs", color: "E11D48", description: "Force docs link check" },
+                        { name: "ci/desktop", color: "E11D48", description: "Force the packaged desktop smoke" },
                       ]
 
                       for (const label of labels) {

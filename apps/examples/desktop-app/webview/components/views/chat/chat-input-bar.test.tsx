@@ -514,7 +514,13 @@ describe("ChatInputBar token ring", () => {
 		).toBeNull();
 	});
 
-	it("fills from input only and sits immediately before the workspace selector", async () => {
+	// Order note: the ring sits immediately *after* the workspace selector.
+	// This test asserted the reverse until the desktop CI lane first ran it —
+	// `c94bbf3 chore: sync fork with upstream/main (#199)` moved the selector
+	// ahead of the ring in `chat-input-bar.tsx`, and with no CI running this
+	// package's vitest files, the stale expectation went unnoticed. The shipped
+	// order is upstream's, so the assertion is what was wrong here, not the UI.
+	it("fills from input only and sits immediately after the workspace selector", async () => {
 		const trigger = await renderTokenUsage(
 			{
 				toolCalls: 0,
@@ -545,7 +551,7 @@ describe("ChatInputBar token ring", () => {
 		expect(
 			Boolean(
 				trigger?.compareDocumentPosition(workspaceSelector as Node) &
-					Node.DOCUMENT_POSITION_FOLLOWING,
+					Node.DOCUMENT_POSITION_PRECEDING,
 			),
 		).toBe(true);
 		expect(container.textContent).not.toContain("1,500 tokens");

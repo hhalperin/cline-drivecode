@@ -973,6 +973,21 @@ fn main() {
                     .state::<Arc<DesktopBackendState>>()
                     .inner()
                     .stop();
+                // Kanban's runtime needs stopping here too, and used not to be.
+                // `impl Drop for KanbanRuntimeState` was the only path to it,
+                // which does not run at process exit — Tauri's `run` ends the
+                // process, and the state is behind an `Arc` whose drainer
+                // threads hold live clones regardless. So the SIGTERM grace
+                // period that exists to let Kanban flush board state and
+                // worktree bookkeeping was unreachable on the ordinary quit
+                // path, and the `bun` child was simply orphaned onto init.
+                //
+                // Found by the packaged smoke test's no-orphans assertion,
+                // which is the whole reason that test launches a real bundle.
+                app_handle
+                    .state::<Arc<kanban::KanbanRuntimeState>>()
+                    .inner()
+                    .stop();
             }
             _ => {}
         });

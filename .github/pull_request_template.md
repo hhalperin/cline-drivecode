@@ -78,6 +78,7 @@ Checked boxes that path filters already cover are **not** re-run by the override
 -   [ ] `ci/e2e-full` — force e2e on ubuntu + windows + macos
 -   [ ] `ci/sdk` — force SDK / CLI test suite (Ubuntu on PRs; Windows on main / force call)
 -   [ ] `ci/docs` — force docs link check
+-   [ ] `ci/desktop` — force the packaged desktop smoke (builds the Linux bundle, launches it). The typecheck and Rust jobs already run from paths; this adds the packaged half.
 
 JetBrains integration: comment `/test-jetbrains` (maintainers only).
 
