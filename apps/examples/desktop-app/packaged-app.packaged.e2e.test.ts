@@ -207,6 +207,14 @@ describe("packaged desktop app", () => {
 		// `resolve_workspace_root` shells out to git, and the GUI PATH policy
 		// appends $HOME/.bun/bin.
 		//
+		// DISPLAY and XAUTHORITY are kept because they are how a process
+		// reaches a display at all, which on macOS is not an environment
+		// variable's job — they are an artifact of testing a GUI app under
+		// Xvfb, not part of the launchd environment being reproduced. Dropping
+		// XAUTHORITY specifically gets "Authorization required, but no
+		// authorization protocol specified" and then a GTK init panic, which
+		// looks like a broken bundle rather than a test-harness problem.
+		//
 		// cwd is the repo checkout on purpose. `resolve_workspace_root` runs
 		// `git rev-parse --show-toplevel` from the launch directory and
 		// `resolve_kanban_runtime_entry` then looks for apps/kanban/src/cli.ts
@@ -221,7 +229,7 @@ describe("packaged desktop app", () => {
 				"--server-args=-screen 0 1280x800x24",
 				"sh",
 				"-c",
-				`exec env -i HOME="$HOME" DISPLAY="$DISPLAY" PATH="${LAUNCHD_PATH}" ${JSON.stringify(executable)}`,
+				`exec env -i HOME="$HOME" DISPLAY="$DISPLAY" XAUTHORITY="$XAUTHORITY" PATH="${LAUNCHD_PATH}" ${JSON.stringify(executable)}`,
 			],
 			{ cwd: REPO_ROOT, stdio: ["ignore", "pipe", "pipe"] },
 		);

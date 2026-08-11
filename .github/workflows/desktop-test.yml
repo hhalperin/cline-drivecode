@@ -64,7 +64,17 @@ permissions:
     contents: read
 
 concurrency:
-    group: desktop-test-${{ github.event.pull_request.number || github.run_id }}
+    # Keyed on `github.workflow` the way ext-vscode-test-e2e is, not on a fixed
+    # literal. `ci/desktop` re-invokes this workflow through
+    # ci-label-overrides, and under a `workflow_call` `github.workflow` is the
+    # *caller's* name — so the override run and the path-triggered run land in
+    # different groups instead of cancelling each other. With a fixed prefix
+    # they would share a group, and `cancel-in-progress` would kill the
+    # packaged job on exactly the PRs that asked for it.
+    #
+    # `run_id` for the non-PR case, matching sdk-test: a push to main and a
+    # reusable call must not cancel each other either.
+    group: ${{ github.workflow }}-desktop-test-${{ github.event.pull_request.number || github.run_id }}
     cancel-in-progress: true
 
 jobs:
@@ -168,6 +178,14 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v4
 
+            # Bundling needs more than compiling does. `cargo check`/`cargo
+            # test` in the job above are happy with the four libraries below,
+            # but the deb bundler aborts with "Can't detect any appindicator
+            # library" without ayatana — the crate builds with tauri's
+            # `tray-icon` feature, and the bundler resolves it at package time
+            # rather than compile time. Found by running this locally; the
+            # binary links fine and only the bundling step fails, which is a
+            # confusing place to discover it.
             - name: Install Tauri system libraries
               run: |
                   sudo apt-get update
@@ -176,6 +194,8 @@ jobs:
                     libwebkit2gtk-4.1-dev \
                     libsoup-3.0-dev \
                     librsvg2-dev \
+                    libayatana-appindicator3-dev \
+                    libxdo-dev \
                     xvfb
 
             - name: Setup Rust
