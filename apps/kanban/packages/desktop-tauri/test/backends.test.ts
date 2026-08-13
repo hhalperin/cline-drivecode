@@ -200,6 +200,38 @@ describe("updater backend", () => {
 		updater.dispose();
 	});
 
+	it("re-emits after a check the host declined to run", async () => {
+		// The host's `begin_check` declines when the two-hour loop already has
+		// a check in flight, and then its status never moves. The controller
+		// has just set itself to `checking` and clears its latch when
+		// `checkForUpdates` resolves — so with the poller's dedupe suppressing
+		// an unchanged status, the UI would sit on "checking" until something
+		// unrelated moved the host. If the loop's check finds nothing, nothing
+		// ever does.
+		const { surface } = makeSurface(() => ({
+			state: "idle",
+			version: null,
+			error: null,
+		}));
+		const updater = createTauriUpdaterBackend({
+			surface,
+			pollIntervalMs: 10_000,
+		});
+
+		const events: UpdaterBackendEvent[] = [];
+		updater.backend.subscribe((event) => events.push(event));
+		await settle();
+		expect(events).toEqual([{ kind: "up-to-date" }]);
+
+		await updater.backend.checkForUpdates();
+
+		expect(
+			events,
+			"a declined check must still leave the controller with a status",
+		).toEqual([{ kind: "up-to-date" }, { kind: "up-to-date" }]);
+		updater.dispose();
+	});
+
 	it("stops polling once disposed", async () => {
 		const { surface, invoke } = makeSurface(() => ({
 			state: "idle",
@@ -264,6 +296,37 @@ describe("notification backend", () => {
 		).not.toHaveBeenCalled();
 
 		notifications.dispose();
+	});
+
+	it("mints ids that cannot collide with another window's", async () => {
+		// `onAction` is process-global but every project window mounts its own
+		// backend. With a bare per-instance counter both would start at
+		// `kanban-0`, and a click would fire the wrong window's listener — or
+		// every window's at once.
+		const sentA: Array<{ extra?: Record<string, unknown> }> = [];
+		const sentB: Array<{ extra?: Record<string, unknown> }> = [];
+
+		const { surface: surfaceA } = makeSurface(
+			() => ({ state: "idle", version: null, error: null }),
+			{ send: (options) => sentA.push(options) },
+		);
+		const { surface: surfaceB } = makeSurface(
+			() => ({ state: "idle", version: null, error: null }),
+			{ send: (options) => sentB.push(options) },
+		);
+		const windowA = createTauriNotificationBackend({ surface: surfaceA });
+		const windowB = createTauriNotificationBackend({ surface: surfaceB });
+		await settle();
+
+		windowA.backend.create({ title: "A", body: "a" }).show();
+		windowB.backend.create({ title: "B", body: "b" }).show();
+
+		expect(sentA[0].extra?.[CORRELATION_KEY]).not.toBe(
+			sentB[0].extra?.[CORRELATION_KEY],
+		);
+
+		windowA.dispose();
+		windowB.dispose();
 	});
 
 	it("ignores an action with no correlation id", async () => {

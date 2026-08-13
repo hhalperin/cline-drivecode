@@ -57,6 +57,15 @@ export function createTauriNotificationBackend(
 	let granted = false;
 	let nextId = 0;
 	let disposed = false;
+
+	// `onAction` is process-global but each window mounts its own backend, so a
+	// per-instance counter is not enough: two project windows would both mint
+	// `kanban-0` and a click could fire the wrong window's listener, or both.
+	// The prefix makes the id unique across every backend in the process.
+	const instance =
+		typeof crypto !== "undefined" && "randomUUID" in crypto
+			? crypto.randomUUID()
+			: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 	let unlisten: (() => void) | null = null;
 
 	const listeners = new Map<string, () => void>();
@@ -109,7 +118,7 @@ export function createTauriNotificationBackend(
 		isSupported: () => granted,
 
 		create(input): NotificationHandle {
-			const id = `kanban-${nextId++}`;
+			const id = `kanban-${instance}-${nextId++}`;
 			let onClick: (() => void) | null = null;
 
 			return {

@@ -120,20 +120,29 @@ export function createTauriUpdaterBackend(
 		}
 	};
 
+	let emitEvent: ((event: UpdaterBackendEvent) => void) | null = null;
+
+	/**
+	 * Read the host's status and emit it if it moved.
+	 *
+	 * `force` re-emits an unchanged status, which `checkForUpdates` needs — see
+	 * there for why an unchanged status is not the same as nothing to say.
+	 */
+	const tick = async (force = false): Promise<void> => {
+		const status = await readStatus();
+		if (!status) return;
+
+		const serialised = `${status.state}:${status.version ?? ""}:${status.error ?? ""}`;
+		if (!force && serialised === lastSerialised) return;
+		lastSerialised = serialised;
+
+		const event = toUpdaterEvent(status);
+		if (event) emitEvent?.(event);
+	};
+
 	const backend: UpdaterBackend = {
 		subscribe(emit) {
-			const tick = async (): Promise<void> => {
-				const status = await readStatus();
-				if (!status) return;
-
-				const serialised = `${status.state}:${status.version ?? ""}:${status.error ?? ""}`;
-				if (serialised === lastSerialised) return;
-				lastSerialised = serialised;
-
-				const event = toUpdaterEvent(status);
-				if (event) emit(event);
-			};
-
+			emitEvent = emit;
 			void tick();
 			timer = setInterval(() => {
 				void tick();
@@ -141,9 +150,16 @@ export function createTauriUpdaterBackend(
 		},
 
 		async checkForUpdates() {
-			// Resolves when the host's check finishes, which is what lets the
-			// controller clear its in-flight latch even if no event followed.
 			await surface.invoke(CMD_CHECK_FOR_UPDATES);
+
+			// Forced, because the host may not have run a check at all:
+			// `begin_check` declines when the two-hour loop already has one in
+			// flight, and then the host's status never moves. The controller has
+			// just set itself to `checking` and clears its latch when this
+			// resolves, so without an event it would sit on "checking" until
+			// something unrelated happened to change the host's status — which,
+			// if the loop's check concludes with no update, it never does.
+			await tick(true);
 		},
 
 		quitAndInstall() {

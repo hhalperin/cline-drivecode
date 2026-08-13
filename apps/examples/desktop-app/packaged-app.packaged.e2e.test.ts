@@ -160,6 +160,14 @@ const descendantsOf = (root: number): number[] => {
 	return found;
 };
 
+const kill = (pid: number): void => {
+	try {
+		process.kill(pid, "SIGKILL");
+	} catch {
+		// Already gone.
+	}
+};
+
 const isAlive = (pid: number): boolean => {
 	try {
 		process.kill(pid, 0);
@@ -257,13 +265,27 @@ describe("packaged desktop app", () => {
 	afterAll(async () => {
 		if (launcher && !launcher.killed) {
 			for (const pid of [...descendantsOf(launcher.pid as number)].reverse()) {
-				try {
-					process.kill(pid, "SIGKILL");
-				} catch {
-					// Already gone.
-				}
+				kill(pid);
 			}
 			launcher.kill("SIGKILL");
+		}
+
+		// Sweep anything still running out of this run's install directory.
+		//
+		// The descendant walk above is not enough on its own: once the app
+		// exits, its sidecar is re-parented to init and stops being a
+		// descendant of anything we launched. Left alive it holds a hub port,
+		// and the *next* run's app finds it taken and exits during startup —
+		// which presents as "the packaged app exited within 5s of launch", a
+		// failure with nothing to do with the bundle under test.
+		//
+		// Matching on the workdir is what makes this safe to do with SIGKILL:
+		// the path is a fresh mkdtemp per run, so nothing outside this test can
+		// match it.
+		if (workdir) {
+			for (const pid of livePids()) {
+				if ((procCmdline(pid) ?? "").includes(workdir)) kill(pid);
+			}
 		}
 		if (workdir) {
 			await rm(workdir, { force: true, recursive: true });
