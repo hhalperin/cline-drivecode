@@ -5,6 +5,7 @@ import App from "@/App";
 import { AppErrorBoundary } from "@/components/app-error-boundary";
 import { PasscodeGateProvider } from "@/components/passcode-gate";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { DesktopProvider } from "@/desktop/desktop-provider";
 import { isThemeId } from "@/hooks/use-theme";
 import { TelemetryProvider } from "@/telemetry/posthog-provider";
 import { initializeSentry } from "@/telemetry/sentry";
@@ -32,7 +33,9 @@ ReactDOM.createRoot(root).render(
 		<TelemetryProvider>
 			<AppErrorBoundary>
 				<TooltipProvider>
-					<App />
+					<DesktopProvider>
+						<App />
+					</DesktopProvider>
 					<Toaster
 						theme="dark"
 						position="bottom-right"
