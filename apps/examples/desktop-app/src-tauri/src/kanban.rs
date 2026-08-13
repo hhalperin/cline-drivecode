@@ -328,6 +328,56 @@ mod tests {
         }
     }
 
+    /// Every capability file's `permissions`, keyed by file name.
+    fn capability_permissions() -> Vec<(String, Vec<String>)> {
+        let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("capabilities");
+        let mut all = Vec::new();
+        for entry in std::fs::read_dir(&dir).expect("capabilities dir") {
+            let path = entry.expect("readable capability entry").path();
+            if path.extension().and_then(|value| value.to_str()) != Some("json") {
+                continue;
+            }
+            let name = path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("<unnamed>")
+                .to_string();
+            let raw = std::fs::read_to_string(&path).expect("readable capability file");
+            let parsed: serde_json::Value =
+                serde_json::from_str(&raw).expect("valid capability JSON");
+            let permissions = parsed
+                .get("permissions")
+                .and_then(|value| value.as_array())
+                .unwrap_or_else(|| panic!("{name} has no `permissions` array"))
+                .iter()
+                .filter_map(|value| value.as_str().map(|s| s.to_string()))
+                .collect();
+            all.push((name, permissions));
+        }
+        all
+    }
+
+    #[test]
+    fn the_windows_kanban_runs_in_may_raise_notifications() {
+        // Plugin commands, unlike this app's own commands, are gated by the
+        // capability manifest. Linking `tauri-plugin-notification` on the Rust
+        // side is therefore only half the wiring: without the permission the
+        // JS call is denied at runtime, which is the same failure that left the
+        // bridge inert in project windows before #237 — and just as invisible,
+        // because the notification controller swallows a failing backend by
+        // design.
+        //
+        // Both windows, not just the project ones: the main window is where a
+        // future in-app Kanban surface would run.
+        for (file, permissions) in capability_permissions() {
+            assert!(
+                permissions.iter().any(|p| p == "notification:default"),
+                "{file} does not grant notification:default, so notifications \
+                 raised from that window would be denied"
+            );
+        }
+    }
+
     #[test]
     fn the_project_window_glob_does_not_match_unrelated_labels() {
         // Guards the matcher itself. Without this, a `glob_matches` that
@@ -920,23 +970,76 @@ pub fn kanban_restart_runtime(
     ensure_kanban_runtime_started_with(&state, || spawn_kanban_runtime_process(&workspace_root))
 }
 
+/// How long to wait for the runtime to announce its origin before giving up.
+///
+/// Sized against the same thing the sidecar's endpoint poll is (`main.rs`):
+/// Kanban binds a port, registers workspaces and starts serving, and on a cold
+/// machine that is seconds rather than milliseconds.
+const ENDPOINT_WAIT: Duration = Duration::from_secs(20);
+const ENDPOINT_POLL: Duration = Duration::from_millis(100);
+
+/// Wait for the runtime to announce an endpoint, up to `budget`.
+///
+/// Split out from the command so the waiting policy can be tested without a
+/// Tauri host — the command around it is three lines of window plumbing, and
+/// this is the part with behaviour.
+async fn wait_for_endpoint(
+    state: &Arc<KanbanRuntimeState>,
+    budget: Duration,
+) -> Result<String, String> {
+    let deadline = std::time::Instant::now() + budget;
+    loop {
+        if let Some(endpoint) = state.endpoint() {
+            return Ok(endpoint);
+        }
+        // Quitting: no endpoint is ever coming, and holding the caller for the
+        // full budget during shutdown would just delay the exit.
+        if state.is_shutting_down() {
+            return Err("Kanban runtime is shutting down".to_string());
+        }
+        if std::time::Instant::now() >= deadline {
+            return Err(format!(
+                "Kanban runtime did not announce an endpoint within {}s",
+                budget.as_secs()
+            ));
+        }
+        tokio::time::sleep(ENDPOINT_POLL).await;
+    }
+}
+
 /// Open (or focus) a window showing one Kanban project.
 ///
 /// The URL mirrors the web UI's own addressing (`/<projectId>`), so a window
 /// opened here lands exactly where an in-app navigation would.
+///
+/// **`async` on purpose.** This used to fail immediately when the runtime had
+/// not announced yet, which is the ordinary case right after launch: the shell
+/// spawns Kanban, and the endpoint arrives whenever the child gets round to
+/// printing its handshake line. Clicking a project in that window lost the
+/// click, with only a `console.warn` behind the fire-and-forget invoke to show
+/// for it.
+///
+/// A bounded poll is the fix, but a *synchronous* Tauri command runs on the
+/// main thread, so polling there would freeze the UI for the whole wait — the
+/// cure being worse than the disease is why #237 deferred this rather than
+/// guessing. An async command runs on the async runtime instead, so the wait
+/// costs nothing but the caller's promise.
+///
+/// Generic over the runtime rather than pinned to `Wry`, which is what lets
+/// `ipc_tests` drive it against Tauri's mock runtime. The production build
+/// monomorphises to exactly the same thing.
 #[tauri::command]
-pub fn kanban_open_project_window(
-    app: tauri::AppHandle,
+pub async fn kanban_open_project_window<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
     state: State<'_, Arc<KanbanRuntimeState>>,
     project_id: String,
 ) -> Result<(), String> {
-    let trimmed = project_id.trim();
+    let trimmed = project_id.trim().to_string();
+    let trimmed = trimmed.as_str();
     if trimmed.is_empty() {
         return Err("projectId is required".to_string());
     }
-    let endpoint = state
-        .endpoint()
-        .ok_or_else(|| "Kanban runtime has not announced an endpoint yet".to_string())?;
+    let endpoint = wait_for_endpoint(state.inner(), ENDPOINT_WAIT).await?;
 
     let label = kanban_project_window_label(trimmed);
     if let Some(existing) = app.get_webview_window(&label) {
@@ -1187,7 +1290,7 @@ mod supervision_tests {
     }
 
     #[cfg(unix)]
-    fn wait_for_endpoint(state: &Arc<KanbanRuntimeState>, expected: Option<&str>) -> bool {
+    fn endpoint_settles_on(state: &Arc<KanbanRuntimeState>, expected: Option<&str>) -> bool {
         for _ in 0..200 {
             if state.endpoint().as_deref() == expected {
                 return true;
@@ -1217,7 +1320,7 @@ mod supervision_tests {
         })
         .expect("first runtime should start");
         assert!(
-            wait_for_endpoint(&state, Some("http://127.0.0.1:4101")),
+            endpoint_settles_on(&state, Some("http://127.0.0.1:4101")),
             "the first child never announced; got {:?}",
             state.endpoint()
         );
@@ -1248,7 +1351,7 @@ mod supervision_tests {
             "the replacement never spawned, so nothing superseded the first child"
         );
         assert!(
-            wait_for_endpoint(&state, Some("http://127.0.0.1:4202")),
+            endpoint_settles_on(&state, Some("http://127.0.0.1:4202")),
             "the replacement never announced; got {:?}",
             state.endpoint()
         );
@@ -1266,6 +1369,83 @@ mod supervision_tests {
              window would now open against a dead origin"
         );
         state.stop();
+    }
+
+    #[test]
+    fn opening_a_project_window_waits_for_a_handshake_still_in_flight() {
+        // The bug this replaced: `kanban_open_project_window` read the endpoint
+        // once and errored if it was absent. Right after launch it always is —
+        // the shell spawns Kanban and the endpoint arrives whenever the child
+        // prints its handshake line — so the first click on a project was lost,
+        // with a console.warn behind the fire-and-forget invoke as the only
+        // trace.
+        let state = Arc::new(KanbanRuntimeState::default());
+        state.reopen();
+
+        let announcer = state.clone();
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(400));
+            announcer.set_endpoint(Some("http://127.0.0.1:4310".to_string()));
+        });
+
+        let started = std::time::Instant::now();
+        let resolved = tauri::async_runtime::block_on(wait_for_endpoint(
+            &state,
+            Duration::from_secs(5),
+        ));
+
+        assert_eq!(
+            resolved.as_deref(),
+            Ok("http://127.0.0.1:4310"),
+            "a handshake that lands 400ms after the call must still be honoured"
+        );
+        // Returns on the announcement, not on the budget.
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "waited {:?}; the poll should return as soon as the endpoint appears",
+            started.elapsed()
+        );
+    }
+
+    #[test]
+    fn waiting_for_an_endpoint_gives_up_with_an_actionable_error() {
+        // Unbounded waiting would hang the caller's promise forever on a
+        // packaged build, where `resolve_kanban_runtime_entry` finds no
+        // checkout and no runtime is ever spawned.
+        let state = Arc::new(KanbanRuntimeState::default());
+        state.reopen();
+
+        let resolved = tauri::async_runtime::block_on(wait_for_endpoint(
+            &state,
+            Duration::from_millis(300),
+        ));
+
+        let error = resolved.expect_err("an endpoint that never arrives must not resolve");
+        assert!(
+            error.contains("did not announce"),
+            "error should say what failed, got: {error}"
+        );
+    }
+
+    #[test]
+    fn waiting_stops_early_once_the_runtime_is_shutting_down() {
+        // Quit is in progress, so no endpoint is coming. Burning the full
+        // budget here would just delay the exit.
+        let state = Arc::new(KanbanRuntimeState::default());
+        state.stop();
+
+        let started = std::time::Instant::now();
+        let resolved = tauri::async_runtime::block_on(wait_for_endpoint(
+            &state,
+            Duration::from_secs(30),
+        ));
+
+        assert!(resolved.is_err(), "a shutting-down runtime cannot announce");
+        assert!(
+            started.elapsed() < Duration::from_secs(1),
+            "waited {:?}; shutdown should short-circuit the poll",
+            started.elapsed()
+        );
     }
 
     #[test]
@@ -1651,6 +1831,117 @@ mod gui_launch_path_tests {
             enriched.contains(&expected),
             "{expected} is missing; a bun installed by bun's own installer would \
              not be found from a GUI launch. Enriched PATH: {enriched:?}"
+        );
+    }
+}
+
+/// The async command driven through Tauri's real IPC path.
+///
+/// `wait_for_endpoint` is unit-tested above, but the thing that actually
+/// changed in making `kanban_open_project_window` async is the machinery
+/// *around* it: the generated command wrapper, `State<'_, T>` surviving an
+/// await, and the response travelling back over the invoke channel. Calling
+/// the inner function directly exercises none of that. #237 deferred this fix
+/// precisely because validating it seemed to need a running app; `tauri::test`
+/// supplies one that is real enough to catch the failure modes that matter and
+/// needs no display.
+#[cfg(test)]
+mod ipc_tests {
+    use super::*;
+    use tauri::test::{get_ipc_response, mock_builder, INVOKE_KEY};
+    use tauri::webview::InvokeRequest;
+    use tauri::{Manager, WebviewUrl, WebviewWindowBuilder};
+
+    fn invoke_open_project_window(
+        webview: &tauri::WebviewWindow<tauri::test::MockRuntime>,
+        project_id: &str,
+    ) -> Result<(), serde_json::Value> {
+        get_ipc_response(
+            webview,
+            InvokeRequest {
+                cmd: "kanban_open_project_window".into(),
+                callback: tauri::ipc::CallbackFn(0),
+                error: tauri::ipc::CallbackFn(1),
+                url: if cfg!(any(windows, target_os = "android")) {
+                    "http://tauri.localhost"
+                } else {
+                    "tauri://localhost"
+                }
+                .parse()
+                .unwrap(),
+                body: tauri::ipc::InvokeBody::Json(serde_json::json!({
+                    "projectId": project_id,
+                })),
+                headers: Default::default(),
+                invoke_key: INVOKE_KEY.to_string(),
+            },
+        )
+        .map(|_| ())
+    }
+
+    fn mock_host(
+        runtime: Arc<KanbanRuntimeState>,
+    ) -> tauri::WebviewWindow<tauri::test::MockRuntime> {
+        let app = mock_builder()
+            .invoke_handler(tauri::generate_handler![
+                crate::kanban::kanban_open_project_window
+            ])
+            .build(tauri::generate_context!())
+            .expect("mock app should build");
+        app.manage(runtime);
+        app.manage(Arc::new(KanbanWakeLockState::default()));
+        WebviewWindowBuilder::new(&app, "main", WebviewUrl::default())
+            .build()
+            .expect("mock window should build")
+    }
+
+    #[test]
+    fn an_invoke_during_the_handshake_resolves_once_the_runtime_announces() {
+        // The end-to-end shape of the deferred bug. Before this was async the
+        // invoke rejected immediately and the click was lost; a synchronous
+        // bounded poll would instead have frozen the UI for the whole wait,
+        // which is why the fix had to be async rather than just patient.
+        let runtime = Arc::new(KanbanRuntimeState::default());
+        runtime.reopen();
+
+        let announcer = runtime.clone();
+        thread::spawn(move || {
+            thread::sleep(Duration::from_millis(500));
+            announcer.set_endpoint(Some("http://127.0.0.1:4400".to_string()));
+        });
+
+        let webview = mock_host(runtime);
+        let started = std::time::Instant::now();
+        let result = invoke_open_project_window(&webview, "acme");
+
+        assert!(
+            result.is_ok(),
+            "invoke rejected while the handshake was in flight: {result:?}"
+        );
+        assert!(
+            started.elapsed() >= Duration::from_millis(400),
+            "resolved in {:?} — it cannot have waited for the announcement",
+            started.elapsed()
+        );
+    }
+
+    #[test]
+    fn an_empty_project_id_is_still_rejected_immediately() {
+        // Making the command patient must not make it credulous: a bad
+        // argument is knowable now and should not cost the caller 20 seconds.
+        let runtime = Arc::new(KanbanRuntimeState::default());
+        runtime.reopen();
+        runtime.set_endpoint(Some("http://127.0.0.1:4401".to_string()));
+
+        let webview = mock_host(runtime);
+        let started = std::time::Instant::now();
+        let result = invoke_open_project_window(&webview, "   ");
+
+        assert!(result.is_err(), "an empty projectId must be rejected");
+        assert!(
+            started.elapsed() < Duration::from_secs(2),
+            "took {:?}; argument validation must precede the wait",
+            started.elapsed()
         );
     }
 }

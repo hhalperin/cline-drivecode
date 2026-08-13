@@ -7,25 +7,32 @@
  * swapping Electron for Tauri a matter of replacing this layer rather than
  * rewriting the feature set.
  *
- * ## What is deliberately absent
+ * ## Updates and notifications
  *
- * `updater` and `notifications` resolve to `null` until the host declares the
- * matching capability. Both need Tauri plugins that this build does not link
- * yet (`tauri-plugin-updater` is present but not wired to Kanban's window,
- * `tauri-plugin-notification` is not a dependency at all). The contract's
- * capability model already covers exactly this case: the capability is omitted
- * from the handshake, `useDesktop().has()` reports false, and the namespace
- * method is a documented no-op. Wiring a plugin later is additive and changes
- * nothing else.
+ * Both used to resolve to `null` — the notification plugin was not a
+ * dependency, and the updater plugin was linked but reachable only from Rust.
+ * They are wired now, in deliberately different ways.
+ *
+ * `notification-backend.ts` drives `@tauri-apps/plugin-notification` directly:
+ * notifications are per-call and nothing else owns them.
+ *
+ * `updater-backend.ts` does *not* drive the updater plugin, because the host
+ * already does. `main.rs` checks and installs on a two-hour loop, so a second
+ * updater would mean two writers racing to replace one bundle. It reads the
+ * host's status instead. See that file for what the choice costs.
+ *
+ * Both are *derived* capabilities: supplying the object is the proof, so
+ * `createDesktopBridge` adds `updates` / `notifications` on seeing them and
+ * `kanban.rs`'s CAPABILITIES list is not involved.
  */
 
 import {
-	isDesktopCapability,
-	toDesktopPlatform,
 	type DeepLinkTarget,
 	type DesktopCapability,
 	type DesktopHost,
 	type DesktopMenuAction,
+	isDesktopCapability,
+	toDesktopPlatform,
 } from "@kanban/desktop-bridge";
 
 import {
@@ -38,8 +45,10 @@ import {
 	type KanbanHandshakePayload,
 } from "./commands.js";
 import { createFocusTracker, type FocusTracker } from "./focus-tracker.js";
+import { createTauriNotificationBackend } from "./notification-backend.js";
 import { createTauriPresenceView } from "./presence-view.js";
 import type { TauriSurface, UnlistenFn } from "./tauri-surface.js";
+import { createTauriUpdaterBackend } from "./updater-backend.js";
 
 export interface TauriDesktopHost extends DesktopHost {
 	/** Releases the focus subscription. Call on window teardown. */
@@ -120,6 +129,14 @@ export async function createTauriDesktopHost(
 			})
 		: null;
 
+	// Derived, not declared: supplying these objects is itself the proof, so
+	// `createDesktopBridge` pushes `updates` / `notifications` on seeing them
+	// and `kanban.rs`'s CAPABILITIES list stays out of it. That is why linking
+	// these needed no change on the Rust capability list — only the plugin and
+	// its manifest permission.
+	const updater = createTauriUpdaterBackend({ surface });
+	const notifications = createTauriNotificationBackend({ surface });
+
 	return {
 		platform: toDesktopPlatform(handshake.platform),
 		appVersion: handshake.appVersion,
@@ -160,10 +177,9 @@ export async function createTauriDesktopHost(
 
 		async pickDirectory(options) {
 			try {
-				const chosen = await surface.invoke<string | null>(
-					CMD_PICK_DIRECTORY,
-					{ title: options?.title ?? null },
-				);
+				const chosen = await surface.invoke<string | null>(CMD_PICK_DIRECTORY, {
+					title: options?.title ?? null,
+				});
 				return typeof chosen === "string" && chosen.length > 0 ? chosen : null;
 			} catch (err) {
 				// A cancelled picker and a broken one both mean "no directory",
@@ -214,13 +230,14 @@ export async function createTauriDesktopHost(
 			};
 		},
 
-		// See the module comment: null until the plugins are linked.
-		updater: null,
-		notifications: null,
+		updater: updater.backend,
+		notifications: notifications.backend,
 		presence,
 
 		dispose() {
 			focus.dispose();
+			updater.dispose();
+			notifications.dispose();
 		},
 	};
 }

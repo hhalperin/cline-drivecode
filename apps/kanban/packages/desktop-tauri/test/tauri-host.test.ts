@@ -78,6 +78,12 @@ function makeFake(
 			if (event === EVENT_MENU_ACTION_INVOKED) menuHandler = handler;
 			return unlistenMenu;
 		}) as unknown as TauriSurface["listen"],
+		notifications: () => ({
+			isPermissionGranted: async () => true,
+			requestPermission: async () => true,
+			send: () => {},
+			onAction: async () => (() => {}) as UnlistenFn,
+		}),
 	};
 
 	return {
@@ -122,8 +128,14 @@ describe("construction", () => {
 	it.each([
 		["a primitive", "nope"],
 		["null", null],
-		["a missing appVersion", { platform: "linux", isPackaged: true, capabilities: [] }],
-		["a missing isPackaged", { appVersion: "1", platform: "linux", capabilities: [] }],
+		[
+			"a missing appVersion",
+			{ platform: "linux", isPackaged: true, capabilities: [] },
+		],
+		[
+			"a missing isPackaged",
+			{ appVersion: "1", platform: "linux", capabilities: [] },
+		],
 		[
 			"a non-array capabilities field",
 			{ appVersion: "1", platform: "linux", isPackaged: true, capabilities: 3 },
@@ -148,13 +160,19 @@ describe("construction", () => {
 		expect(host?.presence).toBeNull();
 	});
 
-	it("leaves updater and notifications unwired until their plugins land", async () => {
+	it("supplies updater and notification backends", async () => {
 		const host = await makeHost(makeFake());
 
-		// Pinned deliberately: the contract's capability model is what covers
-		// this gap, and a future wiring should have to update this test.
-		expect(host?.updater).toBeNull();
-		expect(host?.notifications).toBeNull();
+		// These were pinned as null while their plugins were unlinked, with a
+		// note that wiring them should have to update this test. It did.
+		//
+		// Both are *derived* capabilities: `createDesktopBridge` adds `updates`
+		// and `notifications` on seeing the objects, so supplying them here is
+		// the whole of what turns those namespaces on — there is no
+		// corresponding entry in the host's declared capability list, and
+		// asserting on the object is asserting on the capability.
+		expect(host?.updater).not.toBeNull();
+		expect(host?.notifications).not.toBeNull();
 	});
 });
 
@@ -255,7 +273,11 @@ describe("reveal", () => {
 	it("surfaces the window before navigating", async () => {
 		const fake = makeFake();
 		const host = await makeHost(fake);
-		const target = { projectId: "my-app", pathname: "/my-app", search: "?task=t-1" };
+		const target = {
+			projectId: "my-app",
+			pathname: "/my-app",
+			search: "?task=t-1",
+		};
 
 		host?.reveal(target);
 
