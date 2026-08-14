@@ -1,4 +1,16 @@
 {
+	"permissions": {
+		"allow": [
+			"Bash(cargo check *)",
+			"Bash(cargo test)",
+			"Bash(cargo test *)",
+			"Bash(bun -F @cline/code test:packaged)",
+			"Bash(bunx tsc *)",
+			"Bash(bunx vitest run *)",
+			"mcp__github__get_job_logs",
+			"mcp__github__pull_request_read"
+		]
+	},
 	"hooks": {
 		"SessionStart": [
 			{
