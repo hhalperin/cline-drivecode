@@ -1,3 +1,4 @@
+import { CLINE_ENVIRONMENTS, type ClineEnvironmentConfig } from "@cline/shared"
 import * as fs from "fs/promises"
 import * as os from "os"
 import * as path from "path"
@@ -304,30 +305,39 @@ class ClineEndpoint {
 			}
 		}
 
-		// Standard mode: use built-in environment URLs
+		// Standard mode: URLs come from the one table in `@cline/shared`.
+		//
+		// This switch used to carry its own copy of them, and the copies had
+		// drifted: `local` returned the *production* mcpBaseUrl, so a developer
+		// running against localhost still sent MCP traffic to api.cline.bot.
+		// Two hand-maintained tables of the same thing is what produced that,
+		// so the fix is to stop having two rather than to correct one.
 		switch (this.environment) {
 			case Environment.staging:
-				return {
-					environment: Environment.staging,
-					appBaseUrl: "https://staging-app.cline.bot",
-					apiBaseUrl: "https://core-api.staging.int.cline.bot",
-					mcpBaseUrl: "https://core-api.staging.int.cline.bot/v1/mcp",
-				}
+				return toEnvironmentConfig(Environment.staging, CLINE_ENVIRONMENTS.staging)
 			case Environment.local:
-				return {
-					environment: Environment.local,
-					appBaseUrl: "http://localhost:3000",
-					apiBaseUrl: "http://localhost:7777",
-					mcpBaseUrl: "https://api.cline.bot/v1/mcp",
-				}
+				return toEnvironmentConfig(Environment.local, CLINE_ENVIRONMENTS.local)
 			default:
-				return {
-					environment: Environment.production,
-					appBaseUrl: "https://app.cline.bot",
-					apiBaseUrl: "https://api.cline.bot",
-					mcpBaseUrl: "https://api.cline.bot/v1/mcp",
-				}
+				return toEnvironmentConfig(Environment.production, CLINE_ENVIRONMENTS.production)
 		}
+	}
+}
+
+/**
+ * Narrows a shared environment entry to the extension's `EnvironmentConfig`.
+ *
+ * The two types are deliberately separate rather than one shared type. The
+ * extension has a fourth environment, `selfHosted`, which has no entry in the
+ * table because its URLs come from endpoints.json; and the shared entry carries
+ * a `workOsClientId` the extension does not consume. Mapping explicitly keeps
+ * both of those visible instead of hiding them behind a cast.
+ */
+function toEnvironmentConfig(environment: Environment, shared: ClineEnvironmentConfig): EnvironmentConfig {
+	return {
+		environment,
+		appBaseUrl: shared.appBaseUrl,
+		apiBaseUrl: shared.apiBaseUrl,
+		mcpBaseUrl: shared.mcpBaseUrl,
 	}
 }
 

@@ -2,6 +2,7 @@
 // It resolves provider settings, model catalogs, OAuth flows, and launch
 // config without leaking SDK details into runtime-api.ts or the UI.
 
+import { getClineEnvironmentConfig } from "@cline/shared";
 import { z } from "zod";
 import type {
 	RuntimeClineAccountBalanceResponse,
@@ -50,7 +51,17 @@ import {
 } from "./sdk-provider-boundary";
 
 const WORKOS_TOKEN_PREFIX = "workos:";
-const DEFAULT_CLINE_API_BASE_URL = "https://api.cline.bot";
+/**
+ * The Cline API host for the environment this process is running in, resolved
+ * once at startup from `CLINE_ENVIRONMENT` / `CLINE_ENVIRONMENT_OVERRIDE` with
+ * `CLINE_API_BASE_URL` as an escape hatch.
+ *
+ * This was pinned to `https://api.cline.bot`, which meant a developer running
+ * with `CLINE_ENVIRONMENT=local` still authenticated against production —
+ * the same defect the VS Code extension's endpoint table carried. Reading it
+ * from `@cline/shared` is what stops the three copies drifting again.
+ */
+const DEFAULT_CLINE_API_BASE_URL = getClineEnvironmentConfig().apiBaseUrl;
 const MANAGED_PROVIDER_ENV_KEYS: Record<ManagedClineOauthProviderId, readonly string[]> = {
 	cline: ["CLINE_API_KEY"],
 	oca: ["OCA_API_KEY"],
