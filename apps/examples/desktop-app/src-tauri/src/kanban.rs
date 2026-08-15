@@ -19,18 +19,20 @@
 //! off `presence`, which the host already advertises. The bridge signals it
 //! when the in-flight count crosses zero.
 //!
-//! `tray` is absent for a different and more interesting reason: this app's
-//! tray already has a "N sessions running" item that Cline's own
-//! `set_tray_status` owns, and Kanban's presence summary is the same *kind* of
-//! information about a different subsystem. A second item is cheap —
-//! `TrayMenuState` is a struct of items and the menu already runs two
-//! independent write policies side by side — so the blocker is not a scarce
-//! row. It is that advertising `tray` in the list below starts the calls and
-//! cannot be withdrawn without breaking the bridge contract, which means the
-//! contract's shape has to be settled before the presentation is. ADR-0036
-//! holds that decision; until it lands, Kanban's presence drives the dock
-//! badge and attention signal only, which are per-window and conflict with
-//! nothing.
+//! `tray` is absent for a different and more interesting reason, and it is no
+//! longer an open question. ADR-0036 decided it: Kanban publishes a presence
+//! summary, and the *host* places it — in its own item, next to the
+//! "N sessions running" one that Cline's `set_tray_status` owns. Kanban never
+//! owns a tray item, so the host can merge the summaries that N project
+//! windows will each publish; only it can see all of them.
+//!
+//! What is missing is not a decision but a producer. `presence.setCounts` has
+//! no production caller, so the whole presence namespace — dock badge and
+//! attention signal included, not just the summary — is dead code waiting on a
+//! feature to feed it. Advertising `tray` in the list below starts the calls
+//! and cannot be withdrawn without breaking the bridge contract, so the order
+//! is: a producer first, then `kanban_set_tray_summary` here, then the
+//! capability.
 //!
 //! The bridge turns every absent capability into a documented no-op, so
 //! nothing here fails loudly at the user. Adding one means implementing the

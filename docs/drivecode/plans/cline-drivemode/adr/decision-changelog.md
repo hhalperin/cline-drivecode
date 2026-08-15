@@ -262,3 +262,9 @@ heading (`- YYYY-MM-DD — …`, newest last). Do not put `## Changelog` inside 
   already runs two items under two policies. Reframed on merge-policy
   ownership; the one-way half is the capability contract, and lifting this
   turns on ratifying ADR-0033.
+- 2026-08-15 — Accepted. Kanban publishes a summary, the host places it;
+  presentation is a separate item, not a merged line — the only option correct
+  whether or not ADR-0033 ratifies. Also corrects a second false claim carried
+  since the first draft: presence does **not** drive the badge and attention
+  signal, because `setCounts` has no production caller. `tray` is sequenced
+  behind a producer, which replaces "needs a product answer" as the blocker.

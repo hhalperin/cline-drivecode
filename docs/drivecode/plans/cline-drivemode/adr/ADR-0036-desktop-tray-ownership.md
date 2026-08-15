@@ -1,6 +1,7 @@
 # ADR-0036 · Desktop tray ownership (Cline vs Kanban)
 
-**Status:** Open (2026-08-11)  
+**Status:** Accepted (2026-08-15) — Impl none, sequenced behind a presence
+producer  
 **Owner:** Drivecode SE lead  
 **Constrained by:** [ADR-0026](ADR-0026-evidence-backed-done.md),
 [ADR-0033](ADR-0033-managed-execution-boundary.md).
@@ -33,12 +34,11 @@ seconds.
 `"2 running, 1 ready for review"`, and the adapter declares
 `CMD_SET_TRAY_SUMMARY` (`desktop-tauri/src/commands.ts:44`) to publish it.
 
-Nothing connects them, deliberately. `kanban.rs`'s `CAPABILITIES`
-(`src-tauri/src/kanban.rs:56`) omits `tray`, so `hasTray` in the adapter is
-always false and `presence-view.ts` short-circuits before it would ever call
-`kanban_set_tray_summary` — which the host does not register anyway. Kanban's
-presence drives the dock badge and the user-attention signal instead, both of
-which are per-window and conflict with nothing.
+Nothing connects them. `kanban.rs`'s `CAPABILITIES`
+(`src-tauri/src/kanban.rs:58`) omits `tray`, so `hasTray`
+(`desktop-tauri/src/tauri-host.ts:128`) is always false and `presence-view.ts`
+short-circuits before it would ever call `kanban_set_tray_summary` — which the
+host does not register anyway.
 
 ### The scarce resource is not a menu row
 
@@ -59,84 +59,98 @@ reversibility:
 |---|---|
 | A third menu row, and what it says | Yes — host-local, one struct field, unit-testable |
 | Which row Kanban's string lands in | Yes — same |
-| `tray` in `kanban.rs`'s `CAPABILITIES` | **No.** The declared-capability rule (`kanban.rs:36-38`) means advertising it flips `hasTray` true and `presence-view.ts` starts calling. Withdrawing it later is a breaking change to the bridge contract. |
+| `tray` in `kanban.rs`'s `CAPABILITIES` | **No.** The declared-capability rule (`kanban.rs:38-40`) means advertising it flips `hasTray` true and `presence-view.ts` starts calling. Withdrawing it later is a breaking change to the bridge contract. |
 
 Every option below needs the *same* contract change and differs only in what
-the host does once the string arrives. So the deliberation this record has been
-carrying belongs to the contract; the presentation question is not ADR-grade,
-and treating it as though it were is why the record has stayed open.
+the host does once the string arrives. So the deliberation this record carried
+belonged to the contract; the presentation question is not ADR-grade.
+
+### Presence has no producer, which is the real gate
+
+Earlier revisions of this record said Kanban's presence "drives the dock badge
+and the user-attention signal instead, both of which are per-window and conflict
+with nothing." **That is false**, and it is the fact that sequences this
+decision.
+
+`PresenceController.update` (`presence-controller.ts:88`) is the sole path to
+all three signals — badge, attention, and summary. It is reached only from
+`presence.setCounts` (`desktop-api.ts:246`), and `setCounts` **has no
+production caller**: it appears in `contract.ts`, its own implementation, and
+one test. Nothing else. Since #238 mounted the bridge, `window.desktop` exists
+and `useDesktop()` is exported — but no component calls it and nothing touches
+`.presence`.
+
+So the presence namespace is not "the tray half is blocked and the rest works."
+It is entirely dead, waiting on a producer. Advertising `tray` today would open
+a one-way door onto a path with no data behind it.
 
 This was found while chasing a dead-code warning in #234 and has been recorded
-three times since — `kanban.rs:22-33`, `apps/kanban/AGENTS.md:106`, and the
-#234 PR body. It is written down in the source but has never been a decision,
-which is what this record fixes.
+three times since — `kanban.rs:22-35`, `apps/kanban/AGENTS.md:106`, and the
+#234 PR body.
 
 ## Decision
 
-**Deferred.** No option below is Accepted yet. What is decided is the constraint
-that holds until one is, and which question has to be answered to lift it.
+**Accepted.** Three parts, in the order they bind.
 
-1. **`tray` stays unadvertised in `kanban.rs`'s `CAPABILITIES`.** The declared
-   capability rule (host command first, capability second — `kanban.rs:36-38`)
-   means adding it before a merged tray exists would turn a documented no-op
-   into a call that fails.
-2. **Neither subsystem writes the other's item.** Kanban's presence is confined
-   to the dock badge and attention signal.
-3. Nothing is blocked by this. Both subsystems ship their status through
-   surfaces that do not collide, so the cost of deferring is that Kanban's
-   summary is absent from the tray, not that anything is wrong in it.
+### 1. Kanban publishes a summary; the host places it
 
-### The question to answer
+The capability `tray` promises exactly one thing: *here is my presence
+summary*. Placement, precedence and merge policy stay on the host's side of the
+boundary — the same side `tray_status_text` already arbitrates on. Kanban never
+owns a tray item.
 
-Not "one row or two" — that is host-local and reversible. The one-way decision
-is **the shape of the capability contract**:
+This is the one-way half, and it is chosen because it keeps every presentation
+option reachable without a second contract change. It also puts multi-window
+merge where it can actually be done: each project window mounts its own bridge
+and its own `PresenceController`, so N windows will publish N summaries into
+one tray. Only the host can see all of them. A contract that let Kanban own an
+item would move that merge to the side that cannot perform it, and reproduce
+last-writer-wins *within* Kanban.
 
-> Does Kanban publish *a summary the host places*, or does it publish *into a
-> named tray item that Kanban owns*?
+### 2. Presentation is Option A — a distinct Kanban item
 
-Scoped the first way, `tray` promises only "here is my presence summary," and
-placement, precedence and merge policy stay on the host's side of the boundary
-— the same side `tray_status_text` already arbitrates on. Options A/B/C below
-then collapse into a host-side presentation choice, changeable in an afternoon,
-with the contract decided once. Scoped the second way, Kanban owns an item and
-A is the only reachable option for as long as the contract stands.
+Cline keeps `"N sessions running"`. Kanban gets its own adjacent item.
 
-### What that turns on
+Chosen over a combined line because **A is the only option whose correctness
+does not depend on [ADR-0033](ADR-0033-managed-execution-boundary.md) being
+ratified.** 0033 (Proposed) holds that DrivePlan owns task truth and DriveKanban
+is the execution workbench, which may "**display** gate state" but not "**decide**
+bank complete." A single merged number asserts one truth across that boundary
+and is only safe if 0033 resolves a particular way; two items assert nothing
+about the relationship and are correct either way.
 
-Whether a combined count is meaningful is a boundary question, and
-[ADR-0033](ADR-0033-managed-execution-boundary.md) already answers it: DrivePlan
-owns task truth, DriveKanban is the **execution workbench**, and Kanban "may
-**display** gate state; it may not **decide** bank complete." A single merged
-number is the tray asserting one truth across the boundary 0033 exists to keep
-separate.
-
-**ADR-0033 is `Proposed`, not `Accepted`.** That, and not a fresh product
-debate, is what actually blocks this record. Ratifying 0033 settles the
-semantics by inference and leaves only the contract shape above to fix.
-
-### Options, for whoever picks this up
-
-| Option | What the tray says | Cost |
-|---|---|---|
-| **A. Two items** | Cline keeps `"N sessions running"`; Kanban gets its own adjacent item, e.g. `"Kanban: 2 running, 1 ready for review"` | One struct field and an `.item()` call. Two independent writers, no shared state — which is what the tray already does. |
-| **B. One combined line** | A single summary spanning both, written by one owner both sides feed | Needs a combined state owner; changes what `set_tray_status` means to its existing five-second poller, and `tray_status_text`'s precedence rule has to absorb a third input. Constrained against by ADR-0033. |
-| **C. Status quo** | Cline only | Kanban's summary never reaches the tray |
-
-Under the host-places-it contract, **A is the reversible default and B stays
-reachable without a second contract change** — which is the order the evidence
-favours. Whether two counts read as one thing to a user is a question no
-argument settles; A costs nothing to undo and produces the usage that would
+A is also reversible, and leaves B reachable under part 1 without a further
+contract change. Whether two counts read as one thing to a user is a question
+no argument settles; A costs nothing to undo and produces the usage that would
 settle it.
+
+### 3. `tray` is advertised when a producer exists, not before
+
+Sequencing, per the declared-capability rule: host command first, capability
+second. Concretely, in order:
+
+1. Something calls `presence.setCounts`. Until then the whole namespace is
+   dead and the tray is the least of it.
+2. The host registers `kanban_set_tray_summary` and keys stored summaries by
+   window label, per part 1.
+3. `"tray"` joins `CAPABILITIES` — a one-line change, and the point of no
+   return.
+
+Landing 2 before 1 would put a permanently blank row in a shipping tray, which
+is user-visible harm in exchange for nothing.
 
 ## Consequences
 
-- The tray remains a Cline surface. Anyone adding a Kanban tray item must land
-  the host command before the capability, and must resolve this record first.
+- **What is settled:** the contract's shape and the presentation. Neither needs
+  revisiting, and neither is blocked on ADR-0033. Anyone implementing this
+  follows the three steps above rather than reopening the question.
+- **What is not:** whether a combined line is better than two. Part 2 keeps it
+  reachable; deciding it needs usage that does not exist yet.
+- **The named blocker changes.** It was "a product answer about what a merged
+  tray says." It is now "`presence.setCounts` has no caller" — a delivery gap,
+  tracked where presence is, not a decision this record is waiting on.
 - `CMD_SET_TRAY_SUMMARY` and `formatPresenceSummary` stay in the tree as
-  unreachable-but-tested code. That is intentional: the string a merged tray
-  would show already exists, so whichever option is chosen is a wiring change
-  rather than a new feature.
-- Lifting this needs [ADR-0033](ADR-0033-managed-execution-boundary.md)
-  ratified, then one contract decision. It does **not** need a fresh product
-  debate about menu rows: that half is reversible, host-local, and does not
-  belong in an ADR.
+  unreachable-but-tested code. That is intentional and now explicitly
+  sequenced: the string a merged tray would show already exists, so step 2 is
+  wiring rather than a new feature.
+- The tray remains a Cline surface until step 3 lands.
