@@ -1,7 +1,7 @@
 # ADR-0036 · Desktop tray ownership (Cline vs Kanban)
 
-**Status:** Accepted (2026-08-15) — Impl none, sequenced behind a presence
-producer  
+**Status:** Accepted (2026-08-15) — Impl partial: step 1 (a presence producer)
+landed; steps 2–3 (the host command, then the capability) remain  
 **Owner:** Drivecode SE lead  
 **Constrained by:** [ADR-0026](ADR-0026-evidence-backed-done.md),
 [ADR-0033](ADR-0033-managed-execution-boundary.md).
@@ -65,24 +65,35 @@ Every option below needs the *same* contract change and differs only in what
 the host does once the string arrives. So the deliberation this record carried
 belonged to the contract; the presentation question is not ADR-grade.
 
-### Presence has no producer, which is the real gate
+### Presence had no producer, which is what sequenced this
 
 Earlier revisions of this record said Kanban's presence "drives the dock badge
 and the user-attention signal instead, both of which are per-window and conflict
-with nothing." **That is false**, and it is the fact that sequences this
-decision.
+with nothing." That was **false** when written, and correcting it is what set
+the order of the three steps below.
 
 `PresenceController.update` (`presence-controller.ts:88`) is the sole path to
-all three signals — badge, attention, and summary. It is reached only from
-`presence.setCounts` (`desktop-api.ts:246`), and `setCounts` **has no
-production caller**: it appears in `contract.ts`, its own implementation, and
-one test. Nothing else. Since #238 mounted the bridge, `window.desktop` exists
-and `useDesktop()` is exported — but no component calls it and nothing touches
-`.presence`.
+all three signals — badge, attention, and summary — and it is reached only from
+`presence.setCounts` (`desktop-api.ts:246`). For the whole life of this record
+`setCounts` had **no production caller**: it appeared in `contract.ts`, its own
+implementation, and one test. #238 mounted the bridge, so `window.desktop`
+existed and `useDesktop()` was exported, but no component called it. The
+namespace was not "the tray half is blocked and the rest works" — it was
+entirely dead, and advertising `tray` would have opened a one-way door onto a
+path with no data behind it.
 
-So the presence namespace is not "the tray half is blocked and the rest works."
-It is entirely dead, waiting on a producer. Advertising `tray` today would open
-a one-way door onto a path with no data behind it.
+**Step 1 has since landed.** `useDesktopPresence`
+(`web-ui/src/desktop/use-desktop-presence.ts`), called from `App`, derives the
+counts from task-session state — `running` and `awaiting_review`, which are
+what the contract's two fields mean — and pushes them on every change. Because
+`presence` is already in `CAPABILITIES`, that immediately lights the dock
+badge, the attention signal and the wake lock. Only the tray summary still
+short-circuits, on `hasTray`.
+
+The counts come from session state rather than board columns deliberately:
+`running` is what the host turns into an OS wake lock, so it has to mean "an
+agent is executing", not "a card sits in the in_progress column" — the latter
+would keep the machine awake over a card left there on Friday.
 
 This was found while chasing a dead-code warning in #234 and has been recorded
 three times since — `kanban.rs:22-35`, `apps/kanban/AGENTS.md:106`, and the
@@ -129,15 +140,16 @@ settle it.
 Sequencing, per the declared-capability rule: host command first, capability
 second. Concretely, in order:
 
-1. Something calls `presence.setCounts`. Until then the whole namespace is
-   dead and the tray is the least of it.
+1. ~~Something calls `presence.setCounts`.~~ **Done** — `useDesktopPresence`,
+   mounted in `App`. The badge, attention signal and wake lock are live.
 2. The host registers `kanban_set_tray_summary` and keys stored summaries by
-   window label, per part 1.
+   window label, per part 1. **Remaining.**
 3. `"tray"` joins `CAPABILITIES` — a one-line change, and the point of no
-   return.
+   return. **Remaining.**
 
-Landing 2 before 1 would put a permanently blank row in a shipping tray, which
-is user-visible harm in exchange for nothing.
+Landing 2 before 1 would have put a permanently blank row in a shipping tray,
+which is user-visible harm in exchange for nothing. With 1 done that risk is
+gone, and 2–3 are now unblocked wiring.
 
 ## Consequences
 
@@ -146,9 +158,10 @@ is user-visible harm in exchange for nothing.
   follows the three steps above rather than reopening the question.
 - **What is not:** whether a combined line is better than two. Part 2 keeps it
   reachable; deciding it needs usage that does not exist yet.
-- **The named blocker changes.** It was "a product answer about what a merged
-  tray says." It is now "`presence.setCounts` has no caller" — a delivery gap,
-  tracked where presence is, not a decision this record is waiting on.
+- **The named blocker is cleared.** It was "a product answer about what a
+  merged tray says", then "`presence.setCounts` has no caller". Both are
+  resolved: the decision is Accepted above and the producer has landed. What
+  remains is steps 2–3, which are wiring against a settled contract.
 - `CMD_SET_TRAY_SUMMARY` and `formatPresenceSummary` stay in the tree as
   unreachable-but-tested code. That is intentional and now explicitly
   sequenced: the string a merged tray would show already exists, so step 2 is
