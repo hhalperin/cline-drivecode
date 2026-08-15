@@ -268,3 +268,8 @@ heading (`- YYYY-MM-DD — …`, newest last). Do not put `## Changelog` inside 
   since the first draft: presence does **not** drive the badge and attention
   signal, because `setCounts` has no production caller. `tray` is sequenced
   behind a producer, which replaces "needs a product answer" as the blocker.
+- 2026-08-15 — Impl partial. Step 1 landed: `useDesktopPresence` is the
+  producer `setCounts` never had, so the dock badge, attention signal and wake
+  lock are live. Counts come from task-session state, not board columns —
+  `running` becomes an OS wake lock and must mean an agent is executing. Steps
+  2-3 (host command, then the `tray` capability) remain.

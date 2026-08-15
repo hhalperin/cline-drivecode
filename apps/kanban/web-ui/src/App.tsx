@@ -46,6 +46,7 @@ import { useKanbanAccessGate } from "@/hooks/use-kanban-access-gate";
 import { useOpenWorkspace } from "@/hooks/use-open-workspace";
 import { parseRemovedProjectPathFromStreamError, useProjectNavigation } from "@/hooks/use-project-navigation";
 import { useProjectUiState } from "@/hooks/use-project-ui-state";
+import { useDesktopPresence } from "@/desktop/use-desktop-presence";
 import { useReviewReadyNotifications } from "@/hooks/use-review-ready-notifications";
 import { useShortcutActions } from "@/hooks/use-shortcut-actions";
 import { useStartupOnboarding } from "@/hooks/use-startup-onboarding";
@@ -279,6 +280,16 @@ export default function App(): ReactElement {
 		readyForReviewNotificationsEnabled,
 		workspacePath,
 	});
+
+	// Same data, different consumer: the browser-notification hook above tells
+	// the user about one task finishing, this tells the desktop host how much
+	// is in flight overall (dock badge, attention signal, wake lock, tray).
+	// No-op in a browser tab.
+	//
+	// `board` is passed as well as `sessions` because `sessions` is merged
+	// across project switches rather than replaced, so it has to be scoped to
+	// the tasks actually on screen — see the hook.
+	useDesktopPresence(sessions, board);
 
 	const { createTaskBranchOptions, defaultTaskBranchRef } = useTaskBranchOptions({ workspaceGit });
 	const queueTaskStartAfterEdit = useCallback((taskId: string) => {
