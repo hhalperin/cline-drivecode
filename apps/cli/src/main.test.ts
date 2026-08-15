@@ -377,6 +377,60 @@ describe("runCli lightweight command dispatch", () => {
 		expect(mockState.runInteractiveImports).toBe(0);
 	}, 30_000);
 
+	it("publishes --config through CLINE_DIR so non-SDK readers see it", async () => {
+		// `setClineDir()` only reaches code that goes through the SDK's path
+		// module. The rest of the CLI reads `process.env.CLINE_DIR` directly —
+		// `resolveCliAgentConfigSearchPaths` in commands/config.ts is the one
+		// that bit: `cline config --config <dir>` listed agents out of
+		// ~/.cline/agents while the same command's SDK-resolved values came
+		// from <dir>. Both halves have to see the same choice.
+		const previous = process.env.CLINE_DIR;
+		delete process.env.CLINE_DIR;
+		try {
+			process.argv = [
+				"bun",
+				"src/index.ts",
+				"--config",
+				"/tmp/cline-config-selection",
+				"history",
+				"--json",
+			];
+
+			const { runCli } = await import("./main");
+			await expect(runCli()).resolves.toBeUndefined();
+
+			expect(process.env.CLINE_DIR).toBe("/tmp/cline-config-selection");
+		} finally {
+			if (previous === undefined) {
+				delete process.env.CLINE_DIR;
+			} else {
+				process.env.CLINE_DIR = previous;
+			}
+		}
+	}, 30_000);
+
+	it("leaves CLINE_DIR alone when --config is absent", async () => {
+		// The other half of the guard. Publishing unconditionally would
+		// overwrite an inherited CLINE_DIR with the default and silently
+		// relocate a session the user had already pointed elsewhere.
+		const previous = process.env.CLINE_DIR;
+		process.env.CLINE_DIR = "/tmp/cline-inherited";
+		try {
+			process.argv = ["bun", "src/index.ts", "history", "--json"];
+
+			const { runCli } = await import("./main");
+			await expect(runCli()).resolves.toBeUndefined();
+
+			expect(process.env.CLINE_DIR).toBe("/tmp/cline-inherited");
+		} finally {
+			if (previous === undefined) {
+				delete process.env.CLINE_DIR;
+			} else {
+				process.env.CLINE_DIR = previous;
+			}
+		}
+	}, 30_000);
+
 	it("routes connector restart arguments through the restart lifecycle", async () => {
 		process.argv = [
 			"bun",
