@@ -88,3 +88,41 @@ grep -rnoE 'process\.env\.[A-Z_][A-Z_0-9]*|env::var\("[A-Z_][A-Z_0-9]*"' \
 
 Counts above are a snapshot, not a gate — they move with every commit. The
 rule is the durable part.
+
+## Numeric tunables: audited, no action
+
+Recorded so nobody repeats the analysis. The same one-resolver question was
+asked of the **605 named numeric constants** (timeouts, intervals, limits,
+retry counts) across `apps/**` and `sdk/**`, on the theory that they wanted
+moving into config files. They did not.
+
+Of 549 distinct names, only five are declared in two or more packages with
+differing values, and none is drift:
+
+| Name | Verdict |
+|---|---|
+| `DEFAULT_MAX_INPUT_TOKENS` | The only genuine value disagreement — CLI `200000` vs SDK `128_000`. The CLI's copy had **zero consumers**; deleted rather than reconciled. The two live declarations agree. |
+| `DEFAULT_PORT` | `8787` (hub) vs `25463` (vscode webview) — different services |
+| `MAX_DEPTH` | telemetry attribute depth vs plugin import depth — different concepts |
+| `DEFAULT_LIMIT` | workspace file search vs session rollup reader — different concepts |
+| `PROVIDER_CATALOG_CACHE_TTL_MS` | two separate caches in two modules, each documented — `5_000` dedupes the raw payload across boot, `60_000` holds the settings view's parsed list |
+
+The conclusion is that these constants are mostly fine where they are. A named
+constant declared next to the code it governs, with a comment explaining the
+number, is *more* legible than the same number in a distant file — and a
+config file of several hundred knobs nobody reads is a worse artifact than what
+it replaces. Centralise a tunable when it is genuinely duplicated, genuinely
+operator-tuned, or forms an implicit contract with another component; not on
+principle.
+
+What the census *did* surface is a real hazard, but not a configuration one:
+`apps/cline-hub/src/webview/` and `apps/examples/desktop-app/webview/` carry
+byte-identical copies of whole components (`settings-view.tsx`,
+`extensions-view.tsx`, `marketplace-view.tsx`, `desktop-client.ts`, …). Their
+shared constants agree today because the files were copied, not because
+anything keeps them in step. That is file-level duplication and wants a shared
+package, which is a larger change than this one.
+
+Re-run with the declaration pattern
+`^\s*(?:export\s+)?const\s+([A-Z][A-Z0-9_]{2,})\s*(?::[^=]+)?=\s*<numeric expr>`
+over the same trees.
