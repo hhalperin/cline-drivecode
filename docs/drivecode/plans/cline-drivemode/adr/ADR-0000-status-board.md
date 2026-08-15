@@ -87,7 +87,7 @@ Files stay separate (different change rates). Do not invent a second workflow ru
 | [ADR-0033](ADR-0033-managed-execution-boundary.md) | Managed execution boundary (DrivePlan owns truth) | **Proposed** | none | Kanban = workbench; bank/gates/receipts = Drive |
 | [ADR-0034](ADR-0034-role-vocabulary.md) | Converge role vocabularies | **Proposed** | none | Blocked on delivery D1 (`capPreset` on `call_seat`) |
 | [ADR-0035](ADR-0035-late-join-catch-up.md) | Late-join and return catch-up | **Proposed** | none | Wire snapshot/delta + one factual catch-up line |
-| [ADR-0036](ADR-0036-desktop-tray-ownership.md) | Desktop tray ownership (Cline vs Kanban) | **Open** | none | One tray slot, two writers; `tray` stays unadvertised until a product answer |
+| [ADR-0036](ADR-0036-desktop-tray-ownership.md) | Desktop tray ownership (Cline vs Kanban) | **Open** | none | Contended thing is merge policy, not a scarce menu row; blocked on 0033 ratification + contract shape. `tray` stays unadvertised |
 
 ## Leadership decisions
 

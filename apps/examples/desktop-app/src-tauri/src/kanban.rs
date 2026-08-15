@@ -21,12 +21,16 @@
 //!
 //! `tray` is absent for a different and more interesting reason: this app's
 //! tray already has a "N sessions running" item that Cline's own
-//! `set_tray_status` owns. Kanban's presence summary is the same *kind* of
-//! information about a different subsystem, and letting both write that one
-//! slot would make the tray show whichever wrote last. That needs a decision
-//! about what a merged tray says, not a silent race — so until then Kanban's
-//! presence drives the dock badge and attention signal only, which are
-//! per-window and conflict with nothing.
+//! `set_tray_status` owns, and Kanban's presence summary is the same *kind* of
+//! information about a different subsystem. A second item is cheap —
+//! `TrayMenuState` is a struct of items and the menu already runs two
+//! independent write policies side by side — so the blocker is not a scarce
+//! row. It is that advertising `tray` in the list below starts the calls and
+//! cannot be withdrawn without breaking the bridge contract, which means the
+//! contract's shape has to be settled before the presentation is. ADR-0036
+//! holds that decision; until it lands, Kanban's presence drives the dock
+//! badge and attention signal only, which are per-window and conflict with
+//! nothing.
 //!
 //! The bridge turns every absent capability into a documented no-op, so
 //! nothing here fails loudly at the user. Adding one means implementing the
