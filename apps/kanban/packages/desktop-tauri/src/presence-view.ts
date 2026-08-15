@@ -13,9 +13,9 @@ import type { PresenceView } from "@kanban/desktop-bridge";
 
 import { CMD_SET_TRAY_SUMMARY, CMD_SET_WAKE_LOCK } from "./commands.js";
 import {
-	USER_ATTENTION_INFORMATIONAL,
 	type TauriSurface,
 	type TauriWindowSurface,
+	USER_ATTENTION_INFORMATIONAL,
 } from "./tauri-surface.js";
 
 export interface TauriPresenceOptions {
@@ -72,9 +72,9 @@ export function createTauriPresenceView(
 		setBadgeCount(count) {
 			// Tauri clears the badge for 0 and undefined alike; passing
 			// undefined explicitly is the documented "clear it" spelling.
-			void opts.window.setBadgeCount(count > 0 ? count : undefined).catch(
-				() => {},
-			);
+			void opts.window
+				.setBadgeCount(count > 0 ? count : undefined)
+				.catch(() => {});
 		},
 		requestAttention() {
 			// Informational, not Critical: on macOS this bounces the dock once

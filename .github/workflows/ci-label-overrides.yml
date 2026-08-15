@@ -34,6 +34,7 @@ jobs:
             vscode: ${{ steps.out.outputs.vscode }}
             e2e: ${{ steps.out.outputs.e2e }}
             e2e_full: ${{ steps.out.outputs.e2e_full }}
+            desktop: ${{ steps.out.outputs.desktop }}
         steps:
             - uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
               id: wanted
@@ -45,6 +46,7 @@ jobs:
                         "ci/e2e-full",
                         "ci/sdk",
                         "ci/docs",
+                        "ci/desktop",
                       ]
                       const keys = {
                         "ci/vscode": "vscode",
@@ -52,6 +54,7 @@ jobs:
                         "ci/e2e-full": "e2e_full",
                         "ci/sdk": "sdk",
                         "ci/docs": "docs",
+                        "ci/desktop": "desktop",
                       }
 
                       const wanted = new Set()
@@ -85,7 +88,8 @@ jobs:
                    steps.wanted.outputs.docs == 'true' ||
                    steps.wanted.outputs.vscode == 'true' ||
                    steps.wanted.outputs.e2e == 'true' ||
-                   steps.wanted.outputs.e2e_full == 'true')
+                   steps.wanted.outputs.e2e_full == 'true' ||
+                   steps.wanted.outputs.desktop == 'true')
 
             - uses: dorny/paths-filter@v3
               id: paths
@@ -95,7 +99,8 @@ jobs:
                    steps.wanted.outputs.docs == 'true' ||
                    steps.wanted.outputs.vscode == 'true' ||
                    steps.wanted.outputs.e2e == 'true' ||
-                   steps.wanted.outputs.e2e_full == 'true')
+                   steps.wanted.outputs.e2e_full == 'true' ||
+                   steps.wanted.outputs.desktop == 'true')
               with:
                   # Keep aligned with workflow-level `on.paths` for each suite.
                   filters: |
@@ -164,6 +169,7 @@ jobs:
                   WANT_VSCODE: ${{ steps.wanted.outputs.vscode }}
                   WANT_E2E: ${{ steps.wanted.outputs.e2e }}
                   WANT_E2E_FULL: ${{ steps.wanted.outputs.e2e_full }}
+                  WANT_DESKTOP: ${{ steps.wanted.outputs.desktop }}
                   PATH_SDK: ${{ steps.paths.outputs.sdk }}
                   PATH_DOCS: ${{ steps.paths.outputs.docs }}
                   PATH_VSCODE: ${{ steps.paths.outputs.vscode }}
@@ -199,6 +205,18 @@ jobs:
                   else
                     echo "e2e_full=false" >> "$GITHUB_OUTPUT"
                   fi
+                  # Always wake desktop when checked, for the same reason as
+                  # e2e-full: the path-triggered lane runs only the typecheck and
+                  # Rust jobs. The packaged smoke — build the bundle, launch it,
+                  # observe it — is gated off PRs, and forcing it is the entire
+                  # point of the override. Deduping against paths here would make
+                  # the checkbox a no-op on exactly the PRs that want it.
+                  if [ "$WANT_DESKTOP" = "true" ]; then
+                    echo "desktop=true" >> "$GITHUB_OUTPUT"
+                    echo "wake desktop (packaged smoke)"
+                  else
+                    echo "desktop=false" >> "$GITHUB_OUTPUT"
+                  fi
 
     sdk:
         needs: detect
@@ -224,3 +242,10 @@ jobs:
         with:
             matrix_mode: ${{ needs.detect.outputs.e2e_full == 'true' && 'full' || 'ubuntu' }}
             force: true
+
+    desktop:
+        needs: detect
+        if: needs.detect.outputs.desktop == 'true'
+        uses: ./.github/workflows/desktop-test.yml
+        with:
+            force_packaged: true

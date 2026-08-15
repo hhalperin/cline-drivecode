@@ -11,12 +11,19 @@ import { getVersion } from "@tauri-apps/api/app";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow, UserAttentionType } from "@tauri-apps/api/window";
+import {
+	isPermissionGranted,
+	onAction,
+	requestPermission,
+	sendNotification,
+} from "@tauri-apps/plugin-notification";
 
 import {
-	USER_ATTENTION_CRITICAL,
-	USER_ATTENTION_INFORMATIONAL,
+	type TauriNotificationSurface,
 	type TauriSurface,
 	type TauriWindowSurface,
+	USER_ATTENTION_CRITICAL,
+	USER_ATTENTION_INFORMATIONAL,
 	type UserAttentionLevel,
 } from "./tauri-surface.js";
 
@@ -54,6 +61,22 @@ function realWindow(): TauriWindowSurface {
 	};
 }
 
+function realNotifications(): TauriNotificationSurface {
+	return {
+		isPermissionGranted,
+		// The plugin returns the resulting permission string; the port only
+		// cares whether it ended up usable.
+		requestPermission: async () => (await requestPermission()) === "granted",
+		send: (options) => sendNotification(options),
+		onAction: async (handler) => {
+			const listener = await onAction((notification) => {
+				handler({ extra: notification.extra });
+			});
+			return () => listener.unregister();
+		},
+	};
+}
+
 export function createRealTauriSurface(): TauriSurface {
 	return {
 		isTauri,
@@ -61,5 +84,6 @@ export function createRealTauriSurface(): TauriSurface {
 		getVersion,
 		currentWindow: realWindow,
 		listen: (event, handler) => listen(event, handler),
+		notifications: realNotifications,
 	};
 }

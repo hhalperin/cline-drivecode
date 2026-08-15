@@ -8,7 +8,9 @@
 
 export * from "./commands.js";
 export * from "./focus-tracker.js";
+export * from "./notification-backend.js";
 export * from "./presence-view.js";
 export * from "./real-surface.js";
 export * from "./tauri-host.js";
 export * from "./tauri-surface.js";
+export * from "./updater-backend.js";

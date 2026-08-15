@@ -253,3 +253,18 @@ heading (`- YYYY-MM-DD — …`, newest last). Do not put `## Changelog` inside 
 ## DEC-codebase-map-firewall
 
 - 2026-08-08 — Proposed (codebase-map explain-only; no portfolio/Status writes).
+
+## ADR-0036 · Desktop tray ownership
+
+- 2026-08-11 — Open (tray conflict recorded as a decision for the first time;
+  `tray` stays unadvertised meanwhile).
+- 2026-08-15 — Rewrite-in-place: "one slot, two writers" was false — the tray
+  already runs two items under two policies. Reframed on merge-policy
+  ownership; the one-way half is the capability contract, and lifting this
+  turns on ratifying ADR-0033.
+- 2026-08-15 — Accepted. Kanban publishes a summary, the host places it;
+  presentation is a separate item, not a merged line — the only option correct
+  whether or not ADR-0033 ratifies. Also corrects a second false claim carried
+  since the first draft: presence does **not** drive the badge and attention
+  signal, because `setCounts` has no production caller. `tray` is sequenced
+  behind a producer, which replaces "needs a product answer" as the blocker.

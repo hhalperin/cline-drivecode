@@ -40,6 +40,35 @@ export interface TauriWindowSurface {
 	unminimize(): Promise<void>;
 }
 
+/**
+ * The notification plugin's slice.
+ *
+ * `send` is fire-and-forget — the plugin returns no handle — so click
+ * correlation rides in `extra`, which `onAction` hands back untouched. That is
+ * the only channel the plugin offers for "which notification was this".
+ */
+export interface TauriNotificationSurface {
+	isPermissionGranted(): Promise<boolean>;
+	/** Resolves to whether permission ended up granted. */
+	requestPermission(): Promise<boolean>;
+	send(options: {
+		title: string;
+		body: string;
+		extra?: Record<string, unknown>;
+	}): void;
+	/**
+	 * Fires when the user activates a notification.
+	 *
+	 * Desktop support is uneven — this is primarily a mobile affordance in
+	 * Tauri, and on some Linux desktops nothing ever arrives. Treat a listener
+	 * that never fires as expected rather than broken; the notification itself
+	 * still shows.
+	 */
+	onAction(
+		handler: (payload: { extra?: Record<string, unknown> }) => void,
+	): Promise<UnlistenFn>;
+}
+
 export interface TauriSurface {
 	/** False in a plain browser tab, which is how the adapter bows out. */
 	isTauri(): boolean;
@@ -50,4 +79,5 @@ export interface TauriSurface {
 		event: string,
 		handler: (event: { payload: T }) => void,
 	): Promise<UnlistenFn>;
+	notifications(): TauriNotificationSurface;
 }

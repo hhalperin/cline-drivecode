@@ -43,6 +43,37 @@ export const CMD_SET_WAKE_LOCK = "kanban_set_wake_lock";
 /** One-line presence summary for the tray tooltip. */
 export const CMD_SET_TRAY_SUMMARY = "kanban_set_tray_summary";
 
+/**
+ * Update commands.
+ *
+ * Deliberately *not* `kanban_`-prefixed: these are the host app's own update
+ * commands, and Kanban reads the same updater rather than running a second
+ * one. There is one bundle, and two updaters racing to replace it is a worse
+ * failure than a check that has to wait its turn. Returns
+ * {@link HostUpdateStatus}.
+ */
+export const CMD_UPDATE_STATUS = "get_update_status";
+
+/** Check now instead of waiting out the host's two-hour loop. */
+export const CMD_CHECK_FOR_UPDATES = "check_for_updates_now";
+
+/** Restart to apply a downloaded update. Never returns. */
+export const CMD_RESTART_TO_APPLY_UPDATE = "restart_to_apply_update";
+
+/**
+ * Shape the host returns from {@link CMD_UPDATE_STATUS}.
+ *
+ * `state` is one of `idle` / `checking` / `downloading` / `ready` / `error`,
+ * mirrored from `UpdateStatus` in `main.rs`. Typed as a plain string because
+ * the host may grow states this build has not heard of, and the mapper treats
+ * an unknown one as "nothing to report" rather than failing.
+ */
+export interface HostUpdateStatus {
+	state: string;
+	version: string | null;
+	error: string | null;
+}
+
 /** Host → renderer: the user picked a published menu action. */
 export const EVENT_MENU_ACTION_INVOKED = "kanban://menu-action-invoked";
 

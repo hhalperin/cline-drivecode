@@ -30,7 +30,7 @@ import {
 	completeClineDeviceAuth as sdkCompleteClineDeviceAuth,
 	startClineDeviceAuth as sdkStartClineDeviceAuth,
 } from "@cline/core";
-import type { AgentTool } from "@cline/shared";
+import { type AgentTool, getClineEnvironmentConfig } from "@cline/shared";
 
 // OCA IDCS defaults. `@cline/core` declares these in `dist/auth/oca.d.ts` but
 // stopped re-exporting them from its public entry point, and there is no
@@ -38,6 +38,15 @@ import type { AgentTool } from "@cline/shared";
 // mirror the SDK's own declarations verbatim — they are public OAuth client ids
 // and issuer URLs, not secrets. Delete this block and import from the SDK again
 // the moment core re-exports them.
+/**
+ * Fallback Cline API host when the caller supplies no explicit `baseUrl`,
+ * resolved from the environment rather than pinned to production — see the
+ * matching constant in `cline-provider-service.ts`. Both OAuth entry points
+ * below hardcoded `https://api.cline.bot`, so a developer on
+ * `CLINE_ENVIRONMENT=local` logged in against production.
+ */
+const DEFAULT_CLINE_API_BASE_URL = getClineEnvironmentConfig().apiBaseUrl;
+
 const DEFAULT_INTERNAL_IDCS_CLIENT_ID = "a8331954c0cf48ba99b5dd223a14c6ea";
 const DEFAULT_INTERNAL_IDCS_URL = "https://idcs-9dc693e80d9b469480d7afe00e743931.identity.oraclecloud.com";
 const DEFAULT_INTERNAL_IDCS_SCOPES = "openid offline_access";
@@ -244,7 +253,7 @@ export async function refreshManagedOauthCredentials(input: {
 }): Promise<ManagedOauthCredentials | null> {
 	if (input.providerId === "cline") {
 		const credentials = await getValidClineCredentials(input.currentCredentials, {
-			apiBaseUrl: input.baseUrl?.trim() || "https://api.cline.bot",
+			apiBaseUrl: input.baseUrl?.trim() || DEFAULT_CLINE_API_BASE_URL,
 			provider: input.oauthProvider?.trim() || undefined,
 		});
 		return credentials ?? null;
@@ -271,7 +280,7 @@ export async function loginManagedOauthProvider(input: {
 }): Promise<ManagedOauthCredentials> {
 	if (input.providerId === "cline") {
 		return await loginClineOAuth({
-			apiBaseUrl: input.baseUrl?.trim() || "https://api.cline.bot",
+			apiBaseUrl: input.baseUrl?.trim() || DEFAULT_CLINE_API_BASE_URL,
 			provider: input.oauthProvider?.trim() || undefined,
 			callbacks: input.callbacks,
 		});

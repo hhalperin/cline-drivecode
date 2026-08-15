@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, it, mock } from "bun:test"
+import { CLINE_ENVIRONMENTS } from "@cline/shared"
 import "should"
 import fs from "fs/promises"
 import * as actualOs from "os"
@@ -467,6 +468,46 @@ describe("ClineEndpoint configuration", () => {
 
 			ClineEnv.setEnvironment("production")
 			ClineEnv.getEnvironment().environment.should.equal("production")
+		})
+	})
+
+	describe("built-in environment URLs", () => {
+		// Nothing tested this path before. Every other test in this file
+		// exercises the endpoints.json branch, which returns early and never
+		// reaches the table — so the table was free to drift, and it did:
+		// `local` returned the *production* mcpBaseUrl, and a developer pointed
+		// at localhost went on sending MCP traffic to api.cline.bot.
+
+		it("never points a local developer at a production URL", async () => {
+			await ClineEndpoint.initialize(tempDir)
+			ClineEnv.setEnvironment("local")
+
+			const config = ClineEnv.getEnvironment()
+			config.appBaseUrl.should.startWith("http://localhost")
+			config.apiBaseUrl.should.startWith("http://localhost")
+			// The one that was wrong. Asserted by prefix rather than by exact
+			// value so it keeps failing for the right reason if the port moves.
+			config.mcpBaseUrl.should.startWith("http://localhost")
+		})
+
+		it("agrees with the shared table for every environment", async () => {
+			// The guard that makes the fix durable instead of a one-off
+			// correction. Two hand-maintained copies of one table is what
+			// produced the bug, so what this asserts is that there is only one
+			// — a second copy reintroduced here fails immediately rather than
+			// after it has silently diverged.
+			await ClineEndpoint.initialize(tempDir)
+
+			for (const name of ["production", "staging", "local"] as const) {
+				ClineEnv.setEnvironment(name)
+				const config = ClineEnv.getEnvironment()
+				const shared = CLINE_ENVIRONMENTS[name]
+
+				config.environment.should.equal(name)
+				config.appBaseUrl.should.equal(shared.appBaseUrl)
+				config.apiBaseUrl.should.equal(shared.apiBaseUrl)
+				config.mcpBaseUrl.should.equal(shared.mcpBaseUrl)
+			}
 		})
 	})
 

@@ -8,6 +8,7 @@ use std::fs;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -83,9 +84,26 @@ impl Default for UpdateStatus {
 #[derive(Default)]
 struct UpdateState {
     status: Mutex<UpdateStatus>,
+    /// Whether a check is already running.
+    ///
+    /// `check_and_install_update` downloads *and installs*. While the two-hour
+    /// loop was its only caller it could not overlap with itself, so nothing
+    /// needed to say so. `check_for_updates_now` can land in the middle of a
+    /// loop iteration, and two concurrent `download_and_install` calls write
+    /// the same bundle — so the second caller now returns instead.
+    check_in_flight: AtomicBool,
 }
 
 impl UpdateState {
+    /// Claim the right to run a check; `false` means one is already running.
+    fn begin_check(&self) -> bool {
+        !self.check_in_flight.swap(true, Ordering::SeqCst)
+    }
+
+    fn end_check(&self) {
+        self.check_in_flight.store(false, Ordering::SeqCst);
+    }
+
     fn set(&self, state: &str, version: Option<String>, error: Option<String>) {
         if let Ok(mut guard) = self.status.lock() {
             *guard = UpdateStatus {
@@ -148,7 +166,18 @@ fn set_update_status(
     refresh_tray_status(app, update_state);
 }
 
+/// Run a check unless one is already running.
+///
+/// The guard is the whole point of the wrapper: see `UpdateState::begin_check`.
 async fn check_and_install_update(app: &tauri::AppHandle, state: &UpdateState) {
+    if !state.begin_check() {
+        return;
+    }
+    check_and_install_update_unguarded(app, state).await;
+    state.end_check();
+}
+
+async fn check_and_install_update_unguarded(app: &tauri::AppHandle, state: &UpdateState) {
     // An update that already finished downloading only needs a restart; keep
     // reporting "ready" instead of flipping back to transient states unless a
     // newer version shows up.
@@ -680,14 +709,37 @@ fn get_update_status(update_state: State<'_, Arc<UpdateState>>) -> UpdateStatus 
     update_state.snapshot()
 }
 
+/// Check for an update now, rather than waiting out the two-hour loop.
+///
+/// Exists so Kanban's `UpdateController` has something behind `check()`. It
+/// drives the *same* updater the loop does rather than a second one: this app
+/// has one bundle, and two updaters racing to replace it is a worse failure
+/// than a slow check. `UpdateState::begin_check` is what keeps the two callers
+/// from overlapping.
+#[tauri::command]
+async fn check_for_updates_now(
+    app: tauri::AppHandle,
+    update_state: State<'_, Arc<UpdateState>>,
+) -> Result<(), String> {
+    let state = update_state.inner().clone();
+    check_and_install_update(&app, &state).await;
+    Ok(())
+}
+
 #[tauri::command]
 fn restart_to_apply_update(
     app: tauri::AppHandle,
     backend_state: State<'_, Arc<DesktopBackendState>>,
+    kanban_state: State<'_, Arc<kanban::KanbanRuntimeState>>,
 ) {
     // restart() never returns, so the run-loop Exit handler does not get a
-    // chance to stop the sidecar; shut it down explicitly first.
+    // chance to stop the children; shut them down explicitly first. The Kanban
+    // runtime is here for the same reason it is in the Exit handler — it is
+    // reached only through `impl Drop`, which a restart never runs, so without
+    // this the old runtime survives the restart and the new process finds its
+    // port taken.
     backend_state.stop();
+    kanban_state.stop();
     app.restart();
 }
 
@@ -883,6 +935,7 @@ fn main() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .manage(desktop_backend)
         .manage(app_context)
         .manage(Arc::new(UpdateState::default()))
@@ -949,6 +1002,7 @@ fn main() {
             pick_workspace_directory,
             open_mcp_settings_file,
             get_update_status,
+            check_for_updates_now,
             restart_to_apply_update,
             set_app_icon,
             drain_desktop_menu_actions,
@@ -973,6 +1027,21 @@ fn main() {
                     .state::<Arc<DesktopBackendState>>()
                     .inner()
                     .stop();
+                // Kanban's runtime needs stopping here too, and used not to be.
+                // `impl Drop for KanbanRuntimeState` was the only path to it,
+                // which does not run at process exit — Tauri's `run` ends the
+                // process, and the state is behind an `Arc` whose drainer
+                // threads hold live clones regardless. So the SIGTERM grace
+                // period that exists to let Kanban flush board state and
+                // worktree bookkeeping was unreachable on the ordinary quit
+                // path, and the `bun` child was simply orphaned onto init.
+                //
+                // Found by the packaged smoke test's no-orphans assertion,
+                // which is the whole reason that test launches a real bundle.
+                app_handle
+                    .state::<Arc<kanban::KanbanRuntimeState>>()
+                    .inner()
+                    .stop();
             }
             _ => {}
         });
@@ -982,6 +1051,52 @@ fn main() {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicUsize, Ordering};
+
+    #[test]
+    fn only_one_update_check_runs_at_a_time() {
+        // `check_and_install_update` downloads *and installs*. While the
+        // two-hour loop was its only caller it could not overlap with itself.
+        // `check_for_updates_now` can land mid-iteration, and two concurrent
+        // `download_and_install` calls write the same bundle.
+        let state = UpdateState::default();
+
+        assert!(state.begin_check(), "the first caller runs");
+        assert!(
+            !state.begin_check(),
+            "a second caller must back off while a check is in flight"
+        );
+
+        state.end_check();
+        assert!(
+            state.begin_check(),
+            "the guard must clear, or updates stop after the first check"
+        );
+    }
+
+    #[test]
+    fn concurrent_update_checks_admit_exactly_one_runner() {
+        // The single-threaded version above passes against a plain bool; this
+        // is what makes the swap load-bearing.
+        let state = Arc::new(UpdateState::default());
+        let admitted = Arc::new(AtomicUsize::new(0));
+
+        let handles: Vec<_> = (0..8)
+            .map(|_| {
+                let state = state.clone();
+                let admitted = admitted.clone();
+                thread::spawn(move || {
+                    if state.begin_check() {
+                        admitted.fetch_add(1, Ordering::SeqCst);
+                    }
+                })
+            })
+            .collect();
+        for handle in handles {
+            handle.join().expect("check thread should not panic");
+        }
+
+        assert_eq!(admitted.load(Ordering::SeqCst), 1);
+    }
 
     #[test]
     fn desktop_menu_actions_are_buffered_in_order_until_drained() {
