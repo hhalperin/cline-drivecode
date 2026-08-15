@@ -6,6 +6,7 @@ Implemented product reference pages (cite live code). Nest-root process docs
 | Page | Topic |
 |---|---|
 | [architecture.md](architecture.md) | Architecture diagrams behind the drivecode reference |
+| [environment-variables.md](environment-variables.md) | Env-var census, the one-resolver rule, and known deliberate duplications |
 | [install.md](install.md) | Self-hosted install: prerequisites, ports, Windows notes, uninstall |
 | [native-vs-drivecode.md](native-vs-drivecode.md) | Native Cline vs Drivecode value matrix |
 | [privacy.md](privacy.md) | What Drive writes to disk and what leaves your machine |

@@ -158,6 +158,23 @@ export async function runCli(): Promise<void> {
 	const { setClineDir, setHomeDir } = await import("@cline/shared/storage");
 	if (configDir) {
 		setClineDir(configDir);
+		// Publish the same choice through the environment too.
+		//
+		// `setClineDir` is only visible to code that goes through the SDK's
+		// path module; the rest of the CLI reads `process.env.CLINE_DIR`
+		// directly. Setting only the first left the two disagreeing, and
+		// `cline config --config <dir>` — whose whole documented job is to
+		// show the configuration for <dir> — hit both halves at once:
+		// `resolveCliAgentConfigSearchPaths` (commands/config.ts) read the
+		// unset env var and listed agents out of ~/.cline/agents, while
+		// everything the same command resolved through the SDK came from
+		// <dir>. One command, one output, two directories.
+		//
+		// The environment is already how this choice crosses a boundary:
+		// `cline dashboard` propagates its own --config exactly this way to
+		// the child it spawns. Setting it here makes `--config <dir>` and
+		// `CLINE_DIR=<dir>` mean the same thing to every reader.
+		process.env.CLINE_DIR = configDir;
 	}
 	setHomeDir(homedir());
 
