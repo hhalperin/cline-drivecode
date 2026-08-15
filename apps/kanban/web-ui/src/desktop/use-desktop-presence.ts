@@ -1,31 +1,49 @@
 import type { DesktopPresenceCounts } from "@kanban/desktop-bridge";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
+import type { BoardData } from "@/types";
 
 import { useDesktop } from "./desktop-context";
 
 /**
- * Counts drawn from session state, not from board columns.
+ * Counts drawn from session *state*, restricted to the tasks on the *current*
+ * board.
  *
- * The distinction is load-bearing rather than stylistic. `running` is what the
- * host turns into an OS wake lock, so it has to mean "an agent is executing
- * right now" — counting cards in the `in_progress` column would keep the
- * machine awake all night over a card someone left there on Friday. The
- * session states say exactly what the bridge contract asks for: `running` is
- * "agent sessions currently working", `awaiting_review` is "tasks finished and
- * waiting on a human".
+ * Two separate constraints, and both are load-bearing.
  *
- * Everything else — `idle`, `failed`, `interrupted` — is neither. A failed
- * session in particular is *not* ready for review: nothing finished, and
- * bouncing the dock for it would train people to ignore the signal.
+ * **Why state, not columns.** `running` is what the host turns into an OS wake
+ * lock, so it has to mean "an agent is executing right now" — counting cards in
+ * the `in_progress` column would keep the machine awake all night over a card
+ * someone left there on Friday. The session states say exactly what the bridge
+ * contract asks for: `running` is "agent sessions currently working",
+ * `awaiting_review` is "tasks finished and waiting on a human". Everything else
+ * — `idle`, `failed`, `interrupted` — is neither. A failed session in
+ * particular is *not* ready for review: nothing finished, and bouncing the dock
+ * for it would train people to ignore the signal.
+ *
+ * **Why restricted to the board.** App's `sessions` map is merged across
+ * project switches, not replaced: `applyWorkspaceState` runs
+ * `mergeTaskSessionSummaries(current, incoming)` and only clears outright when
+ * there is no workspace at all. That merge is deliberate — it is monotonic on
+ * purpose, guarding a regression where a replayed stale summary overwrote a
+ * newer running one and the terminal appeared to clear itself. Every other
+ * consumer indexes it by task id, so a merged map costs them nothing. This is
+ * the first consumer that *aggregates* over it, and for an aggregate the merge
+ * means a previous project's running sessions linger forever — holding the wake
+ * lock and inflating the badge for work that is not on screen. The board is
+ * replaced per project, so its task ids are what scope the count.
  */
 export function countPresence(
 	taskSessions: Record<string, RuntimeTaskSessionSummary>,
+	currentTaskIds: ReadonlySet<string>,
 ): DesktopPresenceCounts {
 	let running = 0;
 	let readyForReview = 0;
-	for (const session of Object.values(taskSessions)) {
+	for (const [taskId, session] of Object.entries(taskSessions)) {
+		if (!currentTaskIds.has(taskId)) {
+			continue;
+		}
 		if (session.state === "running") {
 			running += 1;
 		} else if (session.state === "awaiting_review") {
@@ -33,6 +51,17 @@ export function countPresence(
 		}
 	}
 	return { running, readyForReview };
+}
+
+/** Every task id on the board, across all columns. */
+export function boardTaskIds(board: BoardData): ReadonlySet<string> {
+	const ids = new Set<string>();
+	for (const column of board.columns) {
+		for (const card of column.cards) {
+			ids.add(card.id);
+		}
+	}
+	return ids;
 }
 
 /**
@@ -47,9 +76,14 @@ export function countPresence(
  */
 export function useDesktopPresence(
 	taskSessions: Record<string, RuntimeTaskSessionSummary>,
+	board: BoardData,
 ): void {
 	const desktop = useDesktop();
-	const { running, readyForReview } = countPresence(taskSessions);
+	const currentTaskIds = useMemo(() => boardTaskIds(board), [board]);
+	const { running, readyForReview } = countPresence(
+		taskSessions,
+		currentTaskIds,
+	);
 
 	// Depends on the two numbers rather than on the counts object, which is
 	// freshly allocated every render. `PresenceController.update` invokes IPC

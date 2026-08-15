@@ -285,7 +285,11 @@ export default function App(): ReactElement {
 	// the user about one task finishing, this tells the desktop host how much
 	// is in flight overall (dock badge, attention signal, wake lock, tray).
 	// No-op in a browser tab.
-	useDesktopPresence(sessions);
+	//
+	// `board` is passed as well as `sessions` because `sessions` is merged
+	// across project switches rather than replaced, so it has to be scoped to
+	// the tasks actually on screen — see the hook.
+	useDesktopPresence(sessions, board);
 
 	const { createTaskBranchOptions, defaultTaskBranchRef } = useTaskBranchOptions({ workspaceGit });
 	const queueTaskStartAfterEdit = useCallback((taskId: string) => {

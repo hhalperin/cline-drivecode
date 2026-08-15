@@ -5,10 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DesktopContext } from "@/desktop/desktop-context";
 import {
+	boardTaskIds,
 	countPresence,
 	useDesktopPresence,
 } from "@/desktop/use-desktop-presence";
 import type { RuntimeTaskSessionSummary } from "@/runtime/types";
+import type { BoardCard, BoardData } from "@/types";
 
 type SessionState = RuntimeTaskSessionSummary["state"];
 
@@ -24,6 +26,24 @@ function sessions(
 	);
 }
 
+/** A board owning exactly the given task ids, in one column. */
+function board(...taskIds: string[]): BoardData {
+	return {
+		columns: [
+			{
+				id: "in_progress",
+				title: "In progress",
+				cards: taskIds.map((id) => ({ id }) as BoardCard),
+			},
+		],
+		dependencies: [],
+	};
+}
+
+/** A board owning `task-0 … task-(n-1)`, matching `sessions(...)` above. */
+const boardFor = (count: number): BoardData =>
+	board(...Array.from({ length: count }, (_, index) => `task-${index}`));
+
 describe("countPresence", () => {
 	it("counts the two states the contract names, and nothing else", () => {
 		expect(
@@ -36,6 +56,7 @@ describe("countPresence", () => {
 					"failed",
 					"interrupted",
 				),
+				boardTaskIds(boardFor(6)),
 			),
 		).toEqual({ running: 2, readyForReview: 1 });
 	});
@@ -44,14 +65,59 @@ describe("countPresence", () => {
 		// Nothing finished. Counting it would put a number on the dock and
 		// bounce it for work that did not complete, which is how a signal
 		// becomes noise.
-		expect(countPresence(sessions("failed", "interrupted"))).toEqual({
+		expect(
+			countPresence(
+				sessions("failed", "interrupted"),
+				boardTaskIds(boardFor(2)),
+			),
+		).toEqual({ running: 0, readyForReview: 0 });
+	});
+
+	it("reports zero for an empty workspace", () => {
+		expect(countPresence({}, boardTaskIds(board()))).toEqual({
 			running: 0,
 			readyForReview: 0,
 		});
 	});
 
-	it("reports zero for an empty workspace", () => {
-		expect(countPresence({})).toEqual({ running: 0, readyForReview: 0 });
+	it("ignores sessions from a project that is no longer on the board", () => {
+		// App's `sessions` map is merged across project switches rather than
+		// replaced — `applyWorkspaceState` calls
+		// `mergeTaskSessionSummaries(current, incoming)` and only clears when
+		// there is no workspace at all. That merge is deliberate and guards a
+		// terminal-clearing regression, so the scoping has to happen here.
+		//
+		// Without it, switching projects leaves the previous project's running
+		// sessions in the count forever: the wake lock never releases and the
+		// dock badge counts work that is not on screen.
+		const merged = {
+			...sessions("running", "awaiting_review"),
+			"stale-running": { state: "running" } as RuntimeTaskSessionSummary,
+			"stale-review": {
+				state: "awaiting_review",
+			} as RuntimeTaskSessionSummary,
+		};
+
+		expect(countPresence(merged, boardTaskIds(boardFor(2)))).toEqual({
+			running: 1,
+			readyForReview: 1,
+		});
+	});
+
+	it("collects task ids from every column, not just one", () => {
+		const twoColumns: BoardData = {
+			columns: [
+				{
+					id: "in_progress",
+					title: "In progress",
+					cards: [{ id: "a" } as BoardCard],
+				},
+				{ id: "review", title: "Review", cards: [{ id: "b" } as BoardCard] },
+			],
+			dependencies: [],
+		};
+
+		expect(boardTaskIds(twoColumns)).toEqual(new Set(["a", "b"]));
 	});
 });
 
@@ -85,21 +151,24 @@ describe("useDesktopPresence", () => {
 
 	function Probe({
 		taskSessions,
+		boardData,
 	}: {
 		taskSessions: Record<string, RuntimeTaskSessionSummary>;
+		boardData: BoardData;
 	}): null {
-		useDesktopPresence(taskSessions);
+		useDesktopPresence(taskSessions, boardData);
 		return null;
 	}
 
 	function render(
 		taskSessions: Record<string, RuntimeTaskSessionSummary>,
 		desktop: DesktopApi | null = api,
+		boardData: BoardData = boardFor(Object.keys(taskSessions).length),
 	): void {
 		act(() => {
 			root.render(
 				<DesktopContext.Provider value={desktop}>
-					<Probe taskSessions={taskSessions} />
+					<Probe taskSessions={taskSessions} boardData={boardData} />
 				</DesktopContext.Provider>,
 			);
 		});
